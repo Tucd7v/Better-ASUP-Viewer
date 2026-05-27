@@ -30,7 +30,7 @@ export default function NodeRow({
       setLoading(true)
       getNodeSessions(clusterId, nodeId)
         .then((res) => {
-          setSessions(res.data ?? [])
+          setSessions(res.data?.sessions ?? res.data ?? [])
           setLoaded(true)
         })
         .catch(() => setSessions([]))
@@ -42,8 +42,8 @@ export default function NodeRow({
   return (
     <div
       style={{
-        background: '#16162a',
-        border: '1px solid #2a2a3e',
+        background: '#f8fafc',
+        border: '1px solid #e2e8f0',
         borderRadius: 6,
         overflow: 'hidden',
       }}
@@ -62,13 +62,13 @@ export default function NodeRow({
             style={{
               fontFamily: 'ui-monospace, Consolas, monospace',
               fontSize: 13,
-              color: '#e2e8f0',
+              color: '#1e293b',
             }}
           >
             {serialNum}
           </span>
           {osVersion && (
-            <span style={{ fontSize: 11, color: '#475569', marginLeft: 8 }}>
+            <span style={{ fontSize: 11, color: '#94a3b8', marginLeft: 8 }}>
               {osVersion}
             </span>
           )}
@@ -83,8 +83,8 @@ export default function NodeRow({
               fontSize: 12,
               color: '#3b82f6',
               textDecoration: 'none',
-              background: 'rgba(59,130,246,0.1)',
-              border: '1px solid rgba(59,130,246,0.3)',
+              background: 'rgba(59,130,246,0.08)',
+              border: '1px solid rgba(59,130,246,0.25)',
               borderRadius: 4,
               padding: '3px 8px',
             }}
@@ -96,7 +96,7 @@ export default function NodeRow({
           onClick={toggleHistory}
           style={{
             background: 'none',
-            border: '1px solid #2a2a3e',
+            border: '1px solid #e2e8f0',
             borderRadius: 4,
             color: '#64748b',
             cursor: 'pointer',
@@ -109,11 +109,11 @@ export default function NodeRow({
       </div>
 
       {expanded && (
-        <div style={{ borderTop: '1px solid #2a2a3e', padding: '8px 14px' }}>
+        <div style={{ borderTop: '1px solid #e2e8f0', padding: '8px 14px' }}>
           {loading ? (
-            <div style={{ color: '#475569', fontSize: 12, padding: '8px 0' }}>Loading…</div>
+            <div style={{ color: '#94a3b8', fontSize: 12, padding: '8px 0' }}>Loading…</div>
           ) : sessions.length === 0 ? (
-            <div style={{ color: '#475569', fontSize: 12, padding: '8px 0' }}>
+            <div style={{ color: '#94a3b8', fontSize: 12, padding: '8px 0' }}>
               No sessions found
             </div>
           ) : (
@@ -126,7 +126,8 @@ export default function NodeRow({
                     alignItems: 'center',
                     gap: 10,
                     padding: '6px 10px',
-                    background: '#0f0f1a',
+                    background: '#ffffff',
+                    border: '1px solid #f1f5f9',
                     borderRadius: 4,
                     flexWrap: 'wrap',
                   }}
@@ -135,7 +136,7 @@ export default function NodeRow({
                     <div
                       style={{
                         fontSize: 12,
-                        color: '#94a3b8',
+                        color: '#475569',
                         fontFamily: 'ui-monospace, Consolas, monospace',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
@@ -145,7 +146,7 @@ export default function NodeRow({
                     >
                       {s.original_filename}
                     </div>
-                    <div style={{ fontSize: 11, color: '#475569', marginTop: 2 }}>
+                    <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>
                       {formatDate(s.generated_on)} · {s.file_count} file
                       {s.file_count !== 1 ? 's' : ''}
                     </div>
@@ -155,10 +156,10 @@ export default function NodeRow({
                       to={`/viewer/group/${s.group_id}`}
                       style={{
                         fontSize: 11,
-                        color: '#93c5fd',
+                        color: '#2563eb',
                         textDecoration: 'none',
-                        background: 'rgba(147,197,253,0.08)',
-                        border: '1px solid rgba(147,197,253,0.2)',
+                        background: 'rgba(37,99,235,0.06)',
+                        border: '1px solid rgba(37,99,235,0.2)',
                         borderRadius: 3,
                         padding: '2px 6px',
                         whiteSpace: 'nowrap',

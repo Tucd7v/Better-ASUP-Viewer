@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import queue
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -32,10 +33,12 @@ def _parse_header_content(content: str) -> dict:
 
 
 def _parse_generated_on(raw: str) -> datetime | None:
-    try:
-        return datetime.strptime(raw.strip(), "%d%b%Y %H:%M:%S %z")
-    except Exception:
-        return None
+    for fmt in ("%d%b%Y %H:%M:%S %z", "%a %b %d %H:%M:%S %z %Y"):
+        try:
+            return datetime.strptime(raw.strip(), fmt)
+        except Exception:
+            continue
+    return None
 
 
 def classify_file(filename: str, first_line: str = "") -> str:
@@ -80,23 +83,26 @@ async def _find_header_file(files_dir: Path) -> Path | None:
 
 
 class ASUPParserService:
-    def __init__(self, session_id: str, files_dir: Path, progress_queue: asyncio.Queue):
+    def __init__(self, session_id: str, files_dir: Path, progress_queue: queue.Queue):
         self._session_id = session_id
         self._files_dir = files_dir
         self._queue = progress_queue
 
     async def _put(self, percent: int):
-        await self._queue.put({"stage": "parsing", "percent": percent})
+        self._queue.put({"stage": "parsing", "percent": percent})
 
     async def parse(self, db_session, session_row: Session) -> tuple[dict, list[FileRecord]]:
         await self._put(0)
 
+        print(f"[PARSER] looking for header in {self._files_dir}", flush=True)
         header_path = await _find_header_file(self._files_dir)
+        print(f"[PARSER] header_path={header_path}", flush=True)
         meta: dict = {}
         if header_path:
             async with aiofiles.open(header_path, "r", errors="replace") as f:
                 content = await f.read()
             meta = _parse_header_content(content)
+        print(f"[PARSER] meta={meta}", flush=True)
 
         hostname = meta.get("hostname", "unknown")
         os_version = meta.get("os_version", "")

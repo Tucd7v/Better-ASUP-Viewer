@@ -13,22 +13,24 @@ export default function NodeHUD({ sessions }: NodeHUDProps) {
         left: 12,
         zIndex: 10,
         pointerEvents: 'none',
-        background: 'rgba(0,0,0,0.45)',
+        background: 'rgba(255,255,255,0.85)',
         backdropFilter: 'blur(8px)',
         borderRadius: '0.75rem',
         padding: '10px 14px',
         fontFamily: 'ui-monospace, Consolas, monospace',
         fontSize: '0.75rem',
-        color: '#e2e8f0',
+        color: '#1e293b',
         minWidth: 180,
+        border: '1px solid #e2e8f0',
+        boxShadow: '0 1px 6px rgba(0,0,0,0.08)',
       }}
     >
       {sessions.length === 1 ? (
         <div>
-          <div style={{ color: '#94a3b8', marginBottom: 2 }}>
-            🖥 SN: <span style={{ color: '#e2e8f0' }}>{sessions[0].serialNum || '—'}</span>
+          <div style={{ color: '#64748b', marginBottom: 2 }}>
+            🖥 SN: <span style={{ color: '#1e293b' }}>{sessions[0].serialNum || '—'}</span>
           </div>
-          <div style={{ color: '#94a3b8' }}>
+          <div style={{ color: '#64748b' }}>
             {formatDate(sessions[0].generatedOn)}
           </div>
         </div>
@@ -36,13 +38,13 @@ export default function NodeHUD({ sessions }: NodeHUDProps) {
         sessions.map((s, i) => (
           <div key={s.sessionId}>
             {i > 0 && (
-              <div style={{ borderTop: '1px solid rgba(255,255,255,0.15)', margin: '6px 0' }} />
+              <div style={{ borderTop: '1px solid #e2e8f0', margin: '6px 0' }} />
             )}
-            <div style={{ color: '#94a3b8', marginBottom: 2 }}>
+            <div style={{ color: '#64748b', marginBottom: 2 }}>
               {i === 0 ? '🔵' : '🟠'} SN:{' '}
-              <span style={{ color: '#e2e8f0' }}>{s.serialNum || '—'}</span>
+              <span style={{ color: '#1e293b' }}>{s.serialNum || '—'}</span>
             </div>
-            <div style={{ color: '#94a3b8' }}>{formatDate(s.generatedOn)}</div>
+            <div style={{ color: '#64748b' }}>{formatDate(s.generatedOn)}</div>
           </div>
         ))
       )}

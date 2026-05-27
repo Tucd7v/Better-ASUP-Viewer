@@ -12,8 +12,8 @@ export default function ClusterCard({ cluster }: ClusterCardProps) {
   return (
     <div
       style={{
-        background: '#1e1e2e',
-        border: '1px solid #2a2a3e',
+        background: '#ffffff',
+        border: '1px solid #e2e8f0',
         borderRadius: 8,
         overflow: 'hidden',
         marginBottom: 12,
@@ -30,12 +30,12 @@ export default function ClusterCard({ cluster }: ClusterCardProps) {
           userSelect: 'none',
         }}
       >
-        <span style={{ color: '#64748b', fontSize: 12 }}>{expanded ? '▼' : '▶'}</span>
+        <span style={{ color: '#94a3b8', fontSize: 12 }}>{expanded ? '▼' : '▶'}</span>
         <span
           style={{
             fontFamily: 'ui-monospace, Consolas, monospace',
             fontSize: 13,
-            color: '#e2e8f0',
+            color: '#1e293b',
             flex: 1,
             overflow: 'hidden',
             textOverflow: 'ellipsis',
@@ -48,8 +48,8 @@ export default function ClusterCard({ cluster }: ClusterCardProps) {
           style={{
             fontSize: 11,
             color: '#64748b',
-            background: '#0f0f1a',
-            border: '1px solid #2a2a3e',
+            background: '#f1f5f9',
+            border: '1px solid #e2e8f0',
             borderRadius: 4,
             padding: '2px 8px',
           }}
@@ -61,7 +61,7 @@ export default function ClusterCard({ cluster }: ClusterCardProps) {
       {expanded && cluster.nodes?.length > 0 && (
         <div
           style={{
-            borderTop: '1px solid #2a2a3e',
+            borderTop: '1px solid #e2e8f0',
             padding: '10px 16px',
             display: 'flex',
             flexDirection: 'column',
@@ -84,9 +84,9 @@ export default function ClusterCard({ cluster }: ClusterCardProps) {
       {expanded && (!cluster.nodes || cluster.nodes.length === 0) && (
         <div
           style={{
-            borderTop: '1px solid #2a2a3e',
+            borderTop: '1px solid #e2e8f0',
             padding: '12px 16px',
-            color: '#475569',
+            color: '#94a3b8',
             fontSize: 13,
           }}
         >

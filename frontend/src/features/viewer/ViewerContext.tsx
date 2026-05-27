@@ -41,10 +41,14 @@ function reducer(state: ViewerState, action: Action): ViewerState {
               nodeColor: action.nodeColor,
             },
           ]
+      // All new cards start hidden — shown only when clicked in the sidebar
+      const newHidden = new Set(state.hiddenFileIds)
+      newFiles.forEach((f) => newHidden.add(f.id))
       return {
         ...state,
         sessions: newSessions,
         fileList: [...state.fileList, ...newFiles],
+        hiddenFileIds: newHidden,
       }
     }
     case 'HIDE_FILE': {

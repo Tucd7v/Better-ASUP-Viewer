@@ -2,19 +2,21 @@ from __future__ import annotations
 
 import asyncio
 import gzip
-import os
+import queue
 import shutil
 import tarfile
 from pathlib import Path
 
+import py7zr
+
 
 class ExtractService:
-    def __init__(self, session_id: str, progress_queue: asyncio.Queue):
+    def __init__(self, session_id: str, progress_queue: queue.Queue):
         self._session_id = session_id
         self._queue = progress_queue
 
     async def _put(self, stage: str, percent: int):
-        await self._queue.put({"stage": stage, "percent": percent})
+        self._queue.put({"stage": stage, "percent": percent})
 
     async def extract(self, archive_path: Path, dest_dir: Path) -> None:
         dest_dir.mkdir(parents=True, exist_ok=True)
@@ -23,7 +25,7 @@ class ExtractService:
         await self._put("extracting", 5)
 
         if name.endswith(".7z"):
-            await self._extract_7z(archive_path, dest_dir)
+            await asyncio.to_thread(self._extract_7z, archive_path, dest_dir)
         elif name.endswith(".tar.gz") or name.endswith(".tgz"):
             await asyncio.to_thread(self._extract_tar, archive_path, dest_dir)
         elif name.endswith(".tar"):
@@ -39,15 +41,10 @@ class ExtractService:
         await asyncio.to_thread(self._flatten, dest_dir)
         await self._put("extracting", 100)
 
-    async def _extract_7z(self, archive_path: Path, dest_dir: Path) -> None:
-        proc = await asyncio.create_subprocess_exec(
-            "7z", "x", str(archive_path), f"-o{dest_dir}", "-y",
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-        _, stderr = await proc.communicate()
-        if proc.returncode != 0:
-            raise RuntimeError(f"7z extraction failed: {stderr.decode(errors='replace')}")
+    @staticmethod
+    def _extract_7z(archive_path: Path, dest_dir: Path) -> None:
+        with py7zr.SevenZipFile(archive_path, mode="r") as z:
+            z.extractall(path=dest_dir)
 
     @staticmethod
     def _extract_tar(archive_path: Path, dest_dir: Path) -> None:
@@ -77,10 +74,16 @@ class ExtractService:
                     pass
             elif name_lower.endswith(".gz") and not name_lower.endswith(".tar.gz"):
                 try:
-                    stem = item.stem
-                    out_path = item.parent / stem
+                    out_path = item.parent / item.stem
                     with gzip.open(item, "rb") as gz_f:
                         out_path.write_bytes(gz_f.read())
+                    item.unlink()
+                except Exception:
+                    pass
+            elif name_lower.endswith(".7z"):
+                try:
+                    with py7zr.SevenZipFile(item, mode="r") as z:
+                        z.extractall(path=item.parent)
                     item.unlink()
                 except Exception:
                     pass

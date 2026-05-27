@@ -35,6 +35,9 @@ export default function FileTree({ onFocusFile }: FileTreeProps) {
     if (state.hiddenFileIds.has(file.id)) {
       dispatch({ type: 'SHOW_FILE', fileId: file.id })
     }
+    if (state.collapsedFileIds.has(file.id)) {
+      dispatch({ type: 'TOGGLE_COLLAPSE', fileId: file.id })
+    }
     onFocusFile(file.id)
   }
 
@@ -44,12 +47,12 @@ export default function FileTree({ onFocusFile }: FileTreeProps) {
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
-        background: '#13131f',
-        borderRight: '1px solid #2a2a3e',
+        background: '#f8fafc',
+        borderRight: '1px solid #e2e8f0',
         overflow: 'hidden',
       }}
     >
-      <div style={{ padding: '10px 12px', borderBottom: '1px solid #2a2a3e' }}>
+      <div style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0' }}>
         <input
           type="text"
           placeholder="Filter files…"
@@ -57,10 +60,10 @@ export default function FileTree({ onFocusFile }: FileTreeProps) {
           onChange={(e) => setSearch(e.target.value)}
           style={{
             width: '100%',
-            background: '#0f0f1a',
-            border: '1px solid #2a2a3e',
+            background: '#ffffff',
+            border: '1px solid #e2e8f0',
             borderRadius: 4,
-            color: '#e2e8f0',
+            color: '#1e293b',
             padding: '5px 8px',
             fontSize: 12,
             fontFamily: 'ui-monospace, Consolas, monospace',
@@ -79,7 +82,7 @@ export default function FileTree({ onFocusFile }: FileTreeProps) {
                 fontWeight: 600,
                 textTransform: 'uppercase',
                 letterSpacing: 1,
-                color: '#475569',
+                color: '#94a3b8',
               }}
             >
               {TYPE_LABELS[type] ?? type}
@@ -95,7 +98,7 @@ export default function FileTree({ onFocusFile }: FileTreeProps) {
                     cursor: 'pointer',
                     fontSize: 12,
                     fontFamily: 'ui-monospace, Consolas, monospace',
-                    color: isHidden ? '#475569' : '#cbd5e1',
+                    color: isHidden ? '#94a3b8' : '#334155',
                     background: 'transparent',
                     display: 'flex',
                     alignItems: 'center',
@@ -103,15 +106,12 @@ export default function FileTree({ onFocusFile }: FileTreeProps) {
                     transition: 'background 0.1s',
                   }}
                   onMouseEnter={(e) =>
-                    (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')
+                    (e.currentTarget.style.background = '#f1f5f9')
                   }
                   onMouseLeave={(e) =>
                     (e.currentTarget.style.background = 'transparent')
                   }
                 >
-                  {isHidden && (
-                    <span style={{ color: '#ef4444', fontSize: 10 }}>●</span>
-                  )}
                   <span
                     style={{
                       overflow: 'hidden',
@@ -129,7 +129,7 @@ export default function FileTree({ onFocusFile }: FileTreeProps) {
         ))}
         {state.fileList.length === 0 && (
           <div
-            style={{ padding: '16px 12px', color: '#475569', fontSize: 12, textAlign: 'center' }}
+            style={{ padding: '16px 12px', color: '#94a3b8', fontSize: 12, textAlign: 'center' }}
           >
             No files
           </div>

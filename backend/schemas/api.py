@@ -65,8 +65,7 @@ class EmsContentResponse(BaseModel):
 class XmlContentResponse(BaseModel):
     file_type: str = "xml"
     filename: str
-    columns: list[str]
-    rows: list[list[str]]
+    rows: list[dict[str, Any]]
 
 
 class NodeSummary(BaseModel):

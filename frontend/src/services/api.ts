@@ -2,6 +2,22 @@ import axios from 'axios'
 
 const api = axios.create({ baseURL: import.meta.env.VITE_API_URL ?? '' })
 
+api.interceptors.request.use((config) => {
+  console.log(`[API] ${config.method?.toUpperCase()} ${config.url}`)
+  return config
+})
+
+api.interceptors.response.use(
+  (res) => {
+    console.log(`[API] ${res.status} ${res.config.url}`, res.data)
+    return res
+  },
+  (err) => {
+    console.error(`[API] ERR ${err.config?.url}`, err.response?.status, err.response?.data)
+    return Promise.reject(err)
+  }
+)
+
 export const uploadFile = (file: File) => {
   const form = new FormData()
   form.append('file', file)
@@ -11,7 +27,7 @@ export const uploadFile = (file: File) => {
 }
 
 export const getSessionStatus = (sessionId: string) =>
-  api.get(`/api/v1/sessions/${sessionId}`)
+  api.get(`/api/v1/sessions/${sessionId}/status`)
 
 export const getFiles = (sessionId: string) =>
   api.get(`/api/v1/sessions/${sessionId}/files`)

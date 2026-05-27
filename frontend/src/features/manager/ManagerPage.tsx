@@ -14,7 +14,7 @@ export default function ManagerPage() {
     const t = setTimeout(() => {
       setLoading(true)
       getClusters(search || undefined)
-        .then((res) => setClusters(res.data ?? []))
+        .then((res) => setClusters(res.data?.clusters ?? []))
         .catch(() => setClusters([]))
         .finally(() => setLoading(false))
     }, 300)
@@ -25,8 +25,8 @@ export default function ManagerPage() {
     <div
       style={{
         minHeight: '100vh',
-        background: '#0f0f1a',
-        color: '#e2e8f0',
+        background: '#f1f5f9',
+        color: '#1e293b',
         fontFamily: 'system-ui, -apple-system, sans-serif',
       }}
     >
@@ -36,8 +36,8 @@ export default function ManagerPage() {
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '16px 24px',
-          borderBottom: '1px solid #2a2a3e',
-          background: '#13131f',
+          borderBottom: '1px solid #e2e8f0',
+          background: '#ffffff',
         }}
       >
         <h1
@@ -45,7 +45,7 @@ export default function ManagerPage() {
             margin: 0,
             fontSize: 20,
             fontWeight: 700,
-            color: '#e2e8f0',
+            color: '#1e293b',
             letterSpacing: '-0.3px',
           }}
         >
@@ -76,10 +76,10 @@ export default function ManagerPage() {
           onChange={(e) => setSearch(e.target.value)}
           style={{
             width: '100%',
-            background: '#1e1e2e',
-            border: '1px solid #2a2a3e',
+            background: '#ffffff',
+            border: '1px solid #e2e8f0',
             borderRadius: 6,
-            color: '#e2e8f0',
+            color: '#1e293b',
             padding: '10px 14px',
             fontSize: 14,
             outline: 'none',
@@ -89,7 +89,7 @@ export default function ManagerPage() {
         />
 
         {loading && (
-          <div style={{ color: '#475569', fontSize: 14, textAlign: 'center', padding: '20px 0' }}>
+          <div style={{ color: '#94a3b8', fontSize: 14, textAlign: 'center', padding: '20px 0' }}>
             Loading…
           </div>
         )}
@@ -99,7 +99,7 @@ export default function ManagerPage() {
             style={{
               textAlign: 'center',
               padding: '60px 20px',
-              color: '#475569',
+              color: '#94a3b8',
             }}
           >
             <div style={{ fontSize: 48, marginBottom: 16 }}>📂</div>

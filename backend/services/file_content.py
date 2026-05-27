@@ -85,36 +85,47 @@ class FileContentService:
     async def read_xml(file_path: Path, filename: str) -> dict:
         from lxml import etree
 
-        NS = "http://www.netapp.com/asup"
-
         async with aiofiles.open(file_path, "rb") as f:
             raw = await f.read()
 
         try:
             root = etree.fromstring(raw)
         except etree.XMLSyntaxError:
-            parser = etree.XMLParser(recover=True)
-            root = etree.fromstring(raw, parser=parser)
+            root = etree.fromstring(raw, etree.XMLParser(recover=True))
 
-        columns = []
-        for field in root.findall(f".//{{{NS}}}field"):
-            ui_name_el = field.find(f"{{{NS}}}ui_name")
-            if ui_name_el is not None and ui_name_el.text:
-                columns.append(ui_name_el.text)
+        asup_ns = root.nsmap.get("asup")
+        if asup_ns is None:
+            for uri in root.nsmap.values():
+                if uri and "asup" in uri.lower() and "ASUP" in uri:
+                    asup_ns = uri
+                    break
 
-        rows = []
-        for row in root.findall(f".//{{{NS}}}ROW"):
-            cells = []
-            for cell in row:
-                if len(cell) == 0:
-                    cells.append(cell.text or "")
-                else:
-                    cells.append(" ".join(c.text or "" for c in cell.iter() if c.text))
-            rows.append(cells)
+        if asup_ns:
+            # Build tag→ui_name mapping from TABLE_INFO fields
+            tag_to_col: dict[str, str] = {}
+            for field in root.findall(f".//{{{asup_ns}}}field"):
+                tag_el = field.find(f"{{{asup_ns}}}tag")
+                ui_el = field.find(f"{{{asup_ns}}}ui_name")
+                if tag_el is not None and tag_el.text and ui_el is not None and ui_el.text:
+                    tag_to_col[tag_el.text.strip()] = ui_el.text.strip()
 
-        return {
-            "file_type": "xml",
-            "filename": filename,
-            "columns": columns,
-            "rows": rows,
-        }
+            row_els = root.findall(f".//{{{asup_ns}}}ROW")
+            if tag_to_col and row_els:
+                columns = list(tag_to_col.values())
+                rows = []
+                for row_el in row_els:
+                    row_dict: dict[str, str] = {}
+                    for cell in row_el:
+                        local = etree.QName(cell).localname
+                        col_name = tag_to_col.get(local, local)
+                        row_dict[col_name] = cell.text or ""
+                    rows.append(row_dict)
+                return {"file_type": "xml", "filename": filename, "rows": rows}
+
+        # Not a tabular ASUP XML — pretty-print as text
+        try:
+            text = etree.tostring(root, pretty_print=True).decode("utf-8", errors="replace")
+        except Exception:
+            text = raw.decode("utf-8", errors="replace")
+        lines = text.splitlines()
+        return {"file_type": "text", "filename": filename, "total_lines": len(lines), "offset": 0, "lines": lines}

@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { NodeProps, Node } from '@xyflow/react'
 import { Handle, Position } from '@xyflow/react'
 import { getFileContent } from '../../../services/api'
+import { useResizable } from './useResizable'
 
 export interface TextFileCardData extends Record<string, unknown> {
   fileId: string
@@ -15,15 +16,34 @@ export interface TextFileCardData extends Record<string, unknown> {
 
 export type TextFileNode = Node<TextFileCardData, 'textFile'>
 
+function highlight(line: string, term: string): React.ReactNode {
+  if (!term) return line
+  const idx = line.toLowerCase().indexOf(term.toLowerCase())
+  if (idx === -1) return line
+  return (
+    <>
+      {line.slice(0, idx)}
+      <mark style={{ background: '#fbbf24', color: '#1e293b', borderRadius: 2 }}>
+        {line.slice(idx, idx + term.length)}
+      </mark>
+      {line.slice(idx + term.length)}
+    </>
+  )
+}
+
 export default function TextFileCard({ data }: NodeProps<TextFileNode>) {
   const { fileId, sessionId, filename, nodeColor, collapsed, onCollapse, onHide } = data
+  const { width, height, onResizeX, onResizeY } = useResizable(320, 340)
 
   const [lines, setLines] = useState<string[]>([])
   const [totalLines, setTotalLines] = useState(0)
   const [page, setPage] = useState(0)
   const [search, setSearch] = useState('')
+  const [matchIndex, setMatchIndex] = useState(0)
   const [loading, setLoading] = useState(false)
   const LIMIT = 500
+  const listRef = useRef<HTMLDivElement>(null)
+  const matchRefs = useRef<(HTMLDivElement | null)[]>([])
 
   useEffect(() => {
     if (collapsed) return
@@ -33,179 +53,170 @@ export default function TextFileCard({ data }: NodeProps<TextFileNode>) {
         const d = res.data
         if (Array.isArray(d.lines)) {
           setLines(d.lines)
-          setTotalLines(d.total ?? d.lines.length)
-        } else if (typeof d.content === 'string') {
-          const ls = d.content.split('\n')
-          setLines(ls)
-          setTotalLines(ls.length)
+          setTotalLines(d.total_lines ?? d.lines.length)
         }
       })
       .catch(() => setLines([]))
       .finally(() => setLoading(false))
   }, [fileId, sessionId, page, collapsed])
 
-  const filtered = search
-    ? lines.filter((l) => l.toLowerCase().includes(search.toLowerCase()))
-    : lines
+  const matchIndices = search
+    ? lines.reduce<number[]>((acc, l, i) => {
+        if (l.toLowerCase().includes(search.toLowerCase())) acc.push(i)
+        return acc
+      }, [])
+    : []
+
+  useEffect(() => { setMatchIndex(0) }, [search])
+
+  const scrollToMatch = (idx: number) => {
+    const el = matchRefs.current[matchIndices[idx]]
+    el?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+  }
 
   const totalPages = Math.max(1, Math.ceil(totalLines / LIMIT))
 
   return (
-    <div
-      style={{
-        background: '#1e1e2e',
-        border: '1px solid #2a2a3e',
-        borderLeft: `3px solid ${nodeColor}`,
-        borderRadius: 8,
-        minWidth: 300,
-        width: 320,
-        fontFamily: 'ui-monospace, Consolas, monospace',
-        fontSize: 12,
-        color: '#e2e8f0',
-        overflow: 'hidden',
-      }}
-    >
-      <Handle type="target" position={Position.Top} style={{ opacity: 0 }} />
+    <div style={{ position: 'relative', width, minWidth: 220 }}>
+      <Handle type="target" position={Position.Left} style={leftHandleStyle} />
+      <Handle type="source" position={Position.Right} style={rightHandleStyle} />
 
       <div
         style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
-          padding: '6px 10px',
-          background: '#16162a',
-          borderBottom: collapsed ? 'none' : '1px solid #2a2a3e',
-          cursor: 'default',
+          background: '#ffffff',
+          border: '1px solid #e2e8f0',
+          borderLeft: `3px solid ${nodeColor}`,
+          borderRadius: 8,
+          fontFamily: 'ui-monospace, Consolas, monospace',
+          fontSize: 12,
+          color: '#1e293b',
+          overflow: 'hidden',
         }}
       >
-        <span>📄</span>
-        <span
-          style={{
-            flex: 1,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-            color: '#cbd5e1',
-          }}
-          title={filename}
-        >
-          {filename}
-        </span>
-        <button
-          onClick={onCollapse}
-          style={btnStyle}
-          title={collapsed ? 'Expand' : 'Collapse'}
-        >
-          {collapsed ? '[+]' : '[−]'}
-        </button>
-        <button onClick={onHide} style={btnStyle} title="Hide">
-          [×]
-        </button>
+        {/* header */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', background: '#f8fafc', borderBottom: collapsed ? 'none' : '1px solid #e2e8f0' }}>
+          <span>📄</span>
+          <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#334155' }} title={filename}>
+            {filename}
+          </span>
+          <button onClick={onCollapse} style={btnStyle} title={collapsed ? 'Expand' : 'Collapse'}>
+            {collapsed ? '[+]' : '[−]'}
+          </button>
+          <button onClick={onHide} style={btnStyle} title="Hide">[×]</button>
+        </div>
+
+        {!collapsed && (
+          <div>
+            <div style={{ padding: '6px 10px', borderBottom: '1px solid #e2e8f0', display: 'flex', gap: 4 }} className="nodrag">
+              <input
+                type="text"
+                placeholder="Search…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                style={{ ...inputStyle, flex: 1 }}
+                className="nodrag"
+              />
+              {search && (
+                <>
+                  <span style={{ fontSize: 10, color: '#94a3b8', alignSelf: 'center', whiteSpace: 'nowrap' }}>
+                    {matchIndices.length === 0 ? '0/0' : `${matchIndex + 1}/${matchIndices.length}`}
+                  </span>
+                  <button style={navBtnStyle} disabled={matchIndices.length === 0} onClick={() => {
+                    const next = (matchIndex - 1 + matchIndices.length) % matchIndices.length
+                    setMatchIndex(next)
+                    scrollToMatch(next)
+                  }}>↑</button>
+                  <button style={navBtnStyle} disabled={matchIndices.length === 0} onClick={() => {
+                    const next = (matchIndex + 1) % matchIndices.length
+                    setMatchIndex(next)
+                    scrollToMatch(next)
+                  }}>↓</button>
+                </>
+              )}
+            </div>
+
+            <div ref={listRef} style={{ height, overflowY: 'auto', padding: '4px 0' }} className="nodrag nowheel">
+              {loading ? (
+                <div style={{ padding: '8px 10px', color: '#94a3b8' }}>Loading…</div>
+              ) : (
+                lines.map((line, i) => {
+                  const isMatch = search && line.toLowerCase().includes(search.toLowerCase())
+                  const isCurrent = isMatch && matchIndices[matchIndex] === i
+                  return (
+                    <div
+                      key={i}
+                      ref={(el) => { matchRefs.current[i] = el }}
+                      style={{
+                        display: 'flex',
+                        gap: 8,
+                        padding: '1px 10px',
+                        background: isCurrent ? 'rgba(251,191,36,0.2)' : isMatch ? 'rgba(251,191,36,0.08)' : 'transparent',
+                      }}
+                    >
+                      <span style={{ color: '#cbd5e1', minWidth: 36, textAlign: 'right', userSelect: 'none' }}>
+                        {page * LIMIT + i + 1}
+                      </span>
+                      <span style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+                        {highlight(line, search)}
+                      </span>
+                    </div>
+                  )
+                })
+              )}
+            </div>
+
+            {totalPages > 1 && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', borderTop: '1px solid #e2e8f0', color: '#94a3b8' }} className="nodrag">
+                <button onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={page === 0} style={navBtnStyle}>← Prev</button>
+                <span>{page + 1} / {totalPages}</span>
+                <button onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1} style={navBtnStyle}>Next →</button>
+              </div>
+            )}
+
+            <div
+              onMouseDown={onResizeY}
+              className="nodrag"
+              style={{ height: 6, cursor: 'ns-resize', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
+              <div style={{ width: 30, height: 2, borderRadius: 1, background: '#94a3b8' }} />
+            </div>
+          </div>
+        )}
       </div>
 
-      {!collapsed && (
-        <div>
-          <div style={{ padding: '6px 10px', borderBottom: '1px solid #2a2a3e' }}>
-            <input
-              type="text"
-              placeholder="Search..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              style={inputStyle}
-              className="nodrag"
-            />
-          </div>
-          <div
-            style={{
-              height: 320,
-              overflowY: 'auto',
-              padding: '4px 0',
-            }}
-            className="nodrag nowheel"
-          >
-            {loading ? (
-              <div style={{ padding: '8px 10px', color: '#64748b' }}>Loading…</div>
-            ) : (
-              filtered.map((line, i) => (
-                <div
-                  key={i}
-                  style={{ display: 'flex', gap: 8, padding: '1px 10px' }}
-                >
-                  <span style={{ color: '#475569', minWidth: 36, textAlign: 'right', userSelect: 'none' }}>
-                    {page * LIMIT + i + 1}
-                  </span>
-                  <span style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{line}</span>
-                </div>
-              ))
-            )}
-          </div>
-          {totalPages > 1 && !search && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '6px 10px',
-                borderTop: '1px solid #2a2a3e',
-                color: '#64748b',
-              }}
-              className="nodrag"
-            >
-              <button
-                onClick={() => setPage((p) => Math.max(0, p - 1))}
-                disabled={page === 0}
-                style={navBtnStyle}
-              >
-                ← Prev
-              </button>
-              <span>
-                {page + 1} / {totalPages}
-              </span>
-              <button
-                onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-                disabled={page >= totalPages - 1}
-                style={navBtnStyle}
-              >
-                Next →
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
-      <Handle type="source" position={Position.Bottom} style={{ opacity: 0 }} />
+      <div
+        onMouseDown={onResizeX}
+        className="nodrag"
+        style={{ position: 'absolute', top: 0, right: -4, width: 8, height: '100%', cursor: 'ew-resize', zIndex: 10 }}
+      />
     </div>
   )
 }
 
+const handleStyle: React.CSSProperties = {
+  width: 14,
+  height: 14,
+  background: '#ffffff',
+  border: '2px solid #94a3b8',
+  borderRadius: '50%',
+  cursor: 'crosshair',
+}
+
+const leftHandleStyle: React.CSSProperties = {
+  ...handleStyle,
+  transform: 'translate(calc(-50% - 10px), -50%)',
+}
+const rightHandleStyle: React.CSSProperties = {
+  ...handleStyle,
+  transform: 'translate(calc(50% + 10px), -50%)',
+}
+
 const btnStyle: React.CSSProperties = {
-  background: 'none',
-  border: 'none',
-  color: '#64748b',
-  cursor: 'pointer',
-  padding: '0 2px',
-  fontSize: 11,
-  fontFamily: 'ui-monospace, Consolas, monospace',
+  background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '0 2px', fontSize: 11, fontFamily: 'ui-monospace, Consolas, monospace',
 }
-
 const inputStyle: React.CSSProperties = {
-  width: '100%',
-  background: '#0f0f1a',
-  border: '1px solid #2a2a3e',
-  borderRadius: 4,
-  color: '#e2e8f0',
-  padding: '3px 6px',
-  fontSize: 11,
-  fontFamily: 'ui-monospace, Consolas, monospace',
-  outline: 'none',
+  width: '100%', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 4, color: '#1e293b', padding: '3px 6px', fontSize: 11, fontFamily: 'ui-monospace, Consolas, monospace', outline: 'none',
 }
-
 const navBtnStyle: React.CSSProperties = {
-  background: 'none',
-  border: 'none',
-  color: '#94a3b8',
-  cursor: 'pointer',
-  fontSize: 11,
-  padding: '2px 4px',
-  fontFamily: 'ui-monospace, Consolas, monospace',
+  background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: 11, padding: '2px 4px', fontFamily: 'ui-monospace, Consolas, monospace',
 }

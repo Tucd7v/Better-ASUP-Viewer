@@ -75,6 +75,8 @@ async def get_file_content(
 
     if record.file_type == "xml":
         data = await svc.read_xml(fp, record.filename)
+        if data["file_type"] == "text":
+            return TextContentResponse(**data)
         return XmlContentResponse(**data)
 
     return {"file_type": "unknown", "filename": record.filename, "note": "Cannot render this file type"}
