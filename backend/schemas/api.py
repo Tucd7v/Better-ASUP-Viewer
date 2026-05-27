@@ -99,6 +99,7 @@ class SessionSummary(BaseModel):
     original_filename: str
     file_count: int
     status: str
+    group_id: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
@@ -124,3 +125,30 @@ class SessionGroupOut(BaseModel):
 
 class SessionGroupsResponse(BaseModel):
     groups: list[SessionGroupOut]
+
+
+class ClusterGroupMember(BaseModel):
+    session_id: str
+    serial_num: str
+    hostname: str
+    generated_on: Optional[datetime]
+    original_filename: str
+    file_count: int
+    status: str
+
+
+class ClusterGroupSummary(BaseModel):
+    id: str
+    created_at: datetime
+    members: list[ClusterGroupMember]
+
+
+class ClusterOverviewResponse(BaseModel):
+    cluster_id: str
+    last_seen: datetime
+    groups: list[ClusterGroupSummary]      # paired sessions (±20 min)
+    singles: list[ClusterGroupMember]      # sessions without a pair
+
+
+class ClusterGroupsResponse(BaseModel):
+    groups: list[ClusterGroupSummary]

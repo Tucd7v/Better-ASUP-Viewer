@@ -97,11 +97,16 @@ class ASUPParserService:
         print(f"[PARSER] looking for header in {self._files_dir}", flush=True)
         header_path = await _find_header_file(self._files_dir)
         print(f"[PARSER] header_path={header_path}", flush=True)
-        meta: dict = {}
-        if header_path:
-            async with aiofiles.open(header_path, "r", errors="replace") as f:
-                content = await f.read()
-            meta = _parse_header_content(content)
+
+        if header_path is None:
+            raise ValueError(
+                "Not a valid ASUP archive: no X-HEADER-DATA.TXT or X-Netapp-asup-hostname header found. "
+                "Please upload a NetApp AutoSupport (.7z / .tgz) file."
+            )
+
+        async with aiofiles.open(header_path, "r", errors="replace") as f:
+            content = await f.read()
+        meta = _parse_header_content(content)
         print(f"[PARSER] meta={meta}", flush=True)
 
         hostname = meta.get("hostname", "unknown")

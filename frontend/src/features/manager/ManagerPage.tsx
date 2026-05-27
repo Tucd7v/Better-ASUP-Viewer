@@ -9,6 +9,7 @@ export default function ManagerPage() {
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(false)
   const [showUpload, setShowUpload] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -19,7 +20,7 @@ export default function ManagerPage() {
         .finally(() => setLoading(false))
     }, 300)
     return () => clearTimeout(t)
-  }, [search])
+  }, [search, refreshKey])
 
   return (
     <div
@@ -112,11 +113,16 @@ export default function ManagerPage() {
 
         {!loading &&
           clusters.map((cluster) => (
-            <ClusterCard key={cluster.id} cluster={cluster} />
+            <ClusterCard key={cluster.id} cluster={cluster} onDeleted={() => setRefreshKey((k) => k + 1)} />
           ))}
       </div>
 
-      {showUpload && <UploadDialog onClose={() => setShowUpload(false)} />}
+      {showUpload && (
+        <UploadDialog
+          onClose={() => setShowUpload(false)}
+          onDone={() => setRefreshKey((k) => k + 1)}
+        />
+      )}
     </div>
   )
 }

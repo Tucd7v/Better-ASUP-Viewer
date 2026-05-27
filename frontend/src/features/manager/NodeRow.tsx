@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { getNodeSessions } from '../../services/api'
+import { getNodeSessions, deleteSession } from '../../services/api'
 import type { Session } from '../../types'
 
 interface NodeRowProps {
@@ -24,6 +24,19 @@ export default function NodeRow({
   const [sessions, setSessions] = useState<Session[]>([])
   const [loading, setLoading] = useState(false)
   const [loaded, setLoaded] = useState(false)
+
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+
+  const handleDelete = async (sessionId: string) => {
+    if (!window.confirm('Delete this session and all its files?')) return
+    setDeletingId(sessionId)
+    try {
+      await deleteSession(sessionId)
+      setSessions((prev) => prev.filter((s) => s.id !== sessionId))
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
   const toggleHistory = () => {
     if (!expanded && !loaded) {
@@ -179,6 +192,21 @@ export default function NodeRow({
                   >
                     →
                   </Link>
+                  <button
+                    onClick={() => handleDelete(s.id)}
+                    disabled={deletingId === s.id}
+                    title="Delete session"
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: deletingId === s.id ? '#cbd5e1' : '#f87171',
+                      cursor: deletingId === s.id ? 'wait' : 'pointer',
+                      fontSize: 13,
+                      padding: '0 2px',
+                    }}
+                  >
+                    🗑
+                  </button>
                 </div>
               ))}
             </div>
@@ -192,7 +220,14 @@ export default function NodeRow({
 function formatDate(iso: string): string {
   if (!iso) return '—'
   try {
-    return new Date(iso).toLocaleDateString()
+    const d = new Date(iso)
+    const yyyy = d.getFullYear()
+    const mm = String(d.getMonth() + 1).padStart(2, '0')
+    const dd = String(d.getDate()).padStart(2, '0')
+    const hh = String(d.getHours()).padStart(2, '0')
+    const min = String(d.getMinutes()).padStart(2, '0')
+    const ss = String(d.getSeconds()).padStart(2, '0')
+    return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`
   } catch {
     return iso
   }

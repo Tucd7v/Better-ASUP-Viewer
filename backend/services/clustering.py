@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.db import Session, SessionGroup, SessionGroupMember
 
-GROUPING_WINDOW = timedelta(hours=1)
+GROUPING_WINDOW = timedelta(minutes=20)
 
 
 class ClusteringService:

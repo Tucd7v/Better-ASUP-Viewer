@@ -39,3 +39,26 @@ export interface Session {
   status: string
   group_id?: string
 }
+
+export interface ClusterGroupMember {
+  session_id: string
+  serial_num: string
+  hostname: string
+  generated_on: string | null
+  original_filename: string
+  file_count: number
+  status: string
+}
+
+export interface ClusterGroup {
+  id: string
+  created_at: string
+  members: ClusterGroupMember[]
+}
+
+export interface ClusterOverview {
+  cluster_id: string
+  last_seen: string
+  groups: ClusterGroup[]
+  singles: ClusterGroupMember[]
+}

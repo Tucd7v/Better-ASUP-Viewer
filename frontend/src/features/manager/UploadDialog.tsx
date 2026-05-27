@@ -1,15 +1,14 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { uploadFile } from '../../services/api'
 
 interface UploadDialogProps {
   onClose: () => void
+  onDone?: () => void
 }
 
 type Stage = 'idle' | 'uploading' | 'processing' | 'done' | 'error'
 
-export default function UploadDialog({ onClose }: UploadDialogProps) {
-  const navigate = useNavigate()
+export default function UploadDialog({ onClose, onDone }: UploadDialogProps) {
   const [file, setFile] = useState<File | null>(null)
   const [stage, setStage] = useState<Stage>('idle')
   const [progress, setProgress] = useState(0)
@@ -58,7 +57,8 @@ export default function UploadDialog({ onClose }: UploadDialogProps) {
         es.close()
         setStage('done')
         setProgress(100)
-        navigate(`/viewer/${sessionId}`)
+        setStageText('Done!')
+        setTimeout(() => { onDone?.(); onClose() }, 800)
       })
 
       es.addEventListener('error', (ev) => {
@@ -80,7 +80,7 @@ export default function UploadDialog({ onClose }: UploadDialogProps) {
       es.onerror = (ev) => {
         console.error('[SSE] connection error:', ev, 'readyState:', es.readyState)
         if (es.readyState === EventSource.CLOSED) {
-          navigate(`/viewer/${sessionId}`)
+          onDone?.(); onClose()
         }
       }
     } catch (err: unknown) {

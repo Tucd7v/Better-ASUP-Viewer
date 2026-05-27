@@ -47,4 +47,13 @@ export const getClusters = (q?: string) =>
 export const getNodeSessions = (clusterId: string, nodeId: string) =>
   api.get(`/api/v1/clusters/${clusterId}/nodes/${nodeId}/sessions`)
 
+export const getClusterGroups = (clusterId: string) =>
+  api.get(`/api/v1/clusters/${clusterId}/groups`)
+
+export const getClusterOverview = (clusterId: string) =>
+  api.get(`/api/v1/clusters/${clusterId}/overview`)
+
+export const deleteSession = (sessionId: string) =>
+  api.delete(`/api/v1/sessions/${sessionId}`)
+
 export default api
