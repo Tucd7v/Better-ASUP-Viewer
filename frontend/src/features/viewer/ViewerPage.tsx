@@ -214,10 +214,17 @@ function ViewerInner() {
         const cx = (-vp.x + canvasW / 2) / vp.zoom
         const cy = (-vp.y + canvasH / 2) / vp.zoom
 
-        const offset = (_spawnOffset % 6) * 30
+        // 3-column grid layout for spawned cards
+        const col = _spawnOffset % 3
+        const row = Math.floor(_spawnOffset / 3)
         _spawnOffset++
 
-        const position = { x: cx - CARD_W / 2 + offset, y: cy - CARD_H / 2 + offset }
+        const gapX = CARD_W + 40
+        const gapY = CARD_H + 20
+        const position = {
+          x: cx - gapX + col * gapX,
+          y: cy - gapY + row * gapY,
+        }
         const newNode = buildNode(meta.file, position, meta.sessionId, meta.nodeColor, dispatch)
 
         setTimeout(() => fitView({ nodes: [newNode], padding: 0.3, duration: 400 }), 50)
