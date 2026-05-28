@@ -497,11 +497,7 @@ function ViewerInner() {
       />
 
       <main className="viewer-main" style={{ position: 'relative' }}>
-        <NodeHUD sessions={sessions} onClearCanvas={() => {
-          setNodes([])
-          setEdges([])
-          _spawnOffset = 0
-        }} />
+        <NodeHUD sessions={sessions} />
 
         {/* Template bar */}
         <div className="template-bar nodrag" style={{
@@ -509,6 +505,17 @@ function ViewerInner() {
           padding: '6px 16px', background: '#f8fafc',
           borderBottom: '1px solid #e2e8f0', fontSize: 12,
         }}>
+          <button
+            onClick={() => { setNodes([]); setEdges([]); _spawnOffset = 0 }}
+            title="关闭所有卡片"
+            style={{
+              background: 'none', border: '1px solid #e2e8f0', borderRadius: 4,
+              color: '#94a3b8', cursor: 'pointer', padding: '3px 8px',
+              fontSize: 11, fontFamily: 'ui-monospace, Consolas, monospace',
+            }}
+          >
+            ✕ Clear
+          </button>
           <input
             type="text"
             placeholder="Template name..."
