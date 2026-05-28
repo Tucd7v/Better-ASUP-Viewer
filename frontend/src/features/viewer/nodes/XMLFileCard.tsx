@@ -439,3 +439,6 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
   )
 }
 
+const btnStyle: React.CSSProperties = {
+  background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '0 2px', fontSize: 11, fontFamily: 'ui-monospace, Consolas, monospace',
+}
