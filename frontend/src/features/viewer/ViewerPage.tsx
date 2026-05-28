@@ -105,7 +105,7 @@ function ViewerInner() {
   const [editingEdgeId, setEditingEdgeId] = useState<string | null>(null)
   const [editingLabel, setEditingLabel] = useState('')
   const [showAI, setShowAI] = useState(false)
-  const [aiPanelWidth, setAiPanelWidth] = useState(360)
+  const [aiPanelWidth, setAiPanelWidth] = useState(450)
 
   useEffect(() => {
     async function load() {
@@ -214,17 +214,10 @@ function ViewerInner() {
         const cx = (-vp.x + canvasW / 2) / vp.zoom
         const cy = (-vp.y + canvasH / 2) / vp.zoom
 
-        // 3-column grid layout for spawned cards
-        const col = _spawnOffset % 3
-        const row = Math.floor(_spawnOffset / 3)
+        const offset = (_spawnOffset % 6) * 30
         _spawnOffset++
 
-        const gapX = CARD_W + 40
-        const gapY = CARD_H + 20
-        const position = {
-          x: cx - gapX + col * gapX,
-          y: cy - gapY + row * gapY,
-        }
+        const position = { x: cx - CARD_W / 2 + offset, y: cy - CARD_H / 2 + offset }
         const newNode = buildNode(meta.file, position, meta.sessionId, meta.nodeColor, dispatch)
 
         setTimeout(() => fitView({ nodes: [newNode], padding: 0.3, duration: 400 }), 50)
@@ -449,7 +442,7 @@ function ViewerInner() {
     const startWidth = aiPanelWidth
     const onMove = (ev: MouseEvent) => {
       const delta = startX - ev.clientX
-      setAiPanelWidth(Math.max(280, Math.min(600, startWidth + delta)))
+      setAiPanelWidth(Math.max(280, Math.min(1000, startWidth + delta)))
     }
     const onUp = () => {
       window.removeEventListener('mousemove', onMove)
