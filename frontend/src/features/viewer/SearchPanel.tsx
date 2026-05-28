@@ -46,7 +46,7 @@ export default function SearchPanel({ sessions, onFocusFile }: SearchPanelProps)
   }
 
   const grouped = results.reduce<Record<string, SearchMatch[]>>((acc, m) => {
-    const key = m.filename
+    const key = m.hostname ? `${m.filename} @ ${m.hostname}` : m.filename
     if (!acc[key]) acc[key] = []
     acc[key].push(m)
     return acc
