@@ -76,4 +76,22 @@ class SearchService:
                     if len(matches) >= max_matches:
                         break
 
+        else:
+            # Fallback: read as text for unknown/other file types
+            try:
+                data = await svc.read_text(fp, record.filename, offset=0, limit=5000)
+                for i, line in enumerate(data.get("lines", [])):
+                    if q in line.lower():
+                        start = max(0, line.lower().index(q) - 30)
+                        end = min(len(line), line.lower().index(q) + len(q) + 30)
+                        snippet = line[start:end].strip()
+                        matches.append({
+                            "line": i + 1,
+                            "context": snippet,
+                        })
+                        if len(matches) >= max_matches:
+                            break
+            except Exception:
+                pass
+
         return matches
