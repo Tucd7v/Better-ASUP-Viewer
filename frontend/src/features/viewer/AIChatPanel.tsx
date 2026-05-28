@@ -298,17 +298,17 @@ export default function AIChatPanel({ sessionIds, groupSessions, onFocusFile, on
         {messages.map((msg, i) => (
           <div key={i} style={{
             background: msg.role === 'user' ? '#eff6ff' : msg.role === 'assistant' ? '#f8fafc' : '#fff7ed',
-            borderRadius: 8, padding: '8px 12px', fontSize: 12, lineHeight: 1.6,
+            borderRadius: 8, padding: '8px 12px', fontSize: 14, lineHeight: 1.6,
             color: '#1e293b', maxWidth: '100%', wordBreak: 'break-word',
             border: msg.role === 'user' ? '1px solid #bfdbfe' : '1px solid #e2e8f0',
           }}>
-            <div style={{ fontSize: 10, color: '#94a3b8', marginBottom: 4, fontWeight: 600 }}>
+            <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 4, fontWeight: 600 }}>
               {msg.role === 'user' ? '你' : msg.role === 'assistant' ? 'AI' : ''}
             </div>
             {msg.role === 'assistant' && msg.toolCalls ? (
               <div style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
             ) : msg.role === 'assistant' ? (
-              <div className="markdown-body" style={{ fontSize: 12, lineHeight: 1.7 }}>
+              <div className="markdown-body" style={{ fontSize: 14, lineHeight: 1.7 }}>
                 <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>{msg.content}</ReactMarkdown>
               </div>
             ) : (
