@@ -4,50 +4,55 @@ interface NodeHUDProps {
   sessions: SessionMeta[]
 }
 
+const NODE_COLORS = {
+  blue: '#3b82f6',
+  orange: '#f97316',
+} as const
+
 export default function NodeHUD({ sessions }: NodeHUDProps) {
+  const rows = sessions.length
+    ? sessions
+    : [
+        {
+          sessionId: '',
+          serialNum: '',
+          generatedOn: '',
+          nodeColor: 'blue' as const,
+          hostname: 'NodeA',
+          status: 'healthy',
+        },
+      ]
+
+  const primary = rows[0]
+  const clusterLabel = primary?.clusterId || 'PROD-01'
+  const asupTime = rows.find((s) => s.generatedOn)?.generatedOn ?? ''
+
   return (
-    <div
-      style={{
-        position: 'absolute',
-        top: 12,
-        left: 12,
-        zIndex: 10,
-        pointerEvents: 'none',
-        background: 'rgba(255,255,255,0.85)',
-        backdropFilter: 'blur(8px)',
-        borderRadius: '0.75rem',
-        padding: '10px 14px',
-        fontFamily: 'ui-monospace, Consolas, monospace',
-        fontSize: '0.75rem',
-        color: '#1e293b',
-        minWidth: 180,
-        border: '1px solid #e2e8f0',
-        boxShadow: '0 1px 6px rgba(0,0,0,0.08)',
-      }}
-    >
-      {sessions.length === 1 ? (
-        <div>
-          <div style={{ color: '#64748b', marginBottom: 2 }}>
-            🖥 SN: <span style={{ color: '#1e293b' }}>{sessions[0].serialNum || '—'}</span>
+    <div className="node-hud-bar">
+      <div className="hud-cluster">
+        <span className="hud-label">Cluster:</span>
+        <span className="hud-cluster-name">{clusterLabel}</span>
+      </div>
+
+      {rows.slice(0, 2).map((session, index) => {
+        const color = session.nodeColor ?? (index === 0 ? 'blue' : 'orange')
+        const nodeName = session.hostname || (index === 0 ? 'NodeA' : 'NodeB')
+        return (
+          <div className="hud-node" key={session.sessionId || nodeName}>
+            <span
+              className="hud-node-dot"
+              style={{ backgroundColor: NODE_COLORS[color] }}
+            />
+            <span className="hud-node-name">{nodeName}</span>
+            <span className="hud-node-serial">{shortSerial(session.serialNum || session.sessionId)}</span>
           </div>
-          <div style={{ color: '#64748b' }}>
-            {formatDate(sessions[0].generatedOn)}
-          </div>
-        </div>
-      ) : (
-        sessions.map((s, i) => (
-          <div key={s.sessionId}>
-            {i > 0 && (
-              <div style={{ borderTop: '1px solid #e2e8f0', margin: '6px 0' }} />
-            )}
-            <div style={{ color: '#64748b', marginBottom: 2 }}>
-              {i === 0 ? '🔵' : '🟠'} SN:{' '}
-              <span style={{ color: '#1e293b' }}>{s.serialNum || '—'}</span>
-            </div>
-            <div style={{ color: '#64748b' }}>{formatDate(s.generatedOn)}</div>
-          </div>
-        ))
-      )}
+        )
+      })}
+
+      <div className="hud-asup">
+        <span className="hud-label">ASUP:</span>
+        <span>{formatDate(asupTime)}</span>
+      </div>
     </div>
   )
 }
@@ -65,4 +70,9 @@ function formatDate(iso: string): string {
   } catch {
     return iso
   }
+}
+
+function shortSerial(value: string): string {
+  if (!value) return '—'
+  return value.length > 13 ? `${value.slice(0, 6)}…${value.slice(-4)}` : value
 }

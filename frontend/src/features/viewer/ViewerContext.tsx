@@ -28,7 +28,9 @@ function reducer(state: ViewerState, action: Action): ViewerState {
   switch (action.type) {
     case 'SET_FILES': {
       const existingIds = new Set(state.fileList.map((f) => f.id))
-      const newFiles = action.files.filter((f) => !existingIds.has(f.id))
+      const newFiles = action.files
+        .filter((f) => !existingIds.has(f.id))
+        .map((f) => ({ ...f, sessionId: action.sessionId, nodeColor: action.nodeColor }))
       const sessionExists = state.sessions.find((s) => s.sessionId === action.sessionId)
       const newSessions = sessionExists
         ? state.sessions

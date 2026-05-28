@@ -78,12 +78,20 @@ function ViewerInner() {
     [setEdges]
   )
   const [sessions, setSessions] = useState<SessionMeta[]>([])
-  const [sidebarWidth, setSidebarWidth] = useState(220)
+  const [sidebarWidth, setSidebarWidth] = useState(245)
   const dragging = useRef(false)
   const fileMetaRef = useRef<Map<string, { sessionId: string; nodeColor: string; file: FileRecord }>>(new Map())
   const { fitView, getViewport } = useReactFlow()
+  const clusterName = sessions.find((s) => s.clusterId)?.clusterId || 'PROD-01'
 
-  const [groupSessions, setGroupSessions] = useState<{id: string; color: 'blue' | 'orange'}[]>([])
+  const [groupSessions, setGroupSessions] = useState<{
+    id: string
+    color: 'blue' | 'orange'
+    hostname?: string
+    serialNum?: string
+    generatedOn?: string
+    status?: string
+  }[]>([])
 
   useEffect(() => {
     async function load() {
@@ -93,9 +101,19 @@ function ViewerInner() {
         try {
           const res = await getSessionGroup(params.groupId)
           const members = res.data.members
-          const entries = members.map((m: {session_id: string}, i: number) => ({
+          const entries = members.map((m: {
+            session_id: string
+            hostname?: string
+            serial_num?: string
+            generated_on?: string
+            status?: string
+          }, i: number) => ({
             id: m.session_id,
             color: (i === 0 ? 'blue' : 'orange') as 'blue' | 'orange',
+            hostname: m.hostname,
+            serialNum: m.serial_num,
+            generatedOn: m.generated_on,
+            status: m.status,
           }))
           setGroupSessions(entries)
         } catch (err) {
@@ -107,7 +125,7 @@ function ViewerInner() {
   }, [params.sessionId, params.groupId])
 
   useEffect(() => {
-    groupSessions.forEach(({ id, color }) => {
+    groupSessions.forEach(({ id, color, hostname, serialNum, generatedOn, status }) => {
       Promise.all([
         getSessionStatus(id).catch(() => null),
         getFiles(id),
@@ -118,9 +136,13 @@ function ViewerInner() {
 
         const meta: SessionMeta = {
           sessionId: id,
-          serialNum: sessionData?.serial_num ?? '',
-          generatedOn: sessionData?.generated_on ?? '',
+          serialNum: serialNum ?? sessionData?.serial_num ?? '',
+          generatedOn: generatedOn ?? sessionData?.generated_on ?? '',
           nodeColor: color,
+          hostname: hostname ?? sessionData?.hostname ?? '',
+          status: status ?? sessionData?.status ?? '',
+          fileCount: sessionData?.file_count,
+          clusterId: sessionData?.cluster_id,
         }
 
         setSessions((prev) => {
@@ -164,7 +186,7 @@ function ViewerInner() {
 
         const vp = getViewport()
         const canvasW = window.innerWidth - sidebarWidth - 4
-        const canvasH = window.innerHeight
+        const canvasH = window.innerHeight - 56
 
         const cx = (-vp.x + canvasW / 2) / vp.zoom
         const cy = (-vp.y + canvasH / 2) / vp.zoom
@@ -210,9 +232,9 @@ function ViewerInner() {
   }
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: '#f1f5f9' }}>
+    <div className="viewer-layout">
       <div style={{ width: sidebarWidth, flexShrink: 0 }}>
-        <FileTree onFocusFile={handleFocusFile} />
+        <FileTree sessions={sessions} clusterName={clusterName} onFocusFile={handleFocusFile} />
       </div>
 
       <div
@@ -228,36 +250,38 @@ function ViewerInner() {
         onMouseLeave={(e) => (e.currentTarget.style.background = '#e2e8f0')}
       />
 
-      <div style={{ flex: 1, position: 'relative' }}>
+      <main className="viewer-main">
         <NodeHUD sessions={sessions} />
 
-        <ReactFlow
-          nodes={visibleNodes}
-          edges={edges}
-          nodeTypes={nodeTypes}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          fitView={false}
-          minZoom={0.1}
-          maxZoom={2}
-          style={{ background: '#f1f5f9' }}
-          deleteKeyCode={null}
-        >
-          <Background variant={BackgroundVariant.Dots} color="#cbd5e1" />
-          <Controls position="bottom-left" />
-          <MiniMap
-            position="bottom-right"
-            pannable
-            zoomable
-            nodeColor={(n) => {
-              const color = (n.data as { nodeColor?: string }).nodeColor
-              return color ?? '#3b82f6'
-            }}
-            style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}
-          />
-        </ReactFlow>
-      </div>
+        <div className="viewer-canvas">
+          <ReactFlow
+            nodes={visibleNodes}
+            edges={edges}
+            nodeTypes={nodeTypes}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            fitView={false}
+            minZoom={0.1}
+            maxZoom={2}
+            style={{ background: '#f7f9fc' }}
+            deleteKeyCode={null}
+          >
+            <Background variant={BackgroundVariant.Dots} color="#d6dde8" />
+            <Controls position="bottom-left" />
+            <MiniMap
+              position="bottom-right"
+              pannable
+              zoomable
+              nodeColor={(n) => {
+                const color = (n.data as { nodeColor?: string }).nodeColor
+                return color ?? '#3b82f6'
+              }}
+              style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}
+            />
+          </ReactFlow>
+        </div>
+      </main>
     </div>
   )
 }

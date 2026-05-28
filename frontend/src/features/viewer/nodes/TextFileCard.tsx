@@ -33,7 +33,7 @@ function highlight(line: string, term: string): React.ReactNode {
 
 export default function TextFileCard({ data }: NodeProps<TextFileNode>) {
   const { fileId, sessionId, filename, nodeColor, collapsed, onCollapse, onHide } = data
-  const { width, height, onResizeX, onResizeY } = useResizable(320, 340)
+  const { width, height, onResizeX, onResizeY } = useResizable(900, 340)
 
   const [lines, setLines] = useState<string[]>([])
   const [totalLines, setTotalLines] = useState(0)

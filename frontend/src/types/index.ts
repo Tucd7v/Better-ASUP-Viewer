@@ -4,6 +4,8 @@ export interface FileRecord {
   file_type: 'text' | 'ems' | 'xml' | 'unknown'
   file_size: number
   is_empty: boolean
+  sessionId?: string
+  nodeColor?: 'blue' | 'orange'
 }
 
 export interface EMSEvent {
@@ -20,6 +22,10 @@ export interface SessionMeta {
   serialNum: string
   generatedOn: string
   nodeColor: 'blue' | 'orange'
+  hostname?: string
+  status?: string
+  fileCount?: number
+  clusterId?: string
 }
 
 export interface Cluster {
