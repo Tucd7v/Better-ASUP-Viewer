@@ -24,7 +24,7 @@ router = APIRouter(tags=["chat"])
 # ---------------------------------------------------------------------------
 
 CATEGORY_PATTERNS: list[tuple[str, list[str]]] = [
-    ("事件类/EMS", ["ems"]),
+    ("事件类/EMS", ["ems", "event-", "notifyd"]),
     ("网络类", [
         "ifconfig", "ifstat", "netstat", "ifgrp", "vlan", "lif", "port", "route",
         "bgp", "ipsec", "fabriclink", "cdpd", "reachability", "ipspace", "nwd",
@@ -32,6 +32,7 @@ CATEGORY_PATTERNS: list[tuple[str, list[str]]] = [
         "vlans", "vsun", "ntp", "pcpconfig", "strongswan", "vifmgr", "vif-ids",
         "vs-failover", "ipfilter", "firewall", "net-object", "cdb-net", "ioxm",
         "ethernet", "svm-migrate-network",
+        "netsetup", "ipcache",
     ]),
     ("存储类", [
         "disk", "aggr", "volume", "storage", "raid", "snapshot", "snapmirror",
@@ -39,6 +40,7 @@ CATEGORY_PATTERNS: list[tuple[str, list[str]]] = [
         "cross-volume", "qtree", "flexgroup", "copy-offload", "garbage-collection",
         "familyTable", "snaplock", "vvol", "junctionTable", "arw", "smdb",
         "cps-st", "snap-list", "snap-status", "snap-reserve", "snap-sched",
+        "vol-", "backup", "cm-daemon", "vldb",
     ]),
     ("服务类", [
         "vserver", "nfs", "cifs", "snmp", "ldap", "kerberos", "ssh", "certificate",
@@ -47,6 +49,7 @@ CATEGORY_PATTERNS: list[tuple[str, list[str]]] = [
         "diff-svcs", "session-limit", "pubsub", "unix-user", "unix-group",
         "nisdb", "ns-cache", "nsswitch", "name-service", "ndo", "security",
         "kmip", "ocsp", "secd", "tpm",
+        "crs-", "application-record", "multi-admin", "session-",
     ]),
     ("集群/HA", [
         "cluster", "ha-", "ha_", "bcomd", "boottimes", "license", "upgrade",
@@ -60,9 +63,10 @@ CATEGORY_PATTERNS: list[tuple[str, list[str]]] = [
         "capability-summary", "aps-node", "system-info", "system-manager",
         "node_root", "spmd", "var-etc", "sysmgr", "software_image",
         "DEVICE-INFO", "process-memory",
+        "frs-", "memerr",
     ]),
     ("性能统计", [
-        "perf", "vmstat", "top_", "usage", "stats", "counters", "spinhi",
+        "perf", "vm-", "vmstat", "top_", "usage", "stats", "counters", "spinhi",
         "hwassist", "ps-ax", "sockstat",
     ]),
     ("适配器/硬件", [
