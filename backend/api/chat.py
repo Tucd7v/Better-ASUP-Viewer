@@ -154,6 +154,35 @@ async def _resolve_session_ids(session_ids: list[str], group_id: str | None) -> 
     return []
 
 
+# Special file descriptions — helps AI understand what each file contains
+FILE_DESCRIPTIONS: dict[str, str] = {
+    "DF": "所有Volume及其快照的大小占用",
+    "DF-A": "Aggregate级别的大小信息",
+    "DF-AS": "Efficiency节省的Aggregate空间",
+    "DF-S": "卷的Efficiency节省空间",
+    "DF-I": "卷Inodes使用情况",
+    "DF-R": "卷的空间使用详情",
+    "AGGR-STATUS-R": "Aggregate RAID状态",
+    "AGGR-STATUS-S": "Aggregate Snapshot状态",
+    "AGGR-STATUS-V": "Aggregate Volume状态",
+    "VOL-STATUS-F": "FlexClone卷状态",
+    "VOL-STATUS-S": "卷Snapshot状态",
+    "VOL-STATUS-V": "卷详细状态",
+    "IFSTAT-A": "网络接口统计",
+    "IFGRPS": "接口组配置",
+}
+
+
+def _lookup_desc(filename: str) -> str:
+    """Return a description for the file if one is registered.
+    Longer keys are matched first to avoid ambiguity (e.g. DF-A vs DF)."""
+    name_lower = filename.lower()
+    for key in sorted(FILE_DESCRIPTIONS, key=len, reverse=True):
+        if key.lower() in name_lower:
+            return FILE_DESCRIPTIONS[key]
+    return ""
+
+
 async def _build_context(session_ids: list[str]):
     """Build file catalog across all sessions and return execute_tool closure.
     Shared by /chat and /chat/stream.
@@ -203,6 +232,7 @@ async def _build_context(session_ids: list[str]):
                     "hostname": hostname,
                     "serial_num": serial,
                     "category": classify_file(rec.filename, rec.file_type),
+                    "desc": _lookup_desc(rec.filename),
                 }
                 if rec.file_type == "xml":
                     try:
@@ -356,8 +386,10 @@ def _format_catalog(
             else:
                 section_lines.append(f"### {cat} ({total} 个文件)")
             for e in shown:
+                desc = e.get("desc", "")
+                desc_suffix = f" — {desc}" if desc else ""
                 section_lines.append(
-                    f"  [{e['file_id']}] {e['filename']} ({e['file_type']}) "
+                    f"  [{e['file_id']}] {e['filename']} ({e['file_type']}){desc_suffix} "
                     f"[session:{e['session_id']}, hostname:{e['hostname'] or 'n/a'}]"
                 )
 
