@@ -99,6 +99,7 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
   const [columns, setColumns] = useState<string[]>([])
   const [sortCol, setSortCol] = useState<string | null>(null)
   const [sortDir, setSortDir] = useState<SortDir>(null)
+  const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(false)
   const [tableWidth, setTableWidth] = useState(0)
 
@@ -258,6 +259,20 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
 
         {!collapsed && (
           <>
+            <div style={{ padding: '6px 10px', borderBottom: '1px solid #e2e8f0', display: 'flex', gap: 4 }} className="nodrag">
+              <input
+                type="text"
+                placeholder="Search…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                style={{
+                  width: '100%', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 4,
+                  color: '#1e293b', padding: '3px 6px', fontSize: 11,
+                  fontFamily: 'ui-monospace, Consolas, monospace', outline: 'none',
+                }}
+                className="nodrag"
+              />
+            </div>
             <div
               style={{
                 maxHeight: height,
@@ -329,7 +344,13 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
                     </tr>
                   </thead>
                   <tbody>
-                    {sorted.map((row, i) => (
+                    {(sorted as TableRow[])
+                      .filter((row) =>
+                        !search || columns.some((col) =>
+                          (row[col] ?? '').toLowerCase().includes(search.toLowerCase())
+                        )
+                      )
+                      .map((row, i) => (
                       <tr key={i} style={{ background: i % 2 === 0 ? '#ffffff' : '#f8fafc' }}>
                         {columns.map((col) => (
                           <td
