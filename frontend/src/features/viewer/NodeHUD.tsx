@@ -2,6 +2,7 @@ import type { SessionMeta } from '../../types'
 
 interface NodeHUDProps {
   sessions: SessionMeta[]
+  onClearCanvas?: () => void
 }
 
 const NODE_COLORS = {
@@ -9,7 +10,7 @@ const NODE_COLORS = {
   orange: '#f97316',
 } as const
 
-export default function NodeHUD({ sessions }: NodeHUDProps) {
+export default function NodeHUD({ sessions, onClearCanvas }: NodeHUDProps) {
   const rows = sessions.length
     ? sessions
     : [
@@ -53,6 +54,20 @@ export default function NodeHUD({ sessions }: NodeHUDProps) {
         <span className="hud-label">ASUP:</span>
         <span>{formatDate(asupTime)}</span>
       </div>
+
+      {onClearCanvas && (
+        <button
+          onClick={onClearCanvas}
+          style={{
+            marginLeft: 'auto', background: 'none', border: '1px solid #e2e8f0',
+            borderRadius: 4, color: '#94a3b8', cursor: 'pointer', padding: '2px 10px',
+            fontSize: 11, fontFamily: 'system-ui, -apple-system, sans-serif',
+          }}
+          title="关闭所有卡片"
+        >
+          ✕ Clear
+        </button>
+      )}
     </div>
   )
 }

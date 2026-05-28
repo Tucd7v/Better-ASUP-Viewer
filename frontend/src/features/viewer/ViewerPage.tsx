@@ -497,7 +497,11 @@ function ViewerInner() {
       />
 
       <main className="viewer-main" style={{ position: 'relative' }}>
-        <NodeHUD sessions={sessions} />
+        <NodeHUD sessions={sessions} onClearCanvas={() => {
+          setNodes([])
+          setEdges([])
+          _spawnOffset = 0
+        }} />
 
         {/* Template bar */}
         <div className="template-bar nodrag" style={{
