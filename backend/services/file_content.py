@@ -16,38 +16,115 @@ PRIORITY_MAP = {
 }
 
 
-def _parse_ems_line(raw_line: str) -> dict:
-    line = re.sub(r"\s+", " ", raw_line.strip())
-    parts = line.split("><")
-    header = parts[0]
-    body = parts[1] if len(parts) > 1 else ""
+def _parse_inner_content(content: str) -> str:
+    content = re.sub(r"</LR>\s*$", "", content, flags=re.IGNORECASE).strip()
+    if not content:
+        return ""
 
-    date_match = re.search(r'd="([^"]+)"', header)
-    date_str = date_match.group(1) if date_match else ""
+    tag_match = re.match(r"<(\w+)([\s\S]*?)/?>", content)
+    if tag_match:
+        tag_name = tag_match.group(1)
+        attributes = tag_match.group(2) or ""
+        # strip trailing _N suffix, replace _ with space
+        tag_name = re.sub(r"_\d+$", "", tag_name).replace("_", " ")
+        attrs = re.findall(r'(\w+)="([^"]*)"', attributes)
+        formatted_attrs = " ".join(f'{k}="{v}"' for k, v in attrs)
+        return f"{tag_name}: {formatted_attrs}" if formatted_attrs else tag_name
 
-    host_match = re.search(r'e="([^"]+)"', header)
-    hostname = host_match.group(1) if host_match else ""
+    return re.sub(r"[<>]", "", content).strip()
 
-    prio_match = re.search(r'p="(\d)"', header)
-    level = PRIORITY_MAP.get(int(prio_match.group(1)), "info") if prio_match else "info"
 
-    op_match = re.match(r"([A-Za-z0-9_.]+)", body)
-    operation = op_match.group(1) if op_match else ""
+def _parse_ems_events(content: str, filename: str) -> list[dict]:
+    lines = content.split("\n")
+    entries = []
+    current: dict | None = None
+    pending_open = False
+    pending_buf: list[str] = []
 
-    summary_raw = body.split("_1")[0] if "_1" in body else body.split("/>")[0]
-    summary = re.sub(r"[<>/]", "", summary_raw).replace("_", " ").strip()
+    def flush_pending():
+        nonlocal pending_open, pending_buf
+        if not current or not pending_buf:
+            return
+        joined = " ".join(pending_buf)
+        parsed = _parse_inner_content(joined)
+        parsed = parsed.replace("&#x0A;", "\n").replace("&apos;", "'")
+        if parsed:
+            sep = "" if (current["content"].endswith("\n") or parsed.startswith("\n")) else " "
+            current["content"] = current["content"] + sep + parsed if current["content"] else parsed
+        pending_buf.clear()
+        pending_open = False
 
-    content_match = re.search(r'_1="([^"]*)"', body)
-    content = content_match.group(1) if content_match else ""
+    for raw in lines:
+        line = raw.strip()
+        if not line:
+            continue
 
-    return {
-        "date": date_str,
-        "hostname": hostname,
-        "level": level,
-        "operation": operation,
-        "summary": summary,
-        "content": content,
-    }
+        if line.startswith("<LR "):
+            if current is not None:
+                flush_pending()
+                entries.append(current)
+
+            lr_match = re.match(r"<LR\s+([^>]+)>", line)
+            if not lr_match:
+                current = None
+                continue
+
+            attrs = {m[0]: m[1] for m in re.findall(r'(\w+)="([^"]*)"', lr_match.group(1))}
+            date_str = attrs.get("d", "")
+            hostname = attrs.get("n", "unknown")
+            priority = attrs.get("p", "6")
+            origin = attrs.get("o", "")
+            level = PRIORITY_MAP.get(int(priority), "info")
+
+            # inline content on same line as <LR>
+            inline = line[lr_match.end():].strip()
+            inline_content = ""
+            if inline and inline not in ("</LR>", "/>", ">"):
+                inline_content = _parse_inner_content(inline)
+                inline_content = inline_content.replace("&#x0A;", "\n").replace("&apos;", "'")
+
+            content_val = (origin + " " + inline_content).strip() if inline_content else origin
+
+            current = {
+                "date": date_str,
+                "hostname": hostname,
+                "level": level,
+                "operation": "",
+                "summary": "",
+                "content": content_val,
+            }
+            continue
+
+        if current is None:
+            continue
+
+        if line in ("</LR>", "/>", ">"):
+            flush_pending()
+            continue
+
+        # multi-line tag accumulation
+        if not pending_open and re.match(r"^<\w+(\s|$)", line) and not line.endswith(">") and not line.endswith("/>"):
+            pending_open = True
+            pending_buf = [line]
+            continue
+
+        if pending_open:
+            pending_buf.append(line)
+            if line.endswith(">") or line.endswith("/>"):
+                flush_pending()
+            continue
+
+        additional = _parse_inner_content(line)
+        additional = additional.replace("&#x0A;", "\n").replace("&apos;", "'")
+        if additional:
+            sep = "" if (current["content"].endswith("\n") or additional.startswith("\n")) else " "
+            current["content"] = current["content"] + sep + additional if current["content"] else additional
+
+    if current is not None:
+        flush_pending()
+        entries.append(current)
+
+    return entries
 
 
 class FileContentService:
@@ -68,11 +145,11 @@ class FileContentService:
     @staticmethod
     async def read_ems(file_path: Path, filename: str, offset: int = 0, limit: int = 200) -> dict:
         async with aiofiles.open(file_path, "r", errors="replace") as f:
-            all_lines = await f.readlines()
+            content = await f.read()
 
-        ems_lines = [l for l in all_lines if l.strip().startswith("<LR")]
-        total = len(ems_lines)
-        events = [_parse_ems_line(l) for l in ems_lines[offset: offset + limit]]
+        all_events = _parse_ems_events(content, filename)
+        total = len(all_events)
+        events = all_events[offset: offset + limit]
         return {
             "file_type": "ems",
             "filename": filename,

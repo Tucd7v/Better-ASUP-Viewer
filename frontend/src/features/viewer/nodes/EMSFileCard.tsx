@@ -37,12 +37,23 @@ function levelColor(level: string): string {
   }
 }
 
+function highlight(text: string, query: string): React.ReactNode {
+  if (!query) return text
+  const parts = text.split(new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'))
+  return parts.map((part, i) =>
+    part.toLowerCase() === query.toLowerCase()
+      ? <mark key={i} style={{ background: '#fef08a', color: '#1e293b', borderRadius: 2, padding: '0 1px' }}>{part}</mark>
+      : part
+  )
+}
+
 export default function EMSFileCard({ data }: NodeProps<EMSFileNode>) {
   const { fileId, sessionId, filename, nodeColor, collapsed, onCollapse, onHide } = data
-  const { width, height, onResizeX, onResizeY } = useResizable(320, 320)
+  const { width, height, onResizeX, onResizeY } = useResizable(800, 400)
 
   const [events, setEvents] = useState<EMSEvent[]>([])
   const [levelFilter, setLevelFilter] = useState<string>('all')
+  const [search, setSearch] = useState<string>('')
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -70,11 +81,21 @@ export default function EMSFileCard({ data }: NodeProps<EMSFileNode>) {
       .finally(() => setLoading(false))
   }, [fileId, sessionId, collapsed])
 
-  const filtered =
-    levelFilter === 'all' ? events : events.filter((e) => e.level === levelFilter)
+  const filtered = events
+    .filter((e) => levelFilter === 'all' || e.level === levelFilter)
+    .filter((e) => {
+      if (!search) return true
+      const q = search.toLowerCase()
+      return (
+        e.content.toLowerCase().includes(q) ||
+        e.date.toLowerCase().includes(q) ||
+        e.hostname.toLowerCase().includes(q) ||
+        e.level.toLowerCase().includes(q)
+      )
+    })
 
   return (
-    <div style={{ position: 'relative', width, minWidth: 220 }}>
+    <div style={{ position: 'relative', width, minWidth: 320 }}>
       <Handle type="target" position={Position.Left} style={leftHandleStyle} />
       <Handle type="source" position={Position.Right} style={rightHandleStyle} />
 
@@ -90,6 +111,7 @@ export default function EMSFileCard({ data }: NodeProps<EMSFileNode>) {
           overflow: 'hidden',
         }}
       >
+        {/* title bar */}
         <div
           style={{
             display: 'flex',
@@ -123,22 +145,46 @@ export default function EMSFileCard({ data }: NodeProps<EMSFileNode>) {
 
         {!collapsed && (
           <div>
-            <div style={{ padding: '6px 10px', borderBottom: '1px solid #e2e8f0' }} className="nodrag">
+            {/* filter bar */}
+            <div
+              style={{ display: 'flex', gap: 6, padding: '6px 10px', borderBottom: '1px solid #e2e8f0' }}
+              className="nodrag"
+            >
               <select
                 value={levelFilter}
                 onChange={(e) => setLevelFilter(e.target.value)}
-                style={selectStyle}
+                style={{ ...selectStyle, width: 110, flexShrink: 0 }}
               >
                 <option value="all">All levels</option>
                 {ALL_LEVELS.map((l) => (
-                  <option key={l} value={l}>
-                    {l}
-                  </option>
+                  <option key={l} value={l}>{l}</option>
                 ))}
               </select>
+              <input
+                type="text"
+                placeholder="Search…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="nodrag"
+                style={searchStyle}
+              />
+              {search && (
+                <button onClick={() => setSearch('')} style={btnStyle} title="Clear">
+                  [×]
+                </button>
+              )}
             </div>
+
+            {/* match count */}
+            {!loading && (search || levelFilter !== 'all') && (
+              <div style={{ padding: '3px 10px', fontSize: 10, color: '#94a3b8', borderBottom: '1px solid #f1f5f9' }}>
+                {filtered.length} / {events.length} events
+              </div>
+            )}
+
+            {/* nowheel intercepts scroll; nodrag + userSelect allow text selection */}
             <div
-              style={{ maxHeight: height, overflowY: 'auto' }}
+              style={{ height, overflowY: 'auto', userSelect: 'text', cursor: 'text' }}
               className="nodrag nowheel"
             >
               {loading ? (
@@ -149,14 +195,13 @@ export default function EMSFileCard({ data }: NodeProps<EMSFileNode>) {
                 filtered.map((ev, i) => (
                   <div
                     key={i}
-                    style={{
-                      padding: '6px 10px',
-                      borderBottom: '1px solid #f1f5f9',
-                    }}
+                    style={{ padding: '6px 10px', borderBottom: '1px solid #f1f5f9' }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
                       {ev.date && (
-                        <span style={{ color: '#94a3b8', fontSize: 10 }}>{ev.date}</span>
+                        <span style={{ color: '#94a3b8', fontSize: 10 }}>
+                          {highlight(ev.date, search)}
+                        </span>
                       )}
                       <span
                         style={{
@@ -172,13 +217,15 @@ export default function EMSFileCard({ data }: NodeProps<EMSFileNode>) {
                       >
                         {ev.level}
                       </span>
+                      {ev.hostname && (
+                        <span style={{ color: '#94a3b8', fontSize: 10 }}>
+                          {highlight(ev.hostname, search)}
+                        </span>
+                      )}
                     </div>
-                    {ev.summary && (
-                      <div style={{ color: '#334155', marginBottom: 2 }}>{ev.summary}</div>
-                    )}
-                    {ev.content && ev.content !== ev.summary && (
-                      <div style={{ color: '#64748b', fontSize: 10, wordBreak: 'break-word' }}>
-                        {ev.content}
+                    {ev.content && (
+                      <div style={{ color: '#64748b', fontSize: 11, wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>
+                        {highlight(ev.content, search)}
                       </div>
                     )}
                   </div>
@@ -235,7 +282,18 @@ const btnStyle: React.CSSProperties = {
 }
 
 const selectStyle: React.CSSProperties = {
-  width: '100%',
+  background: '#f8fafc',
+  border: '1px solid #e2e8f0',
+  borderRadius: 4,
+  color: '#1e293b',
+  padding: '3px 6px',
+  fontSize: 11,
+  fontFamily: 'ui-monospace, Consolas, monospace',
+  outline: 'none',
+}
+
+const searchStyle: React.CSSProperties = {
+  flex: 1,
   background: '#f8fafc',
   border: '1px solid #e2e8f0',
   borderRadius: 4,
