@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { NodeProps, Node } from '@xyflow/react'
 import { Handle, Position } from '@xyflow/react'
 import { getFileContent } from '../../../services/api'
@@ -56,6 +56,8 @@ export default function EMSFileCard({ data }: NodeProps<EMSFileNode>) {
   const [levelFilter, setLevelFilter] = useState<string>('all')
   const [search, setSearch] = useState<string>('')
   const [loading, setLoading] = useState(false)
+  const [highlightLine, setHighlightLine] = useState<number | null>(null)
+  const eventRefs = useRef<(HTMLDivElement | null)[]>([])
   const { state, dispatch: viewDispatch } = useViewer()
 
   useEffect(() => {
@@ -86,8 +88,17 @@ export default function EMSFileCard({ data }: NodeProps<EMSFileNode>) {
   // Respond to global search
   useEffect(() => {
     const gs = state.globalSearch
-    if (gs && gs.fileId === fileId && gs.query) {
-      setSearch(gs.query)
+    if (gs && gs.fileId === fileId) {
+      if (gs.query) setSearch(gs.query)
+      if (gs.line !== undefined) {
+        const targetIdx = gs.line - 1
+        setLevelFilter('all')
+        setHighlightLine(targetIdx)
+        setTimeout(() => {
+          const el = eventRefs.current[targetIdx]
+          if (el) el.scrollIntoView({ block: 'center', behavior: 'smooth' })
+        }, 300)
+      }
       viewDispatch({ type: 'CLEAR_GLOBAL_SEARCH' })
     }
   }, [state.globalSearch])
@@ -203,10 +214,18 @@ export default function EMSFileCard({ data }: NodeProps<EMSFileNode>) {
               ) : filtered.length === 0 ? (
                 <div style={{ padding: '8px 10px', color: '#94a3b8' }}>No events</div>
               ) : (
-                filtered.map((ev, i) => (
+                filtered.map((ev, i) => {
+                  const origIdx = events.indexOf(ev)
+                  const isHighlight = highlightLine === origIdx
+                  return (
                   <div
                     key={i}
-                    style={{ padding: '6px 10px', borderBottom: '1px solid #f1f5f9' }}
+                    ref={(el) => { if (origIdx >= 0) eventRefs.current[origIdx] = el }}
+                    style={{
+                      padding: '6px 10px',
+                      borderBottom: '1px solid #f1f5f9',
+                      background: isHighlight ? 'rgba(251,191,36,0.2)' : 'transparent',
+                    }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
                       {ev.date && (
@@ -240,7 +259,8 @@ export default function EMSFileCard({ data }: NodeProps<EMSFileNode>) {
                       </div>
                     )}
                   </div>
-                ))
+                  )
+                })
               )}
             </div>
 

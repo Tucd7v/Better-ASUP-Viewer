@@ -112,6 +112,8 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
   const [swapMenuPos, setSwapMenuPos] = useState<{ left: number; top: number }>({ left: 0, top: 0 })
   const wrapperRef = useRef<HTMLDivElement>(null)
   const thRefs = useRef<Map<string, HTMLTableCellElement>>(new Map())
+  const rowRefs = useRef<(HTMLTableRowElement | null)[]>([])
+  const [highlightRow, setHighlightRow] = useState<number | null>(null)
   const { state, dispatch: viewDispatch } = useViewer()
 
   useEffect(() => {
@@ -152,8 +154,21 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
   // Respond to global search
   useEffect(() => {
     const gs = state.globalSearch
-    if (gs && gs.fileId === fileId && gs.query) {
-      setSearch(gs.query)
+    if (gs && gs.fileId === fileId) {
+      if (gs.query) setSearch(gs.query)
+      if (gs.line !== undefined) {
+        // Treat line as 1-based row index in the original (pre-sort, pre-filter) list
+        const targetIdx = gs.line - 1
+        setHighlightRow(targetIdx)
+        // Clear sort so the row index is meaningful
+        setSortCol(null)
+        setSortDir(null)
+        if (gs.query === undefined || gs.query === '') setSearch('')
+        setTimeout(() => {
+          const el = rowRefs.current[targetIdx]
+          if (el) el.scrollIntoView({ block: 'center', behavior: 'smooth' })
+        }, 300)
+      }
       viewDispatch({ type: 'CLEAR_GLOBAL_SEARCH' })
     }
   }, [state.globalSearch])
@@ -361,8 +376,15 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
                           (row[col] ?? '').toLowerCase().includes(search.toLowerCase())
                         )
                       )
-                      .map((row, i) => (
-                      <tr key={i} style={{ background: i % 2 === 0 ? '#ffffff' : '#f8fafc' }}>
+                      .map((row, i) => {
+                      const origIdx = rows.indexOf(row)
+                      const isHighlight = highlightRow === origIdx
+                      return (
+                      <tr
+                        key={i}
+                        ref={(el) => { if (origIdx >= 0) rowRefs.current[origIdx] = el }}
+                        style={{ background: isHighlight ? 'rgba(251,191,36,0.25)' : (i % 2 === 0 ? '#ffffff' : '#f8fafc') }}
+                      >
                         {columns.map((col) => (
                           <td
                             key={col}
@@ -382,7 +404,8 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
                           </td>
                         ))}
                       </tr>
-                    ))}
+                      )
+                    })}
                   </tbody>
                 </table>
               )}
