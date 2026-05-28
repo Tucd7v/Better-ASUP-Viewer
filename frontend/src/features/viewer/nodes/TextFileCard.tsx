@@ -41,7 +41,7 @@ export default function TextFileCard({ data }: NodeProps<TextFileNode>) {
   const [search, setSearch] = useState('')
   const [matchIndex, setMatchIndex] = useState(0)
   const [loading, setLoading] = useState(false)
-  const LIMIT = 500
+  const LIMIT = 2000
   const listRef = useRef<HTMLDivElement>(null)
   const matchRefs = useRef<(HTMLDivElement | null)[]>([])
   const { state, dispatch: viewDispatch } = useViewer()
