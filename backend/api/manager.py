@@ -295,3 +295,35 @@ async def list_session_groups(
         )
 
     return SessionGroupsResponse(groups=out)
+
+
+@router.get("/session-groups/{group_id}", response_model=ClusterGroupSummary)
+async def get_session_group(group_id: str, db: AsyncSession = Depends(get_db)):
+    from fastapi import HTTPException
+
+    result = await db.execute(
+        select(SessionGroup)
+        .where(SessionGroup.id == group_id)
+        .options(selectinload(SessionGroup.members))
+    )
+    group = result.scalar_one_or_none()
+    if group is None:
+        raise HTTPException(status_code=404, detail="Session group not found")
+
+    members = []
+    for m in group.members:
+        s = await db.get(Session, m.session_id)
+        if s:
+            count_result = await db.execute(
+                select(func.count(FileRecord.id)).where(FileRecord.session_id == s.id)
+            )
+            members.append(ClusterGroupMember(
+                session_id=s.id,
+                serial_num=s.serial_num or "",
+                hostname=s.hostname or "",
+                generated_on=s.generated_on,
+                original_filename=s.original_filename or "",
+                file_count=count_result.scalar_one(),
+                status=s.status,
+            ))
+    return ClusterGroupSummary(id=group.id, created_at=group.created_at, members=members)

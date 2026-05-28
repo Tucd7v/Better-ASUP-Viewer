@@ -63,8 +63,6 @@ function SessionRow({ m, onDeleted }: { m: ClusterGroupMember; onDeleted?: () =>
 // A paired group row with its own expand/collapse
 function GroupRow({ group, onDeleted }: { group: ClusterGroup; onDeleted?: () => void }) {
   const [expanded, setExpanded] = useState(false)
-  const [a, b] = group.members
-
   const title = group.members
     .map((m) => fmt(m.generated_on))
     .join('  ·  ')

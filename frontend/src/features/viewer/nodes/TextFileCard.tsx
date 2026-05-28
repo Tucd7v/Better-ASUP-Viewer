@@ -135,7 +135,7 @@ export default function TextFileCard({ data }: NodeProps<TextFileNode>) {
               )}
             </div>
 
-            <div ref={listRef} style={{ height, overflowY: 'auto', padding: '4px 0' }} className="nodrag nowheel">
+            <div ref={listRef} style={{ height, overflowY: 'auto', padding: '4px 0', userSelect: 'text', cursor: 'text' }} className="nodrag nowheel" onPointerDown={(e) => e.stopPropagation()}>
               {loading ? (
                 <div style={{ padding: '8px 10px', color: '#94a3b8' }}>Loading…</div>
               ) : (

@@ -22,7 +22,7 @@ import NodeHUD from './NodeHUD'
 import TextFileCard from './nodes/TextFileCard'
 import XMLFileCard from './nodes/XMLFileCard'
 import EMSFileCard from './nodes/EMSFileCard'
-import { getFiles, getSessionStatus } from '../../services/api'
+import { getFiles, getSessionGroup, getSessionStatus } from '../../services/api'
 import type { FileRecord, SessionMeta } from '../../types'
 
 const NODE_COLORS = { blue: '#3b82f6', orange: '#f97316' }
@@ -83,19 +83,31 @@ function ViewerInner() {
   const fileMetaRef = useRef<Map<string, { sessionId: string; nodeColor: string; file: FileRecord }>>(new Map())
   const { fitView, getViewport } = useReactFlow()
 
-  const sessionIds = useMemo(() => {
-    if (params.sessionId) return [{ id: params.sessionId, color: 'blue' as const }]
-    if (params.groupId) {
-      return [
-        { id: `${params.groupId}-node1`, color: 'blue' as const },
-        { id: `${params.groupId}-node2`, color: 'orange' as const },
-      ]
+  const [groupSessions, setGroupSessions] = useState<{id: string; color: 'blue' | 'orange'}[]>([])
+
+  useEffect(() => {
+    async function load() {
+      if (params.sessionId) {
+        setGroupSessions([{ id: params.sessionId, color: 'blue' as const }])
+      } else if (params.groupId) {
+        try {
+          const res = await getSessionGroup(params.groupId)
+          const members = res.data.members
+          const entries = members.map((m: {session_id: string}, i: number) => ({
+            id: m.session_id,
+            color: (i === 0 ? 'blue' : 'orange') as 'blue' | 'orange',
+          }))
+          setGroupSessions(entries)
+        } catch (err) {
+          console.error('Failed to load group:', err)
+        }
+      }
     }
-    return []
+    load()
   }, [params.sessionId, params.groupId])
 
   useEffect(() => {
-    sessionIds.forEach(({ id, color }) => {
+    groupSessions.forEach(({ id, color }) => {
       Promise.all([
         getSessionStatus(id).catch(() => null),
         getFiles(id),
@@ -125,7 +137,7 @@ function ViewerInner() {
         dispatch({ type: 'SET_FILES', files: nonEmpty, sessionId: id, nodeColor: color })
       }).catch(console.error)
     })
-  }, [sessionIds])
+  }, [groupSessions])
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {

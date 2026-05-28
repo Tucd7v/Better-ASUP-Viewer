@@ -264,8 +264,11 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
                 overflowX: needsScroll ? 'scroll' : 'hidden',
                 overflowY: 'auto',
                 borderRadius: '0 0 8px 8px',
+                userSelect: 'text',
+                cursor: 'text',
               }}
               className="nodrag nowheel"
+              onPointerDown={(e) => e.stopPropagation()}
             >
               {loading ? (
                 <div style={{ padding: '8px 10px', color: '#94a3b8' }}>Loading…</div>

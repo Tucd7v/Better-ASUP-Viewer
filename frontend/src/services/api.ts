@@ -50,6 +50,9 @@ export const getNodeSessions = (clusterId: string, nodeId: string) =>
 export const getClusterGroups = (clusterId: string) =>
   api.get(`/api/v1/clusters/${clusterId}/groups`)
 
+export const getSessionGroup = (groupId: string) =>
+  api.get(`/api/v1/session-groups/${groupId}`)
+
 export const getClusterOverview = (clusterId: string) =>
   api.get(`/api/v1/clusters/${clusterId}/overview`)
 
