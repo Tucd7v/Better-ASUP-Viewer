@@ -3,6 +3,7 @@ import type { NodeProps, Node } from '@xyflow/react'
 import { Handle, Position } from '@xyflow/react'
 import { getFileContent } from '../../../services/api'
 import { useResizable } from './useResizable'
+import { useViewer } from '../ViewerContext'
 
 export interface TextFileCardData extends Record<string, unknown> {
   fileId: string
@@ -44,6 +45,7 @@ export default function TextFileCard({ data }: NodeProps<TextFileNode>) {
   const LIMIT = 500
   const listRef = useRef<HTMLDivElement>(null)
   const matchRefs = useRef<(HTMLDivElement | null)[]>([])
+  const { state, dispatch: viewDispatch } = useViewer()
 
   useEffect(() => {
     if (collapsed) return
@@ -59,6 +61,25 @@ export default function TextFileCard({ data }: NodeProps<TextFileNode>) {
       .catch(() => setLines([]))
       .finally(() => setLoading(false))
   }, [fileId, sessionId, page, collapsed])
+
+  // Respond to global search
+  useEffect(() => {
+    const gs = state.globalSearch
+    if (gs && gs.fileId === fileId && gs.query) {
+      setSearch(gs.query)
+      if (gs.line !== undefined) {
+        const targetPage = Math.floor((gs.line - 1) / LIMIT)
+        setPage(targetPage)
+        setTimeout(() => {
+          const targetEl = matchRefs.current[gs.line - 1]
+          if (targetEl) {
+            targetEl.scrollIntoView({ block: 'center', behavior: 'smooth' })
+          }
+        }, 300)
+      }
+      viewDispatch({ type: 'CLEAR_GLOBAL_SEARCH' })
+    }
+  }, [state.globalSearch])
 
   const matchIndices = search
     ? lines.reduce<number[]>((acc, l, i) => {

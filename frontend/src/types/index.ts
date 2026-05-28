@@ -106,3 +106,16 @@ export interface TemplateListItem {
   updated_at: string
   card_count: number
 }
+
+export interface SearchMatch {
+  file_id: string
+  session_id: string
+  filename: string
+  file_type: string
+  line: number
+  context: string
+}
+
+export interface SearchResponse {
+  matches: SearchMatch[]
+}

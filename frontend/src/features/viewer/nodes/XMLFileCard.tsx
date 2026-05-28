@@ -3,6 +3,7 @@ import type { NodeProps, Node } from '@xyflow/react'
 import { Handle, Position } from '@xyflow/react'
 import { getFileContent } from '../../../services/api'
 import { useResizable } from './useResizable'
+import { useViewer } from '../ViewerContext'
 
 export interface XMLFileCardData extends Record<string, unknown> {
   fileId: string
@@ -111,6 +112,7 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
   const [swapMenuPos, setSwapMenuPos] = useState<{ left: number; top: number }>({ left: 0, top: 0 })
   const wrapperRef = useRef<HTMLDivElement>(null)
   const thRefs = useRef<Map<string, HTMLTableCellElement>>(new Map())
+  const { state, dispatch: viewDispatch } = useViewer()
 
   useEffect(() => {
     if (collapsed) return
@@ -146,6 +148,15 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
       .catch(() => setRows([]))
       .finally(() => setLoading(false))
   }, [fileId, sessionId, collapsed])
+
+  // Respond to global search
+  useEffect(() => {
+    const gs = state.globalSearch
+    if (gs && gs.fileId === fileId && gs.query) {
+      setSearch(gs.query)
+      viewDispatch({ type: 'CLEAR_GLOBAL_SEARCH' })
+    }
+  }, [state.globalSearch])
 
   // Three-state sort: asc → desc → null
   const handleSort = (col: string) => {

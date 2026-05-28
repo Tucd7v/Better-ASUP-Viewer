@@ -12,6 +12,7 @@ from api.upload import router as upload_router
 from api.files import router as files_router
 from api.manager import router as manager_router
 from api.templates import router as templates_router
+from api.search import router as search_router
 
 logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
 
@@ -38,6 +39,7 @@ app.include_router(upload_router, prefix="/api/v1")
 app.include_router(files_router, prefix="/api/v1")
 app.include_router(manager_router, prefix="/api/v1")
 app.include_router(templates_router, prefix="/api/v1")
+app.include_router(search_router, prefix="/api/v1")
 
 _frontend_dist = Path(__file__).parent.parent / "frontend" / "dist"
 if _frontend_dist.exists():

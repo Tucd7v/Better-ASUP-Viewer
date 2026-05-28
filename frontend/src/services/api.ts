@@ -78,3 +78,6 @@ export const createTemplate = (data: {
 
 export const deleteTemplate = (id: string) =>
   api.delete(`/api/v1/templates/${id}`)
+
+export const searchFiles = (sessionId: string, q: string, limit = 50) =>
+  api.get('/api/v1/search', { params: { session_id: sessionId, q, limit } })

@@ -4,6 +4,7 @@ import { Handle, Position } from '@xyflow/react'
 import { getFileContent } from '../../../services/api'
 import type { EMSEvent } from '../../../types'
 import { useResizable } from './useResizable'
+import { useViewer } from '../ViewerContext'
 
 export interface EMSFileCardData extends Record<string, unknown> {
   fileId: string
@@ -55,6 +56,7 @@ export default function EMSFileCard({ data }: NodeProps<EMSFileNode>) {
   const [levelFilter, setLevelFilter] = useState<string>('all')
   const [search, setSearch] = useState<string>('')
   const [loading, setLoading] = useState(false)
+  const { state, dispatch: viewDispatch } = useViewer()
 
   useEffect(() => {
     if (collapsed) return
@@ -80,6 +82,15 @@ export default function EMSFileCard({ data }: NodeProps<EMSFileNode>) {
       .catch(() => setEvents([]))
       .finally(() => setLoading(false))
   }, [fileId, sessionId, collapsed])
+
+  // Respond to global search
+  useEffect(() => {
+    const gs = state.globalSearch
+    if (gs && gs.fileId === fileId && gs.query) {
+      setSearch(gs.query)
+      viewDispatch({ type: 'CLEAR_GLOBAL_SEARCH' })
+    }
+  }, [state.globalSearch])
 
   const filtered = events
     .filter((e) => levelFilter === 'all' || e.level === levelFilter)

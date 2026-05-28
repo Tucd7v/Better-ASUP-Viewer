@@ -18,6 +18,7 @@ import '@xyflow/react/dist/style.css'
 import { ViewerProvider, useViewer } from './ViewerContext'
 import type { Action } from './ViewerContext'
 import FileTree from './FileTree'
+import SearchPanel from './SearchPanel'
 import NodeHUD from './NodeHUD'
 import TextFileCard from './nodes/TextFileCard'
 import XMLFileCard from './nodes/XMLFileCard'
@@ -95,6 +96,7 @@ function ViewerInner() {
   }[]>([])
 
   const [templates, setTemplates] = useState<TemplateListItem[]>([])
+  const [searchMode, setSearchMode] = useState(false)
   const [templateName, setTemplateName] = useState('')
   const [selectedTemplateId, setSelectedTemplateId] = useState('')
   const [templateMsg, setTemplateMsg] = useState<string | null>(null)
@@ -433,8 +435,33 @@ function ViewerInner() {
 
   return (
     <div className="viewer-layout">
-      <div style={{ width: sidebarWidth, flexShrink: 0 }}>
-        <FileTree sessions={sessions} clusterName={clusterName} onFocusFile={handleFocusFile} />
+      <div style={{ width: sidebarWidth, flexShrink: 0, display: 'flex', flexDirection: 'column', height: '100%' }}>
+        {/* Tab buttons */}
+        <div style={{ display: 'flex', borderBottom: '1px solid #e2e8f0', background: '#f8fafc', borderRight: '1px solid #e2e8f0' }}>
+          <button onClick={() => setSearchMode(false)} style={{
+            flex: 1, padding: '6px 8px', border: 'none', background: !searchMode ? '#ffffff' : 'transparent',
+            borderRight: '1px solid #e2e8f0', cursor: 'pointer', fontSize: 11, fontWeight: 500,
+            color: !searchMode ? '#1e293b' : '#94a3b8', fontFamily: 'ui-monospace, Consolas, monospace',
+          }}>
+            Files
+          </button>
+          <button onClick={() => setSearchMode(true)} style={{
+            flex: 1, padding: '6px 8px', border: 'none', background: searchMode ? '#ffffff' : 'transparent',
+            cursor: 'pointer', fontSize: 11, fontWeight: 500,
+            color: searchMode ? '#1e293b' : '#94a3b8', fontFamily: 'ui-monospace, Consolas, monospace',
+          }}>
+            Search
+          </button>
+        </div>
+        
+        {/* Content area */}
+        <div style={{ flex: 1, overflow: 'hidden' }}>
+          {!searchMode ? (
+            <FileTree sessions={sessions} clusterName={clusterName} onFocusFile={handleFocusFile} />
+          ) : (
+            <SearchPanel sessions={groupSessions} onFocusFile={handleFocusFile} />
+          )}
+        </div>
       </div>
 
       <div

@@ -7,6 +7,8 @@ export type Action =
   | { type: 'TOGGLE_COLLAPSE'; fileId: string }
   | { type: 'SET_FILES'; files: FileRecord[]; sessionId: string; nodeColor: 'blue' | 'orange' }
   | { type: 'UPDATE_NODE_POSITION'; nodeId: string; position: { x: number; y: number } }
+  | { type: 'SET_GLOBAL_SEARCH'; fileId: string; query: string; line?: number }
+  | { type: 'CLEAR_GLOBAL_SEARCH' }
 
 interface ViewerState {
   sessions: SessionMeta[]
@@ -14,6 +16,7 @@ interface ViewerState {
   hiddenFileIds: Set<string>
   collapsedFileIds: Set<string>
   nodePositions: Map<string, { x: number; y: number }>
+  globalSearch: { fileId: string; query: string; line?: number } | null
 }
 
 const initialState: ViewerState = {
@@ -22,6 +25,7 @@ const initialState: ViewerState = {
   hiddenFileIds: new Set(),
   collapsedFileIds: new Set(),
   nodePositions: new Map(),
+  globalSearch: null,
 }
 
 function reducer(state: ViewerState, action: Action): ViewerState {
@@ -77,6 +81,10 @@ function reducer(state: ViewerState, action: Action): ViewerState {
       next.set(action.nodeId, action.position)
       return { ...state, nodePositions: next }
     }
+    case 'SET_GLOBAL_SEARCH':
+      return { ...state, globalSearch: { fileId: action.fileId, query: action.query, line: action.line } }
+    case 'CLEAR_GLOBAL_SEARCH':
+      return { ...state, globalSearch: null }
     default:
       return state
   }
