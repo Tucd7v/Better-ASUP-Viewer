@@ -112,6 +112,8 @@ export interface SearchMatch {
   session_id: string
   filename: string
   file_type: string
+  hostname?: string
+  serial_num?: string
   line: number
   context: string
 }

@@ -105,6 +105,7 @@ function ViewerInner() {
   const [editingEdgeId, setEditingEdgeId] = useState<string | null>(null)
   const [editingLabel, setEditingLabel] = useState('')
   const [showAI, setShowAI] = useState(false)
+  const [aiPanelWidth, setAiPanelWidth] = useState(360)
 
   useEffect(() => {
     async function load() {
@@ -435,6 +436,22 @@ function ViewerInner() {
     window.addEventListener('mouseup', onUp)
   }
 
+  const startAIDrag = (e: React.MouseEvent) => {
+    e.preventDefault()
+    const startX = e.clientX
+    const startWidth = aiPanelWidth
+    const onMove = (ev: MouseEvent) => {
+      const delta = startX - ev.clientX
+      setAiPanelWidth(Math.max(280, Math.min(600, startWidth + delta)))
+    }
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  }
+
   return (
     <div className="viewer-layout">
       <div style={{ width: sidebarWidth, flexShrink: 0, display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -592,14 +609,28 @@ function ViewerInner() {
 
           {/* AI Chat Panel */}
           {showAI && (
-            <div style={{ width: 360, flexShrink: 0 }}>
-              <AIChatPanel
-                sessionId={params.sessionId || groupSessions[0]?.id || ''}
-                groupSessions={groupSessions}
-                onFocusFile={handleFocusFile}
-                onClose={() => setShowAI(false)}
+            <>
+              <div
+                onMouseDown={startAIDrag}
+                style={{
+                  width: 4,
+                  cursor: 'col-resize',
+                  background: '#e2e8f0',
+                  flexShrink: 0,
+                  transition: 'background 0.15s',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = '#3b82f6')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = '#e2e8f0')}
               />
-            </div>
+              <div style={{ width: aiPanelWidth, flexShrink: 0 }}>
+                <AIChatPanel
+                  sessionIds={groupSessions.map(s => s.id)}
+                  groupSessions={groupSessions}
+                  onFocusFile={handleFocusFile}
+                  onClose={() => setShowAI(false)}
+                />
+              </div>
+            </>
           )}
 
           {/* AI toggle button — floating on canvas when panel is hidden */}

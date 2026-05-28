@@ -1,4 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import { useViewer } from './ViewerContext'
 
 interface Message {
   role: 'user' | 'assistant' | 'system'
@@ -8,13 +11,14 @@ interface Message {
 }
 
 interface AIChatPanelProps {
-  sessionId: string
-  groupSessions: { id: string }[]
+  sessionIds: string[]
+  groupSessions: { id: string; hostname?: string; serialNum?: string; color: 'blue' | 'orange' }[]
   onFocusFile: (fileId: string) => void
   onClose?: () => void
 }
 
-export default function AIChatPanel({ sessionId, groupSessions, onFocusFile, onClose }: AIChatPanelProps) {
+export default function AIChatPanel({ sessionIds, groupSessions, onFocusFile, onClose }: AIChatPanelProps) {
+  const { dispatch } = useViewer()
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -39,7 +43,7 @@ export default function AIChatPanel({ sessionId, groupSessions, onFocusFile, onC
       const resp = await fetch(`${baseUrl}/api/v1/chat/stream`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session_id: sessionId, message: userMsg }),
+        body: JSON.stringify({ session_ids: sessionIds, message: userMsg }),
       })
 
       const reader = resp.body?.getReader()
@@ -102,13 +106,30 @@ export default function AIChatPanel({ sessionId, groupSessions, onFocusFile, onC
               case 'tool_result':
                 currentResults.push({ tool: event.tool!, result: event.result })
                 // Auto-open files on canvas
-                if (event.result && Array.isArray(event.result)) {
+                {
                   const fileIds: string[] = []
-                  for (const r of event.result) {
-                    const record = r as Record<string, unknown>
-                    if (record.file_id && !fileIds.includes(record.file_id as string)) {
-                      fileIds.push(record.file_id as string)
-                      onFocusFile(record.file_id as string)
+                  const collectFileId = (rec: Record<string, unknown>) => {
+                    const fid = rec.file_id as string | undefined
+                    if (fid && !fileIds.includes(fid)) {
+                      fileIds.push(fid)
+                      dispatch({ type: 'SHOW_FILE', fileId: fid })
+                      onFocusFile(fid)
+                    }
+                  }
+                  if (event.result && Array.isArray(event.result)) {
+                    for (const r of event.result) {
+                      collectFileId(r as Record<string, unknown>)
+                    }
+                  } else if (event.result && typeof event.result === 'object') {
+                    collectFileId(event.result as Record<string, unknown>)
+                  }
+                  // Fallback: read_file tool may have file_id in the matching tool call args
+                  if (fileIds.length === 0 && event.tool === 'read_file') {
+                    const matchingCall = [...currentToolCalls].reverse().find((c) => c.tool === 'read_file')
+                    const argFid = matchingCall?.args?.file_id as string | undefined
+                    if (argFid) {
+                      dispatch({ type: 'SHOW_FILE', fileId: argFid })
+                      onFocusFile(argFid)
                     }
                   }
                 }
@@ -162,6 +183,18 @@ export default function AIChatPanel({ sessionId, groupSessions, onFocusFile, onC
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#fff', borderLeft: '1px solid #e2e8f0' }}>
+      <style>{`
+        .markdown-body table { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 11px; }
+        .markdown-body th, .markdown-body td { border: 1px solid #e2e8f0; padding: 4px 8px; text-align: left; }
+        .markdown-body th { background: #f8fafc; font-weight: 600; }
+        .markdown-body code { background: #f1f5f9; padding: 1px 4px; border-radius: 3px; font-size: 11px; font-family: monospace; }
+        .markdown-body pre { background: #1e293b; color: #e2e8f0; padding: 10px; border-radius: 6px; overflow-x: auto; font-size: 11px; }
+        .markdown-body pre code { background: none; padding: 0; color: inherit; }
+        .markdown-body h1, .markdown-body h2, .markdown-body h3 { margin: 8px 0 4px; }
+        .markdown-body ul, .markdown-body ol { padding-left: 20px; margin: 4px 0; }
+        .markdown-body strong { color: #1e293b; }
+        .markdown-body hr { border: none; border-top: 1px solid #e2e8f0; margin: 8px 0; }
+      `}</style>
       {/* Header */}
       <div style={{ padding: '10px 14px', borderBottom: '1px solid #e2e8f0', fontSize: 13, fontWeight: 600, color: '#1e293b', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -211,7 +244,15 @@ export default function AIChatPanel({ sessionId, groupSessions, onFocusFile, onC
             <div style={{ fontSize: 10, color: '#94a3b8', marginBottom: 4, fontWeight: 600 }}>
               {msg.role === 'user' ? '你' : msg.role === 'assistant' ? 'AI' : ''}
             </div>
-            <div style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
+            {msg.role === 'assistant' && msg.toolCalls ? (
+              <div style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
+            ) : msg.role === 'assistant' ? (
+              <div className="markdown-body" style={{ fontSize: 12, lineHeight: 1.7 }}>
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+              </div>
+            ) : (
+              <div style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
+            )}
           </div>
         ))}
         <div ref={chatEndRef} />

@@ -93,6 +93,18 @@ export default function SearchPanel({ sessions, onFocusFile }: SearchPanelProps)
             }}>
               {matches[0].file_type === 'ems' ? '\uD83D\uDEA8' : matches[0].file_type === 'xml' ? '\u25A7' : '\u2261'}
               {filename}
+              {matches[0].hostname && (
+                <span
+                  title={matches[0].serial_num ? `Serial: ${matches[0].serial_num}` : undefined}
+                  style={{
+                    background: '#e0e7ff', color: '#4338ca',
+                    padding: '1px 6px', borderRadius: 3,
+                    fontSize: 10, fontWeight: 500,
+                  }}
+                >
+                  {matches[0].hostname}
+                </span>
+              )}
               <span style={{ color: '#94a3b8', fontWeight: 400 }}>({matches.length})</span>
             </div>
             {matches.slice(0, 20).map((m, i) => (

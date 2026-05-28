@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db
-from models.db import FileRecord
+from models.db import FileRecord, Session
 from services.search import SearchService
 
 router = APIRouter(tags=["search"])
@@ -36,20 +36,30 @@ async def search_files(
     tasks = [_search_one(rec) for rec in records]
     results = await asyncio.gather(*tasks)
 
+    # Lookup session info (hostname, serial_num)
+    session_ids = {rec.session_id for rec in records}
+    session_map = {}
+    if session_ids:
+        session_result = await db.execute(select(Session).where(Session.id.in_(session_ids)))
+        session_map = {s.id: s for s in session_result.scalars().all()}
+
     all_matches: list[dict] = []
     for rec, file_matches in results:
         if file_matches:
+            session = session_map.get(rec.session_id)
             all_matches.append({
                 "file_id": rec.id,
                 "session_id": rec.session_id,
                 "filename": rec.filename,
                 "file_type": rec.file_type,
+                "hostname": session.hostname if session else "",
+                "serial_num": session.serial_num if session else "",
                 "matches": file_matches,
             })
 
     # Sort by total match count descending
     all_matches.sort(key=lambda x: len(x["matches"]), reverse=True)
-    
+
     # Flatten
     flat_matches = []
     for f in all_matches:
@@ -59,8 +69,10 @@ async def search_files(
                 "session_id": f["session_id"],
                 "filename": f["filename"],
                 "file_type": f["file_type"],
+                "hostname": f["hostname"],
+                "serial_num": f["serial_num"],
                 "line": m["line"],
                 "context": m["context"],
             })
-    
+
     return {"matches": flat_matches[:limit]}
