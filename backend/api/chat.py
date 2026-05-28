@@ -314,6 +314,8 @@ async def _build_context(session_ids: list[str]):
             if rec.file_type == "ems":
                 data = await svc.read_ems(fp, rec.filename, offset=offset, limit=min(limit, 200))
                 return {
+                    "file_id": file_id,
+                    "session_id": rec.session_id,
                     "filename": rec.filename,
                     "file_type": "ems",
                     "events": data.get("events", []),
@@ -323,6 +325,8 @@ async def _build_context(session_ids: list[str]):
                 rows = data.get("rows", [])
                 cols = list(rows[0].keys()) if rows else []
                 return {
+                    "file_id": file_id,
+                    "session_id": rec.session_id,
                     "filename": rec.filename,
                     "file_type": "xml",
                     "columns": cols,
@@ -332,6 +336,8 @@ async def _build_context(session_ids: list[str]):
             else:
                 data = await svc.read_text(fp, rec.filename, offset=offset, limit=limit)
                 return {
+                    "file_id": file_id,
+                    "session_id": rec.session_id,
                     "filename": rec.filename,
                     "file_type": "text",
                     "lines": data.get("lines", []),
