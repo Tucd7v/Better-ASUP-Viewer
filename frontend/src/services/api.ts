@@ -60,3 +60,21 @@ export const deleteSession = (sessionId: string) =>
   api.delete(`/api/v1/sessions/${sessionId}`)
 
 export default api
+
+
+export const getTemplates = (params?: { sessionId?: string; groupId?: string }) =>
+  api.get('/api/v1/templates', { params })
+
+export const getTemplate = (id: string) =>
+  api.get(`/api/v1/templates/${id}`)
+
+export const createTemplate = (data: {
+  name: string
+  session_id?: string
+  group_id?: string
+  cards: { file_id: string; session_id: string; pos_x: number; pos_y: number; collapsed: boolean }[]
+  edges: { edge_id: string; source_file_id: string; target_file_id: string }[]
+}) => api.post('/api/v1/templates', data)
+
+export const deleteTemplate = (id: string) =>
+  api.delete(`/api/v1/templates/${id}`)

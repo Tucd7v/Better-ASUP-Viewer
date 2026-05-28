@@ -23,7 +23,8 @@ import TextFileCard from './nodes/TextFileCard'
 import XMLFileCard from './nodes/XMLFileCard'
 import EMSFileCard from './nodes/EMSFileCard'
 import { getFiles, getSessionGroup, getSessionStatus } from '../../services/api'
-import type { FileRecord, SessionMeta } from '../../types'
+import { getTemplates, getTemplate, createTemplate, deleteTemplate } from '../../services/api'
+import type { FileRecord, SessionMeta, TemplateListItem, TemplateCard, TemplateEdge } from '../../types'
 
 const NODE_COLORS = { blue: '#3b82f6', orange: '#f97316' }
 
@@ -74,7 +75,7 @@ function ViewerInner() {
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([])
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([])
   const onConnect = useCallback(
-    (connection: Connection) => setEdges((eds) => addEdge({ ...connection, animated: false, style: { stroke: '#94a3b8', strokeWidth: 2 } }, eds)),
+    (connection: Connection) => setEdges((eds) => addEdge({ ...connection, animated: false, style: { stroke: '#94a3b8', strokeWidth: 2 }, data: { label: '' } }, eds)),
     [setEdges]
   )
   const [sessions, setSessions] = useState<SessionMeta[]>([])
@@ -92,6 +93,14 @@ function ViewerInner() {
     generatedOn?: string
     status?: string
   }[]>([])
+
+  const [templates, setTemplates] = useState<TemplateListItem[]>([])
+  const [templateName, setTemplateName] = useState('')
+  const [selectedTemplateId, setSelectedTemplateId] = useState('')
+  const [templateMsg, setTemplateMsg] = useState<string | null>(null)
+  const [templateMsgType, setTemplateMsgType] = useState<'success' | 'error' | 'info'>('info')
+  const [editingEdgeId, setEditingEdgeId] = useState<string | null>(null)
+  const [editingLabel, setEditingLabel] = useState('')
 
   useEffect(() => {
     async function load() {
@@ -162,6 +171,15 @@ function ViewerInner() {
   }, [groupSessions])
 
   useEffect(() => {
+    if (params.sessionId || params.groupId) {
+      getTemplates({
+        sessionId: params.sessionId,
+        groupId: params.groupId,
+      }).then((res) => setTemplates(res.data.templates ?? [])).catch(() => {})
+    }
+  }, [params.sessionId, params.groupId])
+
+  useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.ctrlKey && e.shiftKey && e.key === 'A') {
         e.preventDefault()
@@ -203,6 +221,188 @@ function ViewerInner() {
     },
     [fitView, getViewport, sidebarWidth, dispatch]
   )
+
+  const onEdgeDoubleClick = useCallback((event: React.MouseEvent, edge: Edge) => {
+    event.stopPropagation()
+    setEditingEdgeId(edge.id)
+    setEditingLabel(edge.data?.label ?? '')
+  }, [])
+
+  const handleSaveTemplate = async () => {
+    if (!templateName.trim()) return
+    const cards = nodes.map((n) => ({
+      file_id: (n.data as { fileId: string }).fileId,
+      session_id: (n.data as { sessionId: string }).sessionId,
+      filename: (n.data as { filename: string }).filename,
+      node_index: Math.max(0, groupSessions.findIndex(s => s.id === (n.data as { sessionId: string }).sessionId)),
+      pos_x: Math.round(n.position.x),
+      pos_y: Math.round(n.position.y),
+      collapsed: state.collapsedFileIds.has((n.data as { fileId: string }).fileId),
+    }))
+    if (cards.length === 0) {
+      setTemplateMsg('No cards on canvas to save')
+      setTemplateMsgType('error')
+      return
+    }
+    const edgesData = edges.map((e, i) => ({
+      edge_id: `edge_${i}`,
+      source_file_id: e.source,
+      target_file_id: e.target,
+      label: (e.data as { label?: string })?.label ?? null,
+    }))
+    try {
+      await createTemplate({
+        name: templateName.trim(),
+        session_id: params.sessionId,
+        group_id: params.groupId,
+        cards,
+        edges: edgesData,
+      })
+      setTemplateName('')
+      setTemplateMsg(`Template "${templateName.trim()}" saved (${cards.length} cards)`)
+      setTemplateMsgType('success')
+      const res = await getTemplates({
+        sessionId: params.sessionId,
+        groupId: params.groupId,
+      })
+      setTemplates(res.data.templates ?? [])
+    } catch {
+      setTemplateMsg('Failed to save template')
+      setTemplateMsgType('error')
+    }
+  }
+
+  const handleLoadTemplate = async (templateId: string) => {
+    if (!templateId) return
+    try {
+      const res = await getTemplate(templateId)
+      const { cards, edges } = res.data
+
+      // Helper: find file metadata by (node_index, filename)
+      const findByNodeAndFilename = (nodeIdx: number, filename: string) => {
+        const targetSession = nodeIdx >= 0 && nodeIdx < groupSessions.length
+          ? groupSessions[nodeIdx]
+          : null
+        for (const [, meta] of fileMetaRef.current) {
+          if (meta.file.filename !== filename) continue
+          // If in group mode, also match the session
+          if (targetSession && meta.sessionId !== targetSession.id) continue
+          return meta
+        }
+        return null
+      }
+
+      // First pass: check which sessions we need to fetch
+      const missingSessions = new Set<string>()
+      for (const card of cards) {
+        const meta = findByNodeAndFilename(card.node_index, card.filename)
+        if (!meta && card.session_id) {
+          missingSessions.add(card.session_id)
+        }
+      }
+
+      // Fetch missing session files
+      if (missingSessions.size > 0) {
+        await Promise.all(
+          Array.from(missingSessions).map(async (sid) => {
+            try {
+              const filesRes = await getFiles(sid)
+              const files: FileRecord[] = filesRes.data?.files ?? filesRes.data ?? []
+              const session = groupSessions.find(s => s.id === sid)
+              const colorHex = NODE_COLORS[session?.color ?? 'blue']
+              files.filter((f) => !f.is_empty).forEach((f) => {
+                fileMetaRef.current.set(f.id, {
+                  sessionId: sid,
+                  nodeColor: colorHex,
+                  file: f,
+                })
+              })
+            } catch {
+              console.warn(`[Template] Failed to fetch files for session ${sid}`)
+            }
+          })
+        )
+      }
+
+      // Second pass: create nodes using (node_index, filename) matching
+      let loaded = 0
+      let skipped = 0
+      const newNodes: Node[] = []
+
+      cards.forEach((card: TemplateCard) => {
+        // Try (node_index, filename) match first
+        let meta = findByNodeAndFilename(card.node_index, card.filename)
+
+        // Fallback: filename-only match across all sessions
+        if (!meta && card.filename) {
+          for (const [, m] of fileMetaRef.current) {
+            if (m.file.filename === card.filename) {
+              meta = m
+              break
+            }
+          }
+        }
+
+        if (!meta) {
+          skipped++
+          return
+        }
+        const newNode = buildNode(
+          meta.file,
+          { x: card.pos_x, y: card.pos_y },
+          meta.sessionId,
+          meta.nodeColor,
+          dispatch
+        )
+        if (card.collapsed) {
+          dispatch({ type: 'TOGGLE_COLLAPSE', fileId: meta.file.id })
+        }
+        newNodes.push(newNode)
+        loaded++
+        dispatch({ type: 'SHOW_FILE', fileId: meta.file.id })
+      })
+
+      setNodes((prev) => {
+        const existingIds = new Set(prev.map((n) => n.id))
+        const toAdd = newNodes.filter((n) => !existingIds.has(n.id))
+        return [...prev, ...toAdd]
+      })
+
+      // Restore edges (filter by current node IDs)
+      if (edges && edges.length > 0) {
+        const currentNodes = nodes
+        const edgeNodes = new Set(newNodes.map((n) => n.id))
+        currentNodes.forEach((n) => edgeNodes.add(n.id))
+        const restoredEdges: Edge[] = edges
+          .filter((e: TemplateEdge) => edgeNodes.has(e.source_file_id) && edgeNodes.has(e.target_file_id))
+          .map((e: TemplateEdge) => ({
+            id: e.edge_id,
+            source: e.source_file_id,
+            target: e.target_file_id,
+            animated: false,
+            style: { stroke: '#94a3b8', strokeWidth: 2 },
+            data: { label: e.label ?? '' },
+            label: e.label ?? '',
+          }))
+        setEdges((prev) => {
+          const existingEdgeIds = new Set(prev.map((e) => e.id))
+          const toAdd = restoredEdges.filter((e) => !existingEdgeIds.has(e.id))
+          return [...prev, ...toAdd]
+        })
+      }
+
+      setTimeout(() => fitView({ padding: 0.15, duration: 400 }), 100)
+
+      const msg = skipped > 0
+        ? `Loaded ${loaded} cards, ${skipped} files not found`
+        : `Loaded ${loaded} cards`
+      setTemplateMsg(msg)
+      setTemplateMsgType(skipped > 0 ? 'info' : 'success')
+    } catch {
+      setTemplateMsg('Failed to load template')
+      setTemplateMsgType('error')
+    }
+  }
 
   const visibleNodes = useMemo(
     () =>
@@ -253,6 +453,82 @@ function ViewerInner() {
       <main className="viewer-main">
         <NodeHUD sessions={sessions} />
 
+        {/* Template bar */}
+        <div className="template-bar nodrag" style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          padding: '6px 16px', background: '#f8fafc',
+          borderBottom: '1px solid #e2e8f0', fontSize: 12,
+        }}>
+          <input
+            type="text"
+            placeholder="Template name..."
+            value={templateName}
+            onChange={(e) => setTemplateName(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleSaveTemplate() }}
+            style={{
+              width: 140, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 4,
+              color: '#1e293b', padding: '3px 8px', fontSize: 11, outline: 'none',
+              fontFamily: 'ui-monospace, Consolas, monospace',
+            }}
+          />
+          <button onClick={handleSaveTemplate} style={templateBtnStyle}>
+            💾 Save
+          </button>
+          <div style={{ width: 1, height: 16, background: '#e2e8f0' }} />
+          <div style={{ width: 1, height: 16, background: '#e2e8f0' }} />
+          <select
+            value={selectedTemplateId}
+            onChange={(e) => { setSelectedTemplateId(e.target.value); handleLoadTemplate(e.target.value) }}
+            style={{
+              background: '#fff', border: '1px solid #e2e8f0', borderRadius: 4,
+              color: '#1e293b', padding: '3px 8px', fontSize: 11, outline: 'none',
+              fontFamily: 'ui-monospace, Consolas, monospace',
+            }}
+          >
+            <option value="">Load template…</option>
+            {templates.map((t) => (
+              <option key={t.id} value={t.id}>{t.name} ({t.card_count})</option>
+            ))}
+          </select>
+          {selectedTemplateId && (
+            <button
+              onClick={async () => {
+                if (!window.confirm('Delete this template?')) return
+                try {
+                  await deleteTemplate(selectedTemplateId)
+                  setSelectedTemplateId('')
+                  const res = await getTemplates({
+                    sessionId: params.sessionId,
+                    groupId: params.groupId,
+                  })
+                  setTemplates(res.data.templates ?? [])
+                  setTemplateMsg('Template deleted')
+                  setTemplateMsgType('info')
+                } catch {
+                  setTemplateMsg('Failed to delete template')
+                  setTemplateMsgType('error')
+                }
+              }}
+              style={{ ...templateBtnStyle, color: '#ef4444' }}
+              title="Delete template"
+            >
+              🗑
+            </button>
+          )}
+          {templateMsg && (
+            <>
+              <div style={{ width: 1, height: 16, background: '#e2e8f0' }} />
+              <span style={{
+                color: templateMsgType === 'error' ? '#ef4444' : templateMsgType === 'success' ? '#22c55e' : '#3b82f6',
+                fontSize: 11,
+              }}>
+                {templateMsg}
+              </span>
+              <button onClick={() => setTemplateMsg(null)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: 11, padding: '0 2px' }}>×</button>
+            </>
+          )}
+        </div>
+
         <div className="viewer-canvas">
           <ReactFlow
             nodes={visibleNodes}
@@ -261,6 +537,7 @@ function ViewerInner() {
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
+            onEdgeDoubleClick={onEdgeDoubleClick}
             fitView={false}
             minZoom={0.1}
             maxZoom={2}
@@ -281,9 +558,74 @@ function ViewerInner() {
             />
           </ReactFlow>
         </div>
+
+        {editingEdgeId && (
+          <div style={{
+            position: 'fixed', inset: 0, zIndex: 10000,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'rgba(0,0,0,0.3)',
+          }} onClick={() => setEditingEdgeId(null)}>
+            <div style={{
+              background: '#fff', borderRadius: 8, padding: 16,
+              boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+              minWidth: 280,
+            }} onClick={(e) => e.stopPropagation()}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#1e293b', marginBottom: 8 }}>
+                Edit edge label
+              </div>
+              <input
+                autoFocus
+                value={editingLabel}
+                onChange={(e) => setEditingLabel(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    setEdges((eds) => eds.map((ed) =>
+                      ed.id === editingEdgeId
+                        ? { ...ed, data: { ...ed.data, label: editingLabel }, label: editingLabel }
+                        : ed
+                    ))
+                    setEditingEdgeId(null)
+                  }
+                  if (e.key === 'Escape') setEditingEdgeId(null)
+                }}
+                placeholder="Enter label..."
+                style={{
+                  width: '100%', padding: '6px 10px', fontSize: 12,
+                  border: '1px solid #e2e8f0', borderRadius: 4, outline: 'none',
+                  fontFamily: 'ui-monospace, Consolas, monospace',
+                  boxSizing: 'border-box',
+                }}
+              />
+              <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', marginTop: 8 }}>
+                <button onClick={() => setEditingEdgeId(null)}
+                  style={{ background: 'none', border: '1px solid #e2e8f0', borderRadius: 4, padding: '4px 12px', fontSize: 11, cursor: 'pointer' }}>
+                  Cancel
+                </button>
+                <button onClick={() => {
+                  setEdges((eds) => eds.map((ed) =>
+                    ed.id === editingEdgeId
+                      ? { ...ed, data: { ...ed.data, label: editingLabel }, label: editingLabel }
+                      : ed
+                  ))
+                  setEditingEdgeId(null)
+                }}
+                  style={{ background: '#3b82f6', border: 'none', borderRadius: 4, color: '#fff', padding: '4px 12px', fontSize: 11, cursor: 'pointer' }}>
+                  Save
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   )
+}
+
+const templateBtnStyle: React.CSSProperties = {
+  background: '#3b82f6', border: 'none', borderRadius: 4,
+  color: '#fff', cursor: 'pointer', padding: '3px 10px',
+  fontSize: 11, fontFamily: 'ui-monospace, Consolas, monospace',
+  fontWeight: 500,
 }
 
 export default function ViewerPage() {

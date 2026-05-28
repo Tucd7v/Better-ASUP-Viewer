@@ -68,3 +68,41 @@ export interface ClusterOverview {
   groups: ClusterGroup[]
   singles: ClusterGroupMember[]
 }
+
+export interface TemplateCard {
+  file_id: string
+  session_id: string
+  filename: string  // NEW
+  node_index: number  // NEW
+  pos_x: number
+  pos_y: number
+  collapsed: boolean
+}
+
+export interface TemplateEdge {
+  edge_id: string
+  source_file_id: string
+  target_file_id: string
+  label?: string
+}
+
+export interface CanvasTemplate {
+  id: string
+  name: string
+  session_id?: string
+  group_id?: string
+  created_at: string
+  updated_at: string
+  cards: TemplateCard[]
+  edges: TemplateEdge[]
+}
+
+export interface TemplateListItem {
+  id: string
+  name: string
+  session_id?: string
+  group_id?: string
+  created_at: string
+  updated_at: string
+  card_count: number
+}

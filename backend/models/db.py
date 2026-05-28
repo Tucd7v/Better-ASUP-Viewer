@@ -95,3 +95,42 @@ class FileRecord(Base):
     is_empty: Mapped[bool] = mapped_column(Boolean, default=False)
 
     session: Mapped[Session] = relationship("Session", back_populates="file_records")
+
+
+class CanvasTemplate(Base):
+    __tablename__ = "canvas_templates"
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    name: Mapped[str] = mapped_column(String)
+    session_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    group_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime)
+    updated_at: Mapped[datetime] = mapped_column(DateTime)
+    cards: Mapped[list[TemplateCard]] = relationship("TemplateCard", back_populates="template", lazy="selectin", cascade="all, delete-orphan")
+    edges: Mapped[list[TemplateEdge]] = relationship("TemplateEdge", back_populates="template", lazy="selectin", cascade="all, delete-orphan")
+
+
+class TemplateCard(Base):
+    __tablename__ = "template_cards"
+    template_id: Mapped[str] = mapped_column(String, ForeignKey("canvas_templates.id"))
+    file_id: Mapped[str] = mapped_column(String)
+    session_id: Mapped[str] = mapped_column(String)
+    filename: Mapped[str] = mapped_column(String, default="")  # NEW
+    node_index: Mapped[int] = mapped_column(Integer, default=0)  # NEW (0=first/blue, 1=second/orange)
+    pos_x: Mapped[float] = mapped_column(Integer)  # store as integer in DB (pixels)
+    pos_y: Mapped[float] = mapped_column(Integer)
+    collapsed: Mapped[bool] = mapped_column(Boolean, default=False)
+    __table_args__ = (PrimaryKeyConstraint("template_id", "file_id"),)
+    template: Mapped[CanvasTemplate] = relationship("CanvasTemplate", back_populates="cards")
+
+
+class TemplateEdge(Base):
+    __tablename__ = "template_edges"
+    template_id: Mapped[str] = mapped_column(String, ForeignKey("canvas_templates.id"))
+    edge_id: Mapped[str] = mapped_column(String)  # unique edge id within template
+    source_file_id: Mapped[str] = mapped_column(String)  # maps to node id (node id = file id)
+    target_file_id: Mapped[str] = mapped_column(String)  # maps to node id
+    label: Mapped[str | None] = mapped_column(String, nullable=True, default=None)
+
+    __table_args__ = (PrimaryKeyConstraint("template_id", "edge_id"),)
+
+    template: Mapped[CanvasTemplate] = relationship("CanvasTemplate", back_populates="edges")

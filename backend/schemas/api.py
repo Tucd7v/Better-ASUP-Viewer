@@ -152,3 +152,57 @@ class ClusterOverviewResponse(BaseModel):
 
 class ClusterGroupsResponse(BaseModel):
     groups: list[ClusterGroupSummary]
+
+
+class TemplateCardOut(BaseModel):
+    file_id: str
+    session_id: str
+    filename: str = ""  # NEW
+    node_index: int = 0  # NEW
+    pos_x: int
+    pos_y: int
+    collapsed: bool = False
+
+
+class TemplateEdgeOut(BaseModel):
+    edge_id: str
+    source_file_id: str
+    target_file_id: str
+    label: Optional[str] = None
+
+
+class CanvasTemplateOut(BaseModel):
+    id: str
+    name: str
+    session_id: Optional[str] = None
+    group_id: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+    cards: list[TemplateCardOut]
+    edges: list[TemplateEdgeOut] = []
+
+    model_config = {"from_attributes": True}
+
+
+class CreateTemplateRequest(BaseModel):
+    name: str
+    session_id: Optional[str] = None
+    group_id: Optional[str] = None
+    cards: list[TemplateCardOut]
+    edges: list[TemplateEdgeOut] = []
+
+
+class TemplateListItem(BaseModel):
+    id: str
+    name: str
+    session_id: Optional[str] = None
+    group_id: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+    card_count: int = 0
+
+    model_config = {"from_attributes": True}
+
+
+class TemplateListResponse(BaseModel):
+    templates: list[TemplateListItem]
