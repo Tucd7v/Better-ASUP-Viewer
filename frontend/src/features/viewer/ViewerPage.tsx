@@ -23,6 +23,7 @@ import NodeHUD from './NodeHUD'
 import TextFileCard from './nodes/TextFileCard'
 import XMLFileCard from './nodes/XMLFileCard'
 import EMSFileCard from './nodes/EMSFileCard'
+import AIChatPanel from './AIChatPanel'
 import { getFiles, getSessionGroup, getSessionStatus } from '../../services/api'
 import { getTemplates, getTemplate, createTemplate, deleteTemplate } from '../../services/api'
 import type { FileRecord, SessionMeta, TemplateListItem, TemplateCard, TemplateEdge } from '../../types'
@@ -103,6 +104,7 @@ function ViewerInner() {
   const [templateMsgType, setTemplateMsgType] = useState<'success' | 'error' | 'info'>('info')
   const [editingEdgeId, setEditingEdgeId] = useState<string | null>(null)
   const [editingLabel, setEditingLabel] = useState('')
+  const [showAI, setShowAI] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -477,7 +479,7 @@ function ViewerInner() {
         onMouseLeave={(e) => (e.currentTarget.style.background = '#e2e8f0')}
       />
 
-      <main className="viewer-main">
+      <main className="viewer-main" style={{ position: 'relative' }}>
         <NodeHUD sessions={sessions} />
 
         {/* Template bar */}
@@ -556,34 +558,67 @@ function ViewerInner() {
           )}
         </div>
 
-        <div className="viewer-canvas">
-          <ReactFlow
-            nodes={visibleNodes}
-            edges={edges}
-            nodeTypes={nodeTypes}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            onEdgeDoubleClick={onEdgeDoubleClick}
-            fitView={false}
-            minZoom={0.1}
-            maxZoom={2}
-            style={{ background: '#f7f9fc' }}
-            deleteKeyCode={null}
-          >
-            <Background variant={BackgroundVariant.Dots} color="#d6dde8" />
-            <Controls position="bottom-left" />
-            <MiniMap
-              position="bottom-right"
-              pannable
-              zoomable
-              nodeColor={(n) => {
-                const color = (n.data as { nodeColor?: string }).nodeColor
-                return color ?? '#3b82f6'
+        <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+          {/* Canvas */}
+          <div className="viewer-canvas" style={{ flex: 1 }}>
+            <ReactFlow
+              nodes={visibleNodes}
+              edges={edges}
+              nodeTypes={nodeTypes}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              onConnect={onConnect}
+              onEdgeDoubleClick={onEdgeDoubleClick}
+              fitView={false}
+              minZoom={0.1}
+              maxZoom={2}
+              style={{ background: '#f7f9fc' }}
+              deleteKeyCode={null}
+            >
+              <Background variant={BackgroundVariant.Dots} color="#d6dde8" />
+              <Controls position="bottom-left" />
+              <MiniMap
+                position="bottom-right"
+                pannable
+                zoomable
+                nodeColor={(n) => {
+                  const color = (n.data as { nodeColor?: string }).nodeColor
+                  return color ?? '#3b82f6'
+                }}
+                style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}
+              />
+            </ReactFlow>
+          </div>
+
+          {/* AI Chat Panel */}
+          {showAI && (
+            <div style={{ width: 360, flexShrink: 0 }}>
+              <AIChatPanel
+                sessionId={params.sessionId || groupSessions[0]?.id || ''}
+                groupSessions={groupSessions}
+                onFocusFile={handleFocusFile}
+                onClose={() => setShowAI(false)}
+              />
+            </div>
+          )}
+
+          {/* AI toggle button — floating on canvas when panel is hidden */}
+          {!showAI && (
+            <button
+              onClick={() => setShowAI(true)}
+              style={{
+                position: 'absolute', top: 60, right: 12, zIndex: 100,
+                background: '#ffffff', border: '1px solid #e2e8f0',
+                borderRadius: 20, padding: '4px 12px',
+                cursor: 'pointer', fontSize: 12, fontWeight: 500,
+                color: '#475569', display: 'flex', alignItems: 'center', gap: 4,
+                boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                fontFamily: 'system-ui, -apple-system, sans-serif',
               }}
-              style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}
-            />
-          </ReactFlow>
+            >
+              <span>🤖</span> AI
+            </button>
+          )}
         </div>
 
         {editingEdgeId && (
