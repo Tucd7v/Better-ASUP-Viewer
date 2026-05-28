@@ -245,7 +245,7 @@ export default function AIChatPanel({ sessionIds, groupSessions, onFocusFile, on
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#fff', borderLeft: '1px solid #e2e8f0' }}>
       <style>{`
-        .markdown-body table { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 11px; }
+        .markdown-body table { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 13px; }
         .markdown-body th, .markdown-body td { border: 1px solid #e2e8f0; padding: 4px 8px; text-align: left; }
         .markdown-body th { background: #f8fafc; font-weight: 600; }
         .markdown-body code { background: #f1f5f9; padding: 1px 4px; border-radius: 3px; font-size: 11px; font-family: monospace; }
