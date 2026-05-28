@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import type { NodeProps, Node } from '@xyflow/react'
-import { Handle, Position } from '@xyflow/react'
 import { getFileContent } from '../../../services/api'
 import { useResizable } from './useResizable'
 import { useViewer } from '../ViewerContext'
@@ -99,9 +98,6 @@ export default function TextFileCard({ data }: NodeProps<TextFileNode>) {
 
   return (
     <div style={{ position: 'relative', width, minWidth: 220 }}>
-      <Handle type="target" position={Position.Left} style={leftHandleStyle} />
-      <Handle type="source" position={Position.Right} style={rightHandleStyle} />
-
       <div
         style={{
           background: '#ffffff',
@@ -212,24 +208,6 @@ export default function TextFileCard({ data }: NodeProps<TextFileNode>) {
       />
     </div>
   )
-}
-
-const handleStyle: React.CSSProperties = {
-  width: 14,
-  height: 14,
-  background: '#ffffff',
-  border: '2px solid #94a3b8',
-  borderRadius: '50%',
-  cursor: 'crosshair',
-}
-
-const leftHandleStyle: React.CSSProperties = {
-  ...handleStyle,
-  transform: 'translate(calc(-50% - 10px), -50%)',
-}
-const rightHandleStyle: React.CSSProperties = {
-  ...handleStyle,
-  transform: 'translate(calc(50% + 10px), -50%)',
 }
 
 const btnStyle: React.CSSProperties = {
