@@ -583,9 +583,6 @@ function ViewerInner() {
               edges={edges}
               nodeTypes={nodeTypes}
               onNodesChange={onNodesChange}
-              onEdgesChange={onEdgesChange}
-              onConnect={onConnect}
-              onEdgeDoubleClick={onEdgeDoubleClick}
               fitView={false}
               minZoom={0.1}
               maxZoom={2}
