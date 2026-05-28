@@ -56,13 +56,13 @@ export default function AIChatPanel({ sessionIds, groupSessions, onFocusFile, on
                 }
               }}
               style={{
-                background: '#eff6ff',
-                border: '1px solid #bfdbfe',
+                background: '#dbeafe',
+                border: '1px solid #93c5fd',
                 borderRadius: 4,
                 padding: '0 4px',
                 cursor: 'pointer',
                 fontSize: 10,
-                color: '#3b82f6',
+                color: '#1d4ed8',
                 fontWeight: 500,
                 display: 'inline-flex',
                 alignItems: 'center',
