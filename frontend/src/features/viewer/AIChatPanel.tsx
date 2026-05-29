@@ -30,15 +30,6 @@ export default function AIChatPanel({ sessionIds, groupSessions, onFocusFile, on
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  // Auto-detect initial mode based on canvas state
-  useEffect(() => {
-    const visibleCount = state.fileList.filter(f => !state.hiddenFileIds.has(f.id)).length
-    if (visibleCount > 0) {
-      setMode('analysis')
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])  // run once on mount
-
   // Get currently visible file IDs from the canvas
   const getVisibleFileIds = useCallback(() => {
     return state.fileList.filter(f => !state.hiddenFileIds.has(f.id)).map(f => f.id)
