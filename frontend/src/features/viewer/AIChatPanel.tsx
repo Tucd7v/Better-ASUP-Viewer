@@ -221,7 +221,7 @@ export default function AIChatPanel({ sessionIds, groupSessions, onFocusFile, on
             <div style={{ marginBottom: 16 }}>
               {mode === 'analysis'
                 ? '分析模式 — 仅基于画布上已打开的卡片进行分析'
-                : '自主模式-自动根据需求打开日志文件并进行分析'}
+                : '自主模式 — 自动根据需求打开日志文件并进行分析'}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center' }}>
               {quickButtons.map((label) => (
