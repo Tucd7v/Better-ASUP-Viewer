@@ -1,6 +1,5 @@
-import { useState, useRef, useEffect, useMemo } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
-import type { Components } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { useViewer } from './ViewerContext'
 
@@ -25,66 +24,6 @@ export default function AIChatPanel({ sessionIds, groupSessions, onFocusFile, on
   const [loading, setLoading] = useState(false)
   const [streamingLines, setStreamingLines] = useState<string[]>([])
   const chatEndRef = useRef<HTMLDivElement>(null)
-
-  // Custom markdown link renderer: intercept ref:// links to open files in viewer
-  const markdownComponents: Components = useMemo(() => ({
-    a: ({ href, children }) => {
-      if (href && href.startsWith('ref://')) {
-        try {
-          const url = new URL(href)
-          const fileId = url.hostname
-          const lineStr = url.searchParams.get('line')
-          const line = lineStr ? parseInt(lineStr, 10) : undefined
-          const label = Array.isArray(children)
-            ? children.map((c) => (typeof c === 'string' ? c : '')).join('')
-            : typeof children === 'string'
-              ? children
-              : String(children ?? '')
-          return (
-            <span
-              onClick={(e) => {
-                e.preventDefault()
-                if (!fileId) return
-                dispatch({ type: 'SHOW_FILE', fileId })
-                onFocusFile(fileId)
-                if (line !== undefined && !Number.isNaN(line)) {
-                  dispatch({
-                    type: 'SET_GLOBAL_SEARCH',
-                    fileId,
-                    query: '',
-                    line,
-                  })
-                }
-              }}
-              style={{
-                background: '#dbeafe',
-                border: '1px solid #93c5fd',
-                borderRadius: 4,
-                padding: '0 4px',
-                cursor: 'pointer',
-                fontSize: 10,
-                color: '#1d4ed8',
-                fontWeight: 500,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 2,
-              }}
-              title={`Click to open file${line ? ` (line ${line})` : ''}`}
-            >
-              ↗ {label}
-            </span>
-          )
-        } catch {
-          return <>{children}</>
-        }
-      }
-      return (
-        <a href={href} target="_blank" rel="noopener noreferrer">
-          {children}
-        </a>
-      )
-    },
-  }), [dispatch, onFocusFile])
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -275,7 +214,7 @@ export default function AIChatPanel({ sessionIds, groupSessions, onFocusFile, on
             </div>
             {msg.role === 'assistant' ? (
               <div className="markdown-body" style={{ fontSize: 14, lineHeight: 1.7 }}>
-                <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>{msg.content}</ReactMarkdown>
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
               </div>
             ) : (
               <div style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
