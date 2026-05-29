@@ -24,16 +24,7 @@ export default function AIChatPanel({ sessionIds, groupSessions, onFocusFile, on
   const [loading, setLoading] = useState(false)
   const [streamingLines, setStreamingLines] = useState<string[]>([])
   const [mode, setMode] = useState<'analysis' | 'autonomous'>('analysis')
-  const [animating, setAnimating] = useState(false)
   const chatEndRef = useRef<HTMLDivElement>(null)
-
-  // Trigger pop animation on mode change without unmounting
-  const switchMode = (newMode: 'analysis' | 'autonomous') => {
-    if (newMode === mode) return
-    setMode(newMode)
-    setAnimating(true)
-    setTimeout(() => setAnimating(false), 350)
-  }
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -200,7 +191,7 @@ export default function AIChatPanel({ sessionIds, groupSessions, onFocusFile, on
         {/* Mode toggle */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <button
-            onClick={() => switchMode('analysis')}
+            onClick={() => setMode('analysis')}
             style={{
               flex: 1, border: `1px solid ${mode === 'analysis' ? '#3b82f6' : '#e2e8f0'}`,
               borderRadius: 6, padding: '4px 0', fontSize: 11, fontWeight: 500, cursor: 'pointer',
@@ -211,7 +202,7 @@ export default function AIChatPanel({ sessionIds, groupSessions, onFocusFile, on
             🔒 分析模式
           </button>
           <button
-            onClick={() => switchMode('autonomous')}
+            onClick={() => setMode('autonomous')}
             style={{
               flex: 1, border: `1px solid ${mode === 'autonomous' ? '#3b82f6' : '#e2e8f0'}`,
               borderRadius: 6, padding: '4px 0', fontSize: 11, fontWeight: 500, cursor: 'pointer',
@@ -229,8 +220,8 @@ export default function AIChatPanel({ sessionIds, groupSessions, onFocusFile, on
         {messages.length === 0 && (
           <div style={{ color: '#94a3b8', fontSize: 12, textAlign: 'center', paddingTop: 40 }}>
             <div style={{ minHeight: 110 }}>
-              <div style={{ fontSize: 36, marginBottom: 12, animation: animating ? 'modePop 0.3s ease-out' : 'none' }}>{mode === 'analysis' ? '🔒' : '🤖'}</div>
-              <div style={{ marginBottom: 16, animation: animating ? 'fadeSlide 0.25s ease-out' : 'none', lineHeight: 1.5 }}>
+              <div style={{ fontSize: 36, marginBottom: 12, transition: 'opacity 0.15s ease, transform 0.15s ease' }}>{mode === 'analysis' ? '🔒' : '🤖'}</div>
+              <div style={{ marginBottom: 16, transition: 'opacity 0.15s ease', lineHeight: 1.5 }}>
                 {mode === 'analysis'
                   ? '分析模式 — 仅基于画布上已打开的卡片进行分析'
                   : '我是 ONTAP 日志分析师，可以帮你评估集群健康状态。'}
