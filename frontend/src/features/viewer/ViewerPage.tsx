@@ -566,10 +566,14 @@ function ViewerInner() {
                   setTemplateMsgType('error')
                 }
               }}
-              style={{ ...templateBtnStyle, color: '#ef4444' }}
+              style={{
+                background: '#ef4444', border: '1px solid #dc2626', borderRadius: 4,
+                color: '#fff', cursor: 'pointer', padding: '3px 8px',
+                fontSize: 11, fontFamily: 'system-ui, -apple-system, sans-serif',
+              }}
               title="Delete template"
             >
-              🗑
+              🗑️
             </button>
           )}
           {templateMsg && (
