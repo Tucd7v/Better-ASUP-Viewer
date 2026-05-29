@@ -183,6 +183,149 @@ def _lookup_desc(filename: str) -> str:
     return ""
 
 
+# ONTAP concept → file lookup mapping
+# Each entry: { category, description, files, related_hint }
+CONCEPT_MAP: dict[str, dict] = {
+    # --- 网络 ---
+    "lif": {
+        "category": "网络类",
+        "description": "逻辑接口 (Logical Interface)，承载数据流量的网络端点",
+        "files": ["network-interface.xml", "ifconfig-*", "vifmgr-*"],
+        "related_hint": "如果 LIF 故障切换，还需查看 ha-* 和 vs-failover-*",
+    },
+    "逻辑接口": {
+        "category": "网络类",
+        "description": "逻辑接口 (LIF) — 见 LIF",
+        "files": ["network-interface.xml", "ifconfig-*"],
+        "related_hint": "",
+    },
+    "vlan": {
+        "category": "网络类",
+        "description": "虚拟局域网",
+        "files": ["vlan-*.txt", "broadcast-domain-*", "network-port-*"],
+        "related_hint": "",
+    },
+    # --- 存储 ---
+    "snapshot": {
+        "category": "存储类",
+        "description": "卷快照 (Snapshot)，按时间点的只读副本",
+        "files": ["snap-list-*", "snapmirror-*", "snap-sched-*", "snap-reserve-*"],
+        "related_hint": "快照容量占用 → DF*.txt；策略配置 → snap-sched-*",
+    },
+    "快照": {
+        "category": "存储类",
+        "description": "卷快照 (Snapshot) — 见 snapshot",
+        "files": ["snap-list-*", "snapmirror-*", "snap-sched-*", "snap-reserve-*"],
+        "related_hint": "",
+    },
+    "snapmirror": {
+        "category": "存储类",
+        "description": "数据镜像/灾难恢复 (SnapMirror)",
+        "files": ["snapmirror-*", "snap-list-*"],
+        "related_hint": "传输延迟 → network-interface.xml；对端信息 → cluster-*",
+    },
+    "镜像": {
+        "category": "存储类",
+        "description": "数据镜像 (SnapMirror) — 见 snapmirror",
+        "files": ["snapmirror-*", "snap-list-*"],
+        "related_hint": "",
+    },
+    "aggregate": {
+        "category": "存储类",
+        "description": "存储聚合 (Aggregate)，物理存储的容器",
+        "files": ["aggr-*.txt", "storage-*.xml", "DF-A-*"],
+        "related_hint": "容量 → DF*.txt；RAID → AGGR-STATUS-R-*；磁盘 → disk-*",
+    },
+    "聚合": {
+        "category": "存储类",
+        "description": "存储聚合 (Aggregate) — 见 aggregate",
+        "files": ["aggr-*.txt", "storage-*.xml", "DF-A-*"],
+        "related_hint": "",
+    },
+    "volume": {
+        "category": "存储类",
+        "description": "FlexVol 卷，数据容器",
+        "files": ["volume*.xml", "VOL-STATUS-*", "DF*.txt"],
+        "related_hint": "容量 → DF*.txt；快照 → snap-list-*；QoS → qos-*",
+    },
+    "卷": {
+        "category": "存储类",
+        "description": "FlexVol 卷 — 见 volume",
+        "files": ["volume*.xml", "VOL-STATUS-*", "DF*.txt"],
+        "related_hint": "",
+    },
+    # --- 服务 ---
+    "svm": {
+        "category": "服务类",
+        "description": "存储虚拟机 (Storage Virtual Machine)，文件系统中体现为 vserver",
+        "files": ["vserver-*.txt", "vserver-*.xml"],
+        "related_hint": "SVM 状态 → vserver-*；服务 → nfs-*, cifs-*；审计 → audit-*",
+    },
+    "vserver": {
+        "category": "服务类",
+        "description": "存储虚拟机 (Vserver / SVM)",
+        "files": ["vserver-*.txt", "vserver-*.xml"],
+        "related_hint": "",
+    },
+    "nfs": {
+        "category": "服务类",
+        "description": "NFS 文件共享服务",
+        "files": ["nfs-*", "export-*", "vserver-*"],
+        "related_hint": "权限 → export-*；网络 → network-interface.xml",
+    },
+    "cifs": {
+        "category": "服务类",
+        "description": "CIFS/SMB 文件共享服务",
+        "files": ["cifs-*", "vserver-*", "kerberos-*"],
+        "related_hint": "认证 → kerberos-*, ldap-*",
+    },
+    # --- 集群/HA ---
+    "ha": {
+        "category": "集群/HA",
+        "description": "高可用 (High Availability) 对等关系",
+        "files": ["ha-*", "cf_*", "vs-failover-*", "detect-switchless-*"],
+        "related_hint": "故障切换 → vs-failover-*；互联 → ha-interconnect-*",
+    },
+    "故障切换": {
+        "category": "集群/HA",
+        "description": "故障切换 (Failover)",
+        "files": ["ha-*", "cf_*", "vs-failover-*"],
+        "related_hint": "LIF 漂移 → network-interface.xml, vifmgr-*",
+    },
+    "cluster": {
+        "category": "集群/HA",
+        "description": "ONTAP 集群",
+        "files": ["cluster-*", "ha-*", "license-*"],
+        "related_hint": "节点 → node-info-*；对端 → cdpd-*",
+    },
+    # --- 系统 ---
+    "磁盘": {
+        "category": "存储类",
+        "description": "物理磁盘",
+        "files": ["disk-*", "aggr-*.txt", "storage-*.xml"],
+        "related_hint": "故障 → disk-* + EMS 事件类",
+    },
+    "端口": {
+        "category": "网络类",
+        "description": "物理/虚拟端口",
+        "files": ["ifgrps.xml", "sysconfig-*", "port-*", "network-port-*"],
+        "related_hint": "速率 → ifstat-*；LIF → network-interface.xml",
+    },
+    "license": {
+        "category": "集群/HA",
+        "description": "软件许可",
+        "files": ["license-*", "cluster-*"],
+        "related_hint": "",
+    },
+    "升级": {
+        "category": "集群/HA",
+        "description": "ONTAP 版本升级",
+        "files": ["upgrade-*", "software_image-*", "cluster-*"],
+        "related_hint": "当前版本 → sysconfig-*, node-info-*",
+    },
+}
+
+
 async def _build_context(session_ids: list[str]):
     """Build file catalog across all sessions and return execute_tool closure.
     Shared by /chat and /chat/stream.
@@ -252,6 +395,19 @@ async def _build_context(session_ids: list[str]):
         nonlocal engine
         if name == "list_files":
             return catalog
+
+        elif name == "lookup_concept":
+            concept = args["concept"].strip().lower()
+            # Direct match
+            result = CONCEPT_MAP.get(concept)
+            if result:
+                return {"found": True, **result}
+            # Try partial match (concept appears as substring)
+            for key in CONCEPT_MAP:
+                if concept in key or key in concept:
+                    result = CONCEPT_MAP[key]
+                    return {"found": True, "matched_alias": key, **result}
+            return {"found": False, "message": f"未找到概念 '{args['concept']}' 的映射，请根据文件名和分类自行判断相关文件"}
 
         elif name == "search_logs":
             query = args["query"]
