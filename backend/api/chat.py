@@ -125,6 +125,7 @@ class ChatRequest(BaseModel):
     session_ids: list[str] = []
     group_id: str | None = None
     message: str
+    context_file_ids: list[str] = []  # 分析模式时传入
 
 
 class ChatResponse(BaseModel):
@@ -355,7 +356,7 @@ CONCEPT_MAP: dict[str, dict] = {
 }
 
 
-async def _build_context(session_ids: list[str]):
+async def _build_context(session_ids: list[str], context_file_ids: list[str] | None = None):
     """Build file catalog across all sessions and return execute_tool closure.
     Shared by /chat and /chat/stream.
     """
@@ -422,6 +423,18 @@ async def _build_context(session_ids: list[str]):
 
     async def execute_tool(name: str, args: dict):
         nonlocal engine
+        # Context mode: restrict to user-opened files
+        if context_file_ids:
+            if name == "lookup_concept":
+                return {"found": False, "message": "用户已选择特定文件进行分析，请直接使用 read_file 读取已打开文件的文件内容"}
+            if name == "find_files":
+                return {"matched_files": []}
+            if name == "list_catalog":
+                return {"catalog": "用户已选择特定文件进行分析，无需查看文件目录"}
+            if name == "read_file":
+                fid = args.get("file_id", "")
+                if fid not in context_file_ids:
+                    return {"error": "只能读取用户已打开的卡片文件"}
         if name == "lookup_concept":
             import fnmatch
             concept = args["concept"].strip().lower()
@@ -593,9 +606,11 @@ async def chat(body: ChatRequest):
     if not session_ids:
         raise HTTPException(status_code=400, detail="必须提供 session_ids 或 group_id")
 
-    _, execute_tool, session_info, catalog_by_session = await _build_context(session_ids)
+    _, execute_tool, session_info, catalog_by_session = await _build_context(session_ids, body.context_file_ids)
 
     user_message = f"用户问题：{body.message}"
+    if body.context_file_ids:
+        user_message = f"查看用户画布内容（已打开文件分析模式）\n\n用户问题：{body.message}"
 
     llm = LLMService()
     try:
@@ -614,9 +629,11 @@ async def chat_stream(body: ChatRequest):
     if not session_ids:
         raise HTTPException(status_code=400, detail="必须提供 session_ids 或 group_id")
 
-    _, execute_tool, session_info, catalog_by_session = await _build_context(session_ids)
+    _, execute_tool, session_info, catalog_by_session = await _build_context(session_ids, body.context_file_ids)
 
     user_message = f"用户问题：{body.message}"
+    if body.context_file_ids:
+        user_message = f"查看用户画布内容（已打开文件分析模式）\n\n用户问题：{body.message}"
 
     async def event_stream():
         try:

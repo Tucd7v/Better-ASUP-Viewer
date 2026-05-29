@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { useViewer } from './ViewerContext'
@@ -18,16 +18,22 @@ interface AIChatPanelProps {
 }
 
 export default function AIChatPanel({ sessionIds, groupSessions, onFocusFile, onClose }: AIChatPanelProps) {
-  const { dispatch } = useViewer()
+  const { state, dispatch } = useViewer()
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [streamingLines, setStreamingLines] = useState<string[]>([])
+  const [mode, setMode] = useState<'analysis' | 'autonomous'>('autonomous')
   const chatEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
+
+  // Get currently visible file IDs from the canvas
+  const getVisibleFileIds = useCallback(() => {
+    return state.fileList.filter(f => !state.hiddenFileIds.has(f.id)).map(f => f.id)
+  }, [state.fileList, state.hiddenFileIds])
 
   const handleSend = async (text?: string) => {
     const userMsg = (text ?? input).trim()
@@ -42,7 +48,11 @@ export default function AIChatPanel({ sessionIds, groupSessions, onFocusFile, on
       const resp = await fetch(`${baseUrl}/api/v1/chat/stream`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session_ids: sessionIds, message: userMsg }),
+        body: JSON.stringify({
+          session_ids: sessionIds,
+          message: userMsg,
+          ...(mode === 'analysis' ? { context_file_ids: getVisibleFileIds() } : {}),
+        }),
       })
 
       const reader = resp.body?.getReader()
@@ -164,18 +174,51 @@ export default function AIChatPanel({ sessionIds, groupSessions, onFocusFile, on
         .markdown-body hr { border: none; border-top: 1px solid #e2e8f0; margin: 8px 0; }
       `}</style>
       {/* Header */}
-      <div style={{ padding: '10px 14px', borderBottom: '1px solid #e2e8f0', fontSize: 13, fontWeight: 600, color: '#1e293b', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span>🤖</span> AI Log Analyst
-        </span>
-        {onClose && (
+      <div style={{ padding: '10px 14px', borderBottom: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: '#1e293b' }}>
+            <span>🤖</span> AI Log Analyst
+          </span>
+          {onClose && (
+            <button
+              onClick={onClose}
+              style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: 18, padding: '0 4px', lineHeight: 1 }}
+            >
+              ×
+            </button>
+          )}
+        </div>
+        {/* Mode toggle */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <button
-            onClick={onClose}
-            style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: 18, padding: '0 4px', lineHeight: 1 }}
+            onClick={() => setMode('analysis')}
+            style={{
+              flex: 1, border: `1px solid ${mode === 'analysis' ? '#3b82f6' : '#e2e8f0'}`,
+              borderRadius: 6, padding: '4px 0', fontSize: 11, fontWeight: 500, cursor: 'pointer',
+              background: mode === 'analysis' ? '#eff6ff' : '#fff', color: mode === 'analysis' ? '#1d4ed8' : '#64748b',
+              fontFamily: 'system-ui, -apple-system, sans-serif',
+            }}
           >
-            ×
+            🔒 分析模式
           </button>
-        )}
+          <button
+            onClick={() => setMode('autonomous')}
+            style={{
+              flex: 1, border: `1px solid ${mode === 'autonomous' ? '#3b82f6' : '#e2e8f0'}`,
+              borderRadius: 6, padding: '4px 0', fontSize: 11, fontWeight: 500, cursor: 'pointer',
+              background: mode === 'autonomous' ? '#eff6ff' : '#fff', color: mode === 'autonomous' ? '#1d4ed8' : '#64748b',
+              fontFamily: 'system-ui, -apple-system, sans-serif',
+            }}
+          >
+            🤖 自主模式
+          </button>
+        </div>
+        <div style={{ fontSize: 10, color: '#94a3b8', lineHeight: 1.4 }}>
+          {mode === 'analysis'
+            ? '仅分析画布上已打开的卡片，不会主动打开新文件'
+            : 'AI 将自主搜索、查找并打开相关日志文件进行分析'
+          }
+        </div>
       </div>
 
       {/* Messages */}
