@@ -23,7 +23,7 @@ export default function AIChatPanel({ sessionIds, groupSessions, onFocusFile, on
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [streamingLines, setStreamingLines] = useState<string[]>([])
-  const [mode, setMode] = useState<'analysis' | 'autonomous'>('autonomous')
+  const [mode, setMode] = useState<'analysis' | 'autonomous'>('analysis')
   const chatEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
