@@ -424,7 +424,7 @@ async def _build_context(session_ids: list[str], context_file_ids: list[str] | N
     async def execute_tool(name: str, args: dict):
         nonlocal engine
         # Context mode: restrict to user-opened files
-        if context_file_ids:
+        if context_file_ids is not None:
             if name == "lookup_concept":
                 return {"found": False, "message": "用户已选择特定文件进行分析，请直接使用 read_file 读取已打开文件的文件内容"}
             if name == "find_files":
@@ -606,11 +606,19 @@ async def chat(body: ChatRequest):
     if not session_ids:
         raise HTTPException(status_code=400, detail="必须提供 session_ids 或 group_id")
 
-    _, execute_tool, session_info, catalog_by_session = await _build_context(session_ids, body.context_file_ids)
+    catalog, execute_tool, session_info, catalog_by_session = await _build_context(session_ids, body.context_file_ids)
 
     user_message = f"用户问题：{body.message}"
     if body.context_file_ids:
-        user_message = f"查看用户画布内容（已打开文件分析模式）\n\n用户问题：{body.message}"
+        # Build brief file list for the AI from the catalog
+        file_list_str = ""
+        for entry in catalog:
+            if entry["file_id"] in body.context_file_ids:
+                file_list_str += f"  [{entry['file_id']}] {entry['filename']} ({entry['file_type']})\n"
+        if file_list_str:
+            user_message = f"查看用户画布内容——以下文件已打开，请仅分析这些文件：\n\n{file_list_str}\n\n用户问题：{body.message}"
+        else:
+            user_message = f"查看用户画布内容（已打开文件分析模式）\n\n用户问题：{body.message}"
 
     llm = LLMService()
     try:
@@ -629,11 +637,19 @@ async def chat_stream(body: ChatRequest):
     if not session_ids:
         raise HTTPException(status_code=400, detail="必须提供 session_ids 或 group_id")
 
-    _, execute_tool, session_info, catalog_by_session = await _build_context(session_ids, body.context_file_ids)
+    catalog, execute_tool, session_info, catalog_by_session = await _build_context(session_ids, body.context_file_ids)
 
     user_message = f"用户问题：{body.message}"
     if body.context_file_ids:
-        user_message = f"查看用户画布内容（已打开文件分析模式）\n\n用户问题：{body.message}"
+        # Build brief file list for the AI from the catalog
+        file_list_str = ""
+        for entry in catalog:
+            if entry["file_id"] in body.context_file_ids:
+                file_list_str += f"  [{entry['file_id']}] {entry['filename']} ({entry['file_type']})\n"
+        if file_list_str:
+            user_message = f"查看用户画布内容——以下文件已打开，请仅分析这些文件：\n\n{file_list_str}\n\n用户问题：{body.message}"
+        else:
+            user_message = f"查看用户画布内容（已打开文件分析模式）\n\n用户问题：{body.message}"
 
     async def event_stream():
         try:
