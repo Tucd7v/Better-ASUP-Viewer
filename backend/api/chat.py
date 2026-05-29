@@ -191,7 +191,7 @@ CONCEPT_MAP: dict[str, dict] = {
         "category": "网络类",
         "description": "逻辑接口 (Logical Interface)，承载数据流量的网络端点",
         "files": ["network-interface.xml", "ifconfig-*", "vifmgr-*"],
-        "related_hint": "如果用户询问此类问题，优先查看network-interface.xml",
+        "related_hint": "如果用户询问此类问题，先查看network-interface.xml",
     },
     "vlan": {
         "category": "网络类",
@@ -289,9 +289,15 @@ CONCEPT_MAP: dict[str, dict] = {
     # --- 系统 ---
     "磁盘": {
         "category": "存储类",
-        "description": "物理磁盘",
-        "files": ["disk-*", "aggr-*.txt", "storage-*.xml", "sysconfig-a"],
-        "related_hint": "故障 → disk-* + EMS 事件类",
+        "description": "物理磁盘数量和型号",
+        "files": ["sysconfig-a-*"],
+        "related_hint": "sysconfig-a 包含磁盘数量、型号、容量、固件版本等全部信息，一个文件足够",
+    },
+    "型号": {
+        "category": "系统/平台",
+        "description": "硬件型号信息（磁盘型号、主机型号等）",
+        "files": ["sysconfig-a-*"],
+        "related_hint": "",
     },
     "端口": {
         "category": "网络类",
