@@ -216,7 +216,7 @@ export default function AIChatPanel({ sessionIds, groupSessions, onFocusFile, on
       </div>
 
       {/* Messages */}
-      <div style={{ flex: 1, overflowY: 'auto', scrollbarGutter: 'stable', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
         {messages.length === 0 && (
           <div style={{ color: '#94a3b8', fontSize: 12, textAlign: 'center', paddingTop: 40 }}>
             <div key={mode} style={{ fontSize: 36, marginBottom: 12, animation: 'modePop 0.3s ease-out' }}>{mode === 'analysis' ? '🔒' : '🤖'}</div>
