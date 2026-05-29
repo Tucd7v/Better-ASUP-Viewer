@@ -211,12 +211,6 @@ export default function AIChatPanel({ sessionIds, groupSessions, onFocusFile, on
             🤖 自主模式
           </button>
         </div>
-        <div style={{ fontSize: 10, color: '#94a3b8', lineHeight: 1.4 }}>
-          {mode === 'analysis'
-            ? '仅分析画布上已打开的卡片，不会主动打开新文件'
-            : 'AI 将自主搜索、查找并打开相关日志文件进行分析'
-          }
-        </div>
       </div>
 
       {/* Messages */}
