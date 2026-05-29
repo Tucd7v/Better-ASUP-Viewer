@@ -4,6 +4,8 @@ import asyncio
 import json
 import httpx
 import os
+import yaml
+from pathlib import Path
 
 SYSTEM_PROMPT = """你是一位资深的 NetApp ONTAP 存储日志分析师。你拥有访问 ASUP 日志的权限。
 
@@ -89,9 +91,23 @@ TOOLS = [
 
 class LLMService:
     def __init__(self):
+        # Load config from aiconfig.yaml
+        config_path = Path(__file__).parent.parent / "aiconfig.yaml"
         self.base_url = "https://api.deepseek.com/v1"
-        self.api_key = os.environ.get("DEEPSEEK_API_KEY", "")
-        # Fallback: read from Hermes .env
+        self.model = "deepseek-chat"
+        self.api_key = ""
+        if config_path.exists():
+            try:
+                cfg = yaml.safe_load(config_path.read_text()) or {}
+                api_cfg = cfg.get("api", {})
+                self.base_url = api_cfg.get("base_url", self.base_url).rstrip("/")
+                self.model = api_cfg.get("model", self.model)
+                self.api_key = api_cfg.get("api_key", "")
+            except Exception:
+                pass
+        # Env var overrides config file
+        self.api_key = os.environ.get("DEEPSEEK_API_KEY", self.api_key)
+        # Fallback: Hermes .env
         if not self.api_key:
             hermes_env = os.path.expanduser("~/.hermes/.env")
             if os.path.exists(hermes_env):
@@ -100,12 +116,11 @@ class LLMService:
                     if line.startswith("DEEPSEEK_API_KEY="):
                         self.api_key = line.split("=", 1)[1].strip().strip('"').strip("'")
                         break
-        self.model = "deepseek-chat"
 
     async def chat(self, messages: list[dict], tools: list[dict] | None = None) -> dict:
         """Single LLM call with optional tools."""
         if not self.api_key:
-            raise ValueError("DEEPSEEK_API_KEY 环境变量未设置，无法调用 DeepSeek API。请设置后重启服务。")
+            raise ValueError("API Key 未设置。请在 backend/aiconfig.yaml 中填写 api_key，或设置 DEEPSEEK_API_KEY 环境变量。")
 
         body = {
             "model": self.model,
