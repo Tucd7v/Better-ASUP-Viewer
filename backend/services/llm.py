@@ -61,14 +61,6 @@ TOOLS = [
     {
         "type": "function",
         "function": {
-            "name": "list_files",
-            "description": "列出当前 session 中所有可搜索的日志文件",
-            "parameters": {"type": "object", "properties": {}}
-        }
-    },
-    {
-        "type": "function",
-        "function": {
             "name": "search_logs",
             "description": "全文搜索文件内容。仅在查特定关键词/错误时使用，不要用来发现文件——文件名已在 catalog 中",
             "parameters": {
@@ -171,7 +163,7 @@ class LLMService:
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": user_message},
         ]
-        max_turns = 25
+        max_turns = 6
 
         for _ in range(max_turns):
             response = await self.chat(messages, TOOLS)
