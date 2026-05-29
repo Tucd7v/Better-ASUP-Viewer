@@ -23,21 +23,14 @@ export default function AIChatPanel({ sessionIds, groupSessions, onFocusFile, on
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [streamingLines, setStreamingLines] = useState<string[]>([])
-  const [mode, setMode] = useState<'analysis' | 'autonomous'>('autonomous')
+  // Auto-detect: analysis mode if canvas has cards, autonomous otherwise
+  const visibleOnOpen = state.fileList.filter(f => !state.hiddenFileIds.has(f.id)).length > 0
+  const [mode, setMode] = useState<'analysis' | 'autonomous'>(visibleOnOpen ? 'analysis' : 'autonomous')
   const chatEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
-
-  // Auto-detect initial mode based on canvas state
-  useEffect(() => {
-    const visibleCount = state.fileList.filter(f => !state.hiddenFileIds.has(f.id)).length
-    if (visibleCount > 0) {
-      setMode('analysis')
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])  // run once on mount
 
   // Get currently visible file IDs from the canvas
   const getVisibleFileIds = useCallback(() => {
