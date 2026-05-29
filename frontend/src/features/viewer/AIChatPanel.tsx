@@ -152,11 +152,9 @@ export default function AIChatPanel({ sessionIds, groupSessions, onFocusFile, on
     }
   }
 
-  const quickButtons = [
-    '集群健康状态如何？',
-    '有没有错误或告警？',
-    '网络端口状态怎么样？',
-  ]
+  const quickButtons = mode === 'analysis'
+    ? ['当前画布上的日志有什么异常？', '帮我总结这些日志的关键信息']
+    : ['集群健康状态如何？', '有没有错误或告警？', '网络端口状态怎么样？']
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#fff', borderLeft: '1px solid #e2e8f0' }}>
@@ -177,7 +175,8 @@ export default function AIChatPanel({ sessionIds, groupSessions, onFocusFile, on
       <div style={{ padding: '10px 14px', borderBottom: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: 6 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: '#1e293b' }}>
-            <span>🤖</span> AI Log Analyst
+            <span>{mode === 'analysis' ? '🔒' : '🤖'}</span>
+            {mode === 'analysis' ? '画布分析' : 'AI Log Analyst'}
           </span>
           {onClose && (
             <button
@@ -187,6 +186,12 @@ export default function AIChatPanel({ sessionIds, groupSessions, onFocusFile, on
               ×
             </button>
           )}
+        </div>
+        <div style={{ fontSize: 10, color: '#94a3b8', lineHeight: 1.4 }}>
+          {mode === 'analysis'
+            ? '仅分析画布上已打开的卡片，不会主动打开新文件'
+            : 'AI 将自主搜索、查找并打开相关日志文件进行分析'
+          }
         </div>
         {/* Mode toggle */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -212,12 +217,6 @@ export default function AIChatPanel({ sessionIds, groupSessions, onFocusFile, on
           >
             🤖 自主模式
           </button>
-        </div>
-        <div style={{ fontSize: 10, color: '#94a3b8', lineHeight: 1.4 }}>
-          {mode === 'analysis'
-            ? '仅分析画布上已打开的卡片，不会主动打开新文件'
-            : 'AI 将自主搜索、查找并打开相关日志文件进行分析'
-          }
         </div>
       </div>
 
