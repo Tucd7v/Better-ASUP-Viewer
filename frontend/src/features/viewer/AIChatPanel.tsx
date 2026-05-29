@@ -23,6 +23,7 @@ export default function AIChatPanel({ sessionIds, groupSessions, onFocusFile, on
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [streamingLines, setStreamingLines] = useState<string[]>([])
   const chatEndRef = useRef<HTMLDivElement>(null)
 
   // Custom markdown link renderer: intercept ref:// links to open files in viewer
@@ -95,9 +96,7 @@ export default function AIChatPanel({ sessionIds, groupSessions, onFocusFile, on
     setInput('')
     setMessages(prev => [...prev, { role: 'user', content: userMsg }])
     setLoading(true)
-
-    // Add placeholder assistant message
-    setMessages(prev => [...prev, { role: 'assistant', content: '' }])
+    setStreamingLines(['正在分析...'])
 
     try {
       const baseUrl = (import.meta as ImportMeta & { env?: { VITE_API_URL?: string } }).env?.VITE_API_URL ?? ''
@@ -112,9 +111,6 @@ export default function AIChatPanel({ sessionIds, groupSessions, onFocusFile, on
 
       const decoder = new TextDecoder()
       let buffer = ''
-      const currentToolCalls: { tool: string; args: Record<string, unknown> }[] = []
-      const currentResults: { tool: string; result: unknown }[] = []
-      let assistantContent = ''
 
       while (true) {
         const { done, value } = await reader.read()
@@ -138,34 +134,25 @@ export default function AIChatPanel({ sessionIds, groupSessions, onFocusFile, on
 
             switch (event.type) {
               case 'status':
-                assistantContent += event.message + '\n'
-                setMessages(prev => {
-                  const last = prev[prev.length - 1]
-                  if (last?.role !== 'assistant') return prev
-                  return [...prev.slice(0, -1), { ...last, content: assistantContent, toolCalls: currentToolCalls, toolResults: currentResults }]
-                })
+                setStreamingLines(prev => [...prev, `💬 ${event.message}`])
                 break
 
               case 'tool_call': {
-                const tc = { tool: event.tool!, args: event.args || {} }
-                currentToolCalls.push(tc)
                 const callDesc =
                   event.tool === 'search_logs'
                     ? `🔍 搜索: "${(event.args as Record<string, string>)?.query}"${(event.args as Record<string, string>)?.file_type ? ' (' + (event.args as Record<string, string>).file_type + ')' : ''}`
                     : event.tool === 'read_file'
                       ? '📄 读取文件...'
-                      : `⚙️ ${event.tool}`
-                assistantContent += callDesc + '\n'
-                setMessages(prev => {
-                  const last = prev[prev.length - 1]
-                  if (last?.role !== 'assistant') return prev
-                  return [...prev.slice(0, -1), { ...last, content: assistantContent, toolCalls: currentToolCalls, toolResults: currentResults }]
-                })
+                      : event.tool === 'lookup_concept'
+                        ? '🔎 查询 ONTAP 概念...'
+                        : event.tool === 'find_files'
+                          ? '📁 搜索文件...'
+                          : `⚙️ ${event.tool}`
+                setStreamingLines(prev => [...prev, callDesc])
                 break
               }
 
               case 'tool_result':
-                currentResults.push({ tool: event.tool!, result: event.result })
                 // Auto-open files on canvas
                 {
                   const fileIds: string[] = []
@@ -184,32 +171,15 @@ export default function AIChatPanel({ sessionIds, groupSessions, onFocusFile, on
                   } else if (event.result && typeof event.result === 'object') {
                     collectFileId(event.result as Record<string, unknown>)
                   }
-                  // Fallback: read_file tool may have file_id in the matching tool call args
-                  if (fileIds.length === 0 && event.tool === 'read_file') {
-                    const matchingCall = [...currentToolCalls].reverse().find((c) => c.tool === 'read_file')
-                    const argFid = matchingCall?.args?.file_id as string | undefined
-                    if (argFid) {
-                      dispatch({ type: 'SHOW_FILE', fileId: argFid })
-                      onFocusFile(argFid)
-                    }
-                  }
                 }
                 break
 
               case 'done':
-                setMessages(prev => {
-                  const last = prev[prev.length - 1]
-                  if (last?.role !== 'assistant') return prev
-                  return [...prev.slice(0, -1), { role: 'assistant', content: event.answer || '' }]
-                })
+                setMessages(prev => [...prev, { role: 'assistant', content: event.answer || '' }])
                 break
 
               case 'error':
-                setMessages(prev => {
-                  const last = prev[prev.length - 1]
-                  if (last?.role !== 'assistant') return prev
-                  return [...prev.slice(0, -1), { role: 'assistant', content: `❌ ${event.message}` }]
-                })
+                setMessages(prev => [...prev, { role: 'assistant', content: `❌ ${event.message}` }])
                 break
             }
           } catch {
@@ -219,13 +189,10 @@ export default function AIChatPanel({ sessionIds, groupSessions, onFocusFile, on
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err)
-      setMessages(prev => {
-        const last = prev[prev.length - 1]
-        if (last?.role !== 'assistant') return prev
-        return [...prev.slice(0, -1), { role: 'assistant', content: `连接失败: ${msg}` }]
-      })
+      setMessages(prev => [...prev, { role: 'assistant', content: `❌ 连接失败: ${msg}` }])
     } finally {
       setLoading(false)
+      setStreamingLines([])
     }
   }
 
@@ -245,6 +212,7 @@ export default function AIChatPanel({ sessionIds, groupSessions, onFocusFile, on
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#fff', borderLeft: '1px solid #e2e8f0' }}>
       <style>{`
+        @keyframes pulse { 0%, 100% { opacity: 0.4; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.1); } }
         .markdown-body table { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 13px; }
         .markdown-body th, .markdown-body td { border: 1px solid #e2e8f0; padding: 4px 8px; text-align: left; }
         .markdown-body th { background: #f8fafc; font-weight: 600; }
@@ -297,17 +265,15 @@ export default function AIChatPanel({ sessionIds, groupSessions, onFocusFile, on
 
         {messages.map((msg, i) => (
           <div key={i} style={{
-            background: msg.role === 'user' ? '#eff6ff' : msg.role === 'assistant' ? '#f8fafc' : '#fff7ed',
+            background: msg.role === 'user' ? '#eff6ff' : '#f8fafc',
             borderRadius: 8, padding: '8px 12px', fontSize: 14, lineHeight: 1.6,
             color: '#1e293b', maxWidth: '100%', wordBreak: 'break-word',
             border: msg.role === 'user' ? '1px solid #bfdbfe' : '1px solid #e2e8f0',
           }}>
             <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 4, fontWeight: 600 }}>
-              {msg.role === 'user' ? '你' : msg.role === 'assistant' ? 'AI' : ''}
+              {msg.role === 'user' ? '你' : 'AI'}
             </div>
-            {msg.role === 'assistant' && msg.toolCalls ? (
-              <div style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
-            ) : msg.role === 'assistant' ? (
+            {msg.role === 'assistant' ? (
               <div className="markdown-body" style={{ fontSize: 14, lineHeight: 1.7 }}>
                 <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>{msg.content}</ReactMarkdown>
               </div>
@@ -316,6 +282,30 @@ export default function AIChatPanel({ sessionIds, groupSessions, onFocusFile, on
             )}
           </div>
         ))}
+
+        {/* Loading indicator */}
+        {loading && (
+          <div style={{
+            background: '#f8fafc', borderRadius: 8, padding: '10px 14px',
+            border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: 4,
+          }}>
+            <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 2, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+              AI
+              <span style={{
+                display: 'inline-block', width: 8, height: 8, borderRadius: '50%',
+                background: '#3b82f6', animation: 'pulse 0.8s ease-in-out infinite',
+              }} />
+            </div>
+            {streamingLines.map((line, i) => (
+              <div key={i} style={{
+                fontSize: 12, color: i === 0 ? '#3b82f6' : '#64748b',
+                fontFamily: 'monospace', opacity: i === streamingLines.length - 1 ? 1 : 0.6,
+              }}>
+                {line}
+              </div>
+            ))}
+          </div>
+        )}
         <div ref={chatEndRef} />
       </div>
 
