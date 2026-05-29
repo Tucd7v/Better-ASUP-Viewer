@@ -11,7 +11,6 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 
 from core.config import settings, BASE_DIR
 from models.db import FileRecord, Session, SessionGroupMember
-from services.search import SearchService
 from services.file_content import FileContentService
 from services.llm import LLMService, SYSTEM_PROMPT, TOOLS
 
@@ -387,10 +386,7 @@ async def _build_context(session_ids: list[str]):
 
     async def execute_tool(name: str, args: dict):
         nonlocal engine
-        if name == "list_files":
-            return catalog
-
-        elif name == "lookup_concept":
+        if name == "lookup_concept":
             import fnmatch
             concept = args["concept"].strip().lower()
             # Direct match
@@ -439,47 +435,6 @@ async def _build_context(session_ids: list[str]):
                         "hostname": entry.get("hostname", ""),
                     })
             return {"matched_files": matched_files[:30]}
-
-        elif name == "search_logs":
-            query = args["query"]
-            file_type = args.get("file_type")
-            limit = args.get("limit", 20)
-
-            async with SessionLocal() as db2:
-                stmt = select(FileRecord).where(
-                    FileRecord.session_id.in_(session_ids),
-                    FileRecord.file_type.in_(["text", "ems", "xml"]),
-                    FileRecord.is_empty == False,
-                )
-                if file_type:
-                    stmt = stmt.where(FileRecord.file_type == file_type)
-                recs = (await db2.execute(stmt)).scalars().all()
-
-            sem = asyncio.Semaphore(30)
-
-            async def search_one(rec):
-                async with sem:
-                    matches = await SearchService.search_file(rec, query, max_matches=5)
-                    return rec, matches
-
-            tasks = [search_one(r) for r in recs]
-            results = await asyncio.gather(*tasks)
-
-            flat = []
-            for rec, matches in results:
-                hostname, serial = session_info.get(rec.session_id, ("", ""))
-                for m in matches:
-                    flat.append({
-                        "file_id": rec.id,
-                        "session_id": rec.session_id,
-                        "filename": rec.filename,
-                        "file_type": rec.file_type,
-                        "hostname": hostname,
-                        "serial_num": serial,
-                        "line": m["line"],
-                        "context": m["context"],
-                    })
-            return flat[:limit]
 
         elif name == "read_file":
             file_id = args["file_id"]
