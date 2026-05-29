@@ -23,9 +23,17 @@ export default function AIChatPanel({ sessionIds, groupSessions, onFocusFile, on
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [streamingLines, setStreamingLines] = useState<string[]>([])
-  // Auto-detect: analysis mode if canvas has cards, autonomous otherwise
-  const visibleOnOpen = state.fileList.filter(f => !state.hiddenFileIds.has(f.id)).length > 0
-  const [mode, setMode] = useState<'analysis' | 'autonomous'>(visibleOnOpen ? 'analysis' : 'autonomous')
+  // Track canvas state for auto-detection
+  const visibleCount = state.fileList.filter(f => !state.hiddenFileIds.has(f.id)).length
+  const [mode, setMode] = useState<'analysis' | 'autonomous'>('autonomous')
+  const [userToggledMode, setUserToggledMode] = useState(false)
+
+  // Sync mode with canvas state — unless user manually toggled
+  useEffect(() => {
+    if (!userToggledMode) {
+      setMode(visibleCount > 0 ? 'analysis' : 'autonomous')
+    }
+  }, [visibleCount, userToggledMode])
   const chatEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -193,7 +201,7 @@ export default function AIChatPanel({ sessionIds, groupSessions, onFocusFile, on
         {/* Mode toggle */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <button
-            onClick={() => setMode('analysis')}
+            onClick={() => { setMode('analysis'); setUserToggledMode(true) }}
             style={{
               flex: 1, border: `1px solid ${mode === 'analysis' ? '#3b82f6' : '#e2e8f0'}`,
               borderRadius: 6, padding: '4px 0', fontSize: 11, fontWeight: 500, cursor: 'pointer',
@@ -204,7 +212,7 @@ export default function AIChatPanel({ sessionIds, groupSessions, onFocusFile, on
             🔒 分析模式
           </button>
           <button
-            onClick={() => setMode('autonomous')}
+            onClick={() => { setMode('autonomous'); setUserToggledMode(true) }}
             style={{
               flex: 1, border: `1px solid ${mode === 'autonomous' ? '#3b82f6' : '#e2e8f0'}`,
               borderRadius: 6, padding: '4px 0', fontSize: 11, fontWeight: 500, cursor: 'pointer',
