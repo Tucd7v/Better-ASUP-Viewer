@@ -391,16 +391,38 @@ async def _build_context(session_ids: list[str]):
             return catalog
 
         elif name == "lookup_concept":
+            import fnmatch
             concept = args["concept"].strip().lower()
             # Direct match
             result = CONCEPT_MAP.get(concept)
+            if not result:
+                # Try partial match (concept appears as substring)
+                for key in CONCEPT_MAP:
+                    if concept in key or key in concept:
+                        result = CONCEPT_MAP[key]
+                        break
             if result:
-                return {"found": True, **result}
-            # Try partial match (concept appears as substring)
-            for key in CONCEPT_MAP:
-                if concept in key or key in concept:
-                    result = CONCEPT_MAP[key]
-                    return {"found": True, "matched_alias": key, **result}
+                # Resolve glob patterns to actual file IDs from the catalog
+                patterns = result.get("files", [])
+                matched_files = []
+                for entry in catalog:
+                    for pat in patterns:
+                        if fnmatch.fnmatch(entry["filename"].lower(), pat.lower()):
+                            matched_files.append({
+                                "file_id": entry["file_id"],
+                                "filename": entry["filename"],
+                                "file_type": entry["file_type"],
+                                "session_id": entry["session_id"],
+                                "hostname": entry.get("hostname", ""),
+                            })
+                            break
+                return {
+                    "found": True,
+                    "category": result["category"],
+                    "description": result["description"],
+                    "related_hint": result.get("related_hint", ""),
+                    "matched_files": matched_files,
+                }
             return {"found": False, "message": f"未找到概念 '{args['concept']}' 的映射，请根据文件名和分类自行判断相关文件"}
 
         elif name == "search_logs":
