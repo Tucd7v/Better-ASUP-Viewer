@@ -300,9 +300,45 @@ CONCEPT_MAP: dict[str, dict] = {
     },
     "端口": {
         "category": "网络类",
-        "description": "物理/虚拟端口",
+        "description": "物理/虚拟端口配置与状态",
         "files": ["ifgrps.xml", "sysconfig-*", "port-*", "network-port-*"],
-        "related_hint": "速率 → ifstat-*；LIF → network-interface.xml",
+        "related_hint": "端口速率/流量 → ifstat-a*；光功率/SFP → ifconfig_vvvm*；错误计数/CRC → ifstat-a*",
+    },
+    "光模块": {
+        "category": "网络类",
+        "description": "光模块/SFP/QSFP 光功率、温度、电压等信息",
+        "files": ["ifconfig_vvvm*"],
+        "related_hint": "ifconfig-vvvm 包含收发功率、温度、电压等 DOM 诊断数据，排查光衰丢包必读",
+    },
+    "光功率": {
+        "category": "网络类",
+        "description": "光模块收发功率 — 见 光模块",
+        "files": ["ifconfig_vvvm*"],
+        "related_hint": "",
+    },
+    "光衰": {
+        "category": "网络类",
+        "description": "光信号衰减，可能导致 CRC 错误或丢包 — 见 光模块",
+        "files": ["ifconfig_vvvm*"],
+        "related_hint": "同时检查 ifstat-a* 确认是否有 CRC/错误计数增长",
+    },
+    "端口错误": {
+        "category": "网络类",
+        "description": "端口错误计数（CRC、丢包、超限等）",
+        "files": ["ifstat-a*"],
+        "related_hint": "ifstat-a 包含 CRC、frame errors、collisions 等，排查链路质量必读",
+    },
+    "crc": {
+        "category": "网络类",
+        "description": "CRC 错误计数 — 见 端口错误",
+        "files": ["ifstat-a*"],
+        "related_hint": "",
+    },
+    "丢包": {
+        "category": "网络类",
+        "description": "丢包排查",
+        "files": ["ifstat-a*", "ifconfig_vvvm*"],
+        "related_hint": "ifstat-a 看错误计数，ifconfig-vvvm 看光功率是否异常",
     },
     "license": {
         "category": "集群/HA",
