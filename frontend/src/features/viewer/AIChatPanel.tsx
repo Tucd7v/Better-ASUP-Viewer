@@ -15,11 +15,9 @@ interface AIChatPanelProps {
   groupSessions: { id: string; hostname?: string; serialNum?: string; color: 'blue' | 'orange' }[]
   onFocusFile: (fileId: string) => void
   onClose?: () => void
-  contextFileIds?: string[]
-  presetMessage?: string
 }
 
-export default function AIChatPanel({ sessionIds, groupSessions, onFocusFile, onClose, contextFileIds, presetMessage }: AIChatPanelProps) {
+export default function AIChatPanel({ sessionIds, groupSessions, onFocusFile, onClose }: AIChatPanelProps) {
   const { dispatch } = useViewer()
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
@@ -30,13 +28,6 @@ export default function AIChatPanel({ sessionIds, groupSessions, onFocusFile, on
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
-
-  // Auto-send presetMessage when panel opens with context files
-  useEffect(() => {
-    if (presetMessage && messages.length === 0 && !loading) {
-      handleSend(presetMessage)
-    }
-  }, [presetMessage])
 
   const handleSend = async (text?: string) => {
     const userMsg = (text ?? input).trim()
@@ -51,7 +42,7 @@ export default function AIChatPanel({ sessionIds, groupSessions, onFocusFile, on
       const resp = await fetch(`${baseUrl}/api/v1/chat/stream`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session_ids: sessionIds, message: userMsg, ...(contextFileIds?.length ? { context_file_ids: contextFileIds } : {}) }),
+        body: JSON.stringify({ session_ids: sessionIds, message: userMsg }),
       })
 
       const reader = resp.body?.getReader()
