@@ -425,6 +425,21 @@ async def _build_context(session_ids: list[str]):
                 }
             return {"found": False, "message": f"未找到概念 '{args['concept']}' 的映射，请根据文件名和分类自行判断相关文件"}
 
+        elif name == "find_files":
+            import fnmatch
+            pattern = args["pattern"].strip().lower()
+            matched_files = []
+            for entry in catalog:
+                if fnmatch.fnmatch(entry["filename"].lower(), f"*{pattern}*"):
+                    matched_files.append({
+                        "file_id": entry["file_id"],
+                        "filename": entry["filename"],
+                        "file_type": entry["file_type"],
+                        "session_id": entry["session_id"],
+                        "hostname": entry.get("hostname", ""),
+                    })
+            return {"matched_files": matched_files[:30]}
+
         elif name == "search_logs":
             query = args["query"]
             file_type = args.get("file_type")
