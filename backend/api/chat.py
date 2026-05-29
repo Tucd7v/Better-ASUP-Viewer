@@ -227,7 +227,7 @@ CONCEPT_MAP: dict[str, dict] = {
     "aggr": {
         "category": "存储类",
         "description": "存储聚合 (Aggregate)，物理存储的容器",
-        "files": ["aggr-*.txt", "storage-*.xml", "DF-A-*", "sysconfig-r"],
+        "files": ["aggr-*.txt", "storage-*.xml", "DF-A-*", "sysconfig-r*"],
         "related_hint": "容量 → DF*.txt；RAID → AGGR-STATUS-R-*；磁盘 → disk-*",
     },
     "volume": {
@@ -290,13 +290,13 @@ CONCEPT_MAP: dict[str, dict] = {
     "磁盘": {
         "category": "存储类",
         "description": "物理磁盘数量和型号",
-        "files": ["sysconfig-a-*"],
+        "files": ["sysconfig-a*"],
         "related_hint": "sysconfig-a 包含磁盘数量、型号、容量、固件版本等全部信息，一个文件足够",
     },
     "型号": {
         "category": "系统/平台",
         "description": "硬件型号信息（磁盘型号、主机型号等）",
-        "files": ["sysconfig-a-*"],
+        "files": ["sysconfig-a*"],
         "related_hint": "",
     },
     "端口": {
