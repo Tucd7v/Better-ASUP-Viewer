@@ -160,6 +160,8 @@ export default function AIChatPanel({ sessionIds, groupSessions, onFocusFile, on
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#fff', borderLeft: '1px solid #e2e8f0' }}>
       <style>{`
         @keyframes pulse { 0%, 100% { opacity: 0.4; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.1); } }
+        @keyframes modePop { 0% { transform: scale(0.5); opacity: 0; } 60% { transform: scale(1.15); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+        @keyframes fadeSlide { 0% { opacity: 0; transform: translateY(-4px); } 100% { opacity: 1; transform: translateY(0); } }
         .markdown-body table { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 13px; }
         .markdown-body th, .markdown-body td { border: 1px solid #e2e8f0; padding: 4px 8px; text-align: left; }
         .markdown-body th { background: #f8fafc; font-weight: 600; }
@@ -217,8 +219,8 @@ export default function AIChatPanel({ sessionIds, groupSessions, onFocusFile, on
       <div style={{ flex: 1, overflowY: 'auto', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
         {messages.length === 0 && (
           <div style={{ color: '#94a3b8', fontSize: 12, textAlign: 'center', paddingTop: 40 }}>
-            <div style={{ fontSize: 36, marginBottom: 12 }}>{mode === 'analysis' ? '🔒' : '🤖'}</div>
-            <div style={{ marginBottom: 16 }}>
+            <div key={mode} style={{ fontSize: 36, marginBottom: 12, animation: 'modePop 0.3s ease-out' }}>{mode === 'analysis' ? '🔒' : '🤖'}</div>
+            <div key={`desc-${mode}`} style={{ marginBottom: 16, animation: 'fadeSlide 0.25s ease-out' }}>
               {mode === 'analysis'
                 ? '分析模式 — 仅基于画布上已打开的卡片进行分析'
                 : '我是 ONTAP 日志分析师，可以帮你评估集群健康状态。'}
