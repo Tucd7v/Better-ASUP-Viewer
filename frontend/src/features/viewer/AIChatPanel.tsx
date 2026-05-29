@@ -219,11 +219,13 @@ export default function AIChatPanel({ sessionIds, groupSessions, onFocusFile, on
       <div style={{ flex: 1, overflowY: 'auto', scrollbarGutter: 'stable', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
         {messages.length === 0 && (
           <div style={{ color: '#94a3b8', fontSize: 12, textAlign: 'center', paddingTop: 40 }}>
-            <div key={mode} style={{ fontSize: 36, marginBottom: 12, animation: 'modePop 0.3s ease-out' }}>{mode === 'analysis' ? '🔒' : '🤖'}</div>
-            <div key={`desc-${mode}`} style={{ marginBottom: 16, animation: 'fadeSlide 0.25s ease-out' }}>
-              {mode === 'analysis'
-                ? '分析模式 — 仅基于画布上已打开的卡片进行分析'
-                : '我是 ONTAP 日志分析师，可以帮你评估集群健康状态。'}
+            <div style={{ minHeight: 110 }}>
+              <div style={{ fontSize: 36, marginBottom: 12, transition: 'opacity 0.15s ease, transform 0.15s ease' }}>{mode === 'analysis' ? '🔒' : '🤖'}</div>
+              <div style={{ marginBottom: 16, transition: 'opacity 0.15s ease', lineHeight: 1.5 }}>
+                {mode === 'analysis'
+                  ? '分析模式 — 仅基于画布上已打开的卡片进行分析'
+                  : '我是 ONTAP 日志分析师，可以帮你评估集群健康状态。'}
+              </div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center' }}>
               {quickButtons.map((label) => (
