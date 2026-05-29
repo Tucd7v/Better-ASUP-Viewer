@@ -191,13 +191,7 @@ CONCEPT_MAP: dict[str, dict] = {
         "category": "网络类",
         "description": "逻辑接口 (Logical Interface)，承载数据流量的网络端点",
         "files": ["network-interface.xml", "ifconfig-*", "vifmgr-*"],
-        "related_hint": "如果 LIF 故障切换，还需查看 ha-* 和 vs-failover-*",
-    },
-    "逻辑接口": {
-        "category": "网络类",
-        "description": "逻辑接口 (LIF) — 见 LIF",
-        "files": ["network-interface.xml", "ifconfig-*"],
-        "related_hint": "",
+        "related_hint": "如果用户询问此类问题，优先查看network-interface.xml",
     },
     "vlan": {
         "category": "网络类",
@@ -230,17 +224,11 @@ CONCEPT_MAP: dict[str, dict] = {
         "files": ["snapmirror-*", "snap-list-*"],
         "related_hint": "",
     },
-    "aggregate": {
+    "aggr": {
         "category": "存储类",
         "description": "存储聚合 (Aggregate)，物理存储的容器",
-        "files": ["aggr-*.txt", "storage-*.xml", "DF-A-*"],
+        "files": ["aggr-*.txt", "storage-*.xml", "DF-A-*", "sysconfig-r"],
         "related_hint": "容量 → DF*.txt；RAID → AGGR-STATUS-R-*；磁盘 → disk-*",
-    },
-    "聚合": {
-        "category": "存储类",
-        "description": "存储聚合 (Aggregate) — 见 aggregate",
-        "files": ["aggr-*.txt", "storage-*.xml", "DF-A-*"],
-        "related_hint": "",
     },
     "volume": {
         "category": "存储类",
@@ -302,7 +290,7 @@ CONCEPT_MAP: dict[str, dict] = {
     "磁盘": {
         "category": "存储类",
         "description": "物理磁盘",
-        "files": ["disk-*", "aggr-*.txt", "storage-*.xml"],
+        "files": ["disk-*", "aggr-*.txt", "storage-*.xml", "sysconfig-a"],
         "related_hint": "故障 → disk-* + EMS 事件类",
     },
     "端口": {
