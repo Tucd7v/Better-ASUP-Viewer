@@ -106,6 +106,19 @@ function ViewerInner() {
   const [editingLabel, setEditingLabel] = useState('')
   const [showAI, setShowAI] = useState(false)
   const [aiPanelWidth, setAiPanelWidth] = useState(450)
+  const [canvasPresetMessage, setCanvasPresetMessage] = useState('')
+
+  // Visible files = files not hidden
+  const visibleFileIds = useMemo(
+    () => state.fileList.filter(f => !state.hiddenFileIds.has(f.id)).map(f => f.id),
+    [state.fileList, state.hiddenFileIds]
+  )
+
+  const handleAnalyzeCanvas = () => {
+    if (visibleFileIds.length === 0) return
+    setCanvasPresetMessage('请分析我画布上已打开的文件内容')
+    setShowAI(true)
+  }
 
   useEffect(() => {
     async function load() {
@@ -635,7 +648,9 @@ function ViewerInner() {
                   sessionIds={groupSessions.map(s => s.id)}
                   groupSessions={groupSessions}
                   onFocusFile={handleFocusFile}
-                  onClose={() => setShowAI(false)}
+                  onClose={() => { setShowAI(false); setCanvasPresetMessage('') }}
+                  contextFileIds={canvasPresetMessage ? visibleFileIds : undefined}
+                  presetMessage={canvasPresetMessage || undefined}
                 />
               </div>
             </>
@@ -643,20 +658,39 @@ function ViewerInner() {
 
           {/* AI toggle button — floating on canvas when panel is hidden */}
           {!showAI && (
-            <button
-              onClick={() => setShowAI(true)}
-              style={{
-                position: 'absolute', top: 60, right: 12, zIndex: 100,
-                background: '#ffffff', border: '1px solid #e2e8f0',
-                borderRadius: 20, padding: '4px 12px',
-                cursor: 'pointer', fontSize: 12, fontWeight: 500,
-                color: '#475569', display: 'flex', alignItems: 'center', gap: 4,
-                boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                fontFamily: 'system-ui, -apple-system, sans-serif',
-              }}
-            >
-              <span>🤖</span> AI
-            </button>
+            <>
+              {/* Analyze canvas button */}
+              {visibleFileIds.length > 0 && (
+                <button
+                  onClick={handleAnalyzeCanvas}
+                  style={{
+                    position: 'absolute', top: 12, left: 12, zIndex: 100,
+                    background: '#3b82f6', border: 'none',
+                    borderRadius: 20, padding: '5px 14px',
+                    cursor: 'pointer', fontSize: 12, fontWeight: 500,
+                    color: '#fff', display: 'flex', alignItems: 'center', gap: 6,
+                    boxShadow: '0 2px 6px rgba(59,130,246,0.3)',
+                    fontFamily: 'system-ui, -apple-system, sans-serif',
+                  }}
+                >
+                  <span>🔍</span> 分析已打开日志内容
+                </button>
+              )}
+              <button
+                onClick={() => setShowAI(true)}
+                style={{
+                  position: 'absolute', top: 60, right: 12, zIndex: 100,
+                  background: '#ffffff', border: '1px solid #e2e8f0',
+                  borderRadius: 20, padding: '4px 12px',
+                  cursor: 'pointer', fontSize: 12, fontWeight: 500,
+                  color: '#475569', display: 'flex', alignItems: 'center', gap: 4,
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                  fontFamily: 'system-ui, -apple-system, sans-serif',
+                }}
+              >
+                <span>🤖</span> AI
+              </button>
+            </>
           )}
         </div>
 
