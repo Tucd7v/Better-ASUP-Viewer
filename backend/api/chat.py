@@ -472,6 +472,10 @@ async def _build_context(session_ids: list[str]):
                     })
             return {"matched_files": matched_files[:30]}
 
+        elif name == "list_catalog":
+            catalog_text = _format_catalog(session_ids, session_info, catalog_by_session)
+            return {"catalog": catalog_text}
+
         elif name == "read_file":
             file_id = args["file_id"]
             offset = args.get("offset", 0)
@@ -591,8 +595,7 @@ async def chat(body: ChatRequest):
 
     _, execute_tool, session_info, catalog_by_session = await _build_context(session_ids)
 
-    catalog_text = _format_catalog(session_ids, session_info, catalog_by_session)
-    user_message = f"当前分析的节点文件目录如下（按节点分组）：\n\n{catalog_text}\n\n用户问题：{body.message}"
+    user_message = f"用户问题：{body.message}"
 
     llm = LLMService()
     try:
@@ -613,8 +616,7 @@ async def chat_stream(body: ChatRequest):
 
     _, execute_tool, session_info, catalog_by_session = await _build_context(session_ids)
 
-    catalog_text = _format_catalog(session_ids, session_info, catalog_by_session)
-    user_message = f"当前分析的节点文件目录如下（按节点分组）：\n\n{catalog_text}\n\n用户问题：{body.message}"
+    user_message = f"用户问题：{body.message}"
 
     async def event_stream():
         try:
@@ -625,7 +627,7 @@ async def chat_stream(body: ChatRequest):
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": user_message},
             ]
-            max_turns = 10
+            max_turns = 15
 
             for turn in range(max_turns):
                 response = await llm.chat(messages, TOOLS)
