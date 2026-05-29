@@ -144,7 +144,7 @@ class LLMService:
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": user_message},
         ]
-        max_turns = 6
+        max_turns = 10
 
         for _ in range(max_turns):
             response = await self.chat(messages, TOOLS)

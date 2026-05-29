@@ -625,7 +625,7 @@ async def chat_stream(body: ChatRequest):
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": user_message},
             ]
-            max_turns = 6
+            max_turns = 10
 
             for turn in range(max_turns):
                 response = await llm.chat(messages, TOOLS)
