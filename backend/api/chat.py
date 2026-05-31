@@ -539,6 +539,18 @@ async def _build_context(session_ids: list[str], context_file_ids: list[str] | N
                     "total_lines": data.get("total_lines", 0),
                 }
 
+        elif name == "search_kb":
+            from services.kb_search import kb_search
+            await kb_search.ensure_loaded()
+            keywords = args["keywords"].strip()
+            results = kb_search.search(keywords, limit=4)
+            return {
+                "keywords": keywords,
+                "results": results,
+                "total_articles": len(kb_search._articles),
+                "hint": "以下是 NetApp KB 中与您的关键词匹配的文章。点击链接查看详情（需登录 NetApp Support 账号）。"
+            }
+
         else:
             return {"error": f"Unknown tool: {name}"}
 

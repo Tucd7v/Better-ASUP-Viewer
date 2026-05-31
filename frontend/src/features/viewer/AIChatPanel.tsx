@@ -170,6 +170,8 @@ export default function AIChatPanel({ sessionIds, groupSessions, onFocusFile, on
         .markdown-body ul, .markdown-body ol { padding-left: 20px; margin: 4px 0; }
         .markdown-body strong { color: #1e293b; }
         .markdown-body hr { border: none; border-top: 1px solid #e2e8f0; margin: 8px 0; }
+        .markdown-body a { color: #2563eb; text-decoration: underline; }
+        .markdown-body a:hover { color: #1d4ed8; }
       `}</style>
       {/* Header */}
       <div style={{ padding: '10px 14px', borderBottom: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -253,7 +255,14 @@ export default function AIChatPanel({ sessionIds, groupSessions, onFocusFile, on
             </div>
             {msg.role === 'assistant' ? (
               <div className="markdown-body" style={{ fontSize: 14, lineHeight: 1.7 }}>
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    a: ({ href, children }) => (
+                      <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>
+                    )
+                  }}
+                >{msg.content}</ReactMarkdown>
               </div>
             ) : (
               <div style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
