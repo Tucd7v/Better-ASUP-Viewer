@@ -125,7 +125,7 @@ class ChatRequest(BaseModel):
     session_ids: list[str] = []
     group_id: str | None = None
     message: str
-    context_file_ids: list[str] = []  # 分析模式时传入
+    context_file_ids: list[str] | None = None  # 分析模式时传入
 
 
 class ChatResponse(BaseModel):
