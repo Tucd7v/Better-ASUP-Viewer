@@ -36,10 +36,8 @@ async def startup():
     print("*** SERVER STARTED - upload.py version check: threading+queue ***", flush=True)
     # Pre-load KB sitemap in background (non-blocking)
     import asyncio as _asyncio
-    from services.kb_search import kb_search as _kb_search, scrape_articles as _scrape
+    from services.kb_search import kb_search as _kb_search
     _asyncio.create_task(_kb_search.ensure_loaded())
-    # Start article scraper in background (can take hours)
-    _asyncio.create_task(_scrape())
 
 
 app.include_router(upload_router, prefix="/api/v1")

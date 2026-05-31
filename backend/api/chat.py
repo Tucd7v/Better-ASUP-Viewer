@@ -17,15 +17,6 @@ from services.llm import LLMService, SYSTEM_PROMPT, TOOLS
 router = APIRouter(tags=["chat"])
 
 
-@router.get("/kb/progress")
-async def kb_progress():
-    """Return KB scraper progress (for monitoring)."""
-    from services.kb_search import get_scrape_progress, kb_search
-    progress = get_scrape_progress()
-    progress["fts_active"] = kb_search.fts_available
-    return progress
-
-
 # ---------------------------------------------------------------------------
 # File classification — group catalog entries by functional category before
 # sending to the AI, so the model can quickly orient itself in large dumps.
