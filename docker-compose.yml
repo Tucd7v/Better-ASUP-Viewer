@@ -1,0 +1,17 @@
+services:
+  nodeasup:
+    build: .
+    container_name: nodeasup
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./aiconfig.yaml:/app/backend/aiconfig.yaml:ro
+      - ./data:/data/logs
+    restart: unless-stopped
+    networks:
+      - ontap_shared
+
+networks:
+  ontap_shared:
+    name: ontappowertoys_default
+    external: true
