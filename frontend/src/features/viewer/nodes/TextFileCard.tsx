@@ -41,7 +41,7 @@ export default function TextFileCard({ data }: NodeProps<TextFileNode>) {
   const [search, setSearch] = useState('')
   const [matchIndex, setMatchIndex] = useState(0)
   const [loading, setLoading] = useState(false)
-  const LIMIT = 2000
+  const LIMIT = 5000
   const listRef = useRef<HTMLDivElement>(null)
   const matchRefs = useRef<(HTMLDivElement | null)[]>([])
   const { state, dispatch: viewDispatch } = useViewer()
@@ -181,14 +181,6 @@ export default function TextFileCard({ data }: NodeProps<TextFileNode>) {
                 })
               )}
             </div>
-
-            {totalPages > 1 && (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', borderTop: '1px solid #e2e8f0', color: '#94a3b8' }} className="nodrag">
-                <button onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={page === 0} style={navBtnStyle}>← Prev</button>
-                <span>{page + 1} / {totalPages}</span>
-                <button onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1} style={navBtnStyle}>Next →</button>
-              </div>
-            )}
 
             <div
               onMouseDown={onResizeY}
