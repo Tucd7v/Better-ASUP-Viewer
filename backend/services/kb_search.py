@@ -12,7 +12,13 @@ import httpx
 logger = logging.getLogger(__name__)
 
 SITEMAP_URL = "https://kb.netapp.com/sitemap.xml"
-CACHE_PATH = Path(__file__).parent.parent / "data" / "kb_sitemap.xml"
+
+import os as _os
+_DOCKER_CACHE = Path("/data/logs/kb_sitemap.xml")
+if _DOCKER_CACHE.parent.exists():
+    CACHE_PATH = _DOCKER_CACHE
+else:
+    CACHE_PATH = Path(__file__).parent.parent / "data" / "kb_sitemap.xml"
 CACHE_MAX_AGE = 86400  # 24 hours
 
 
@@ -30,6 +36,7 @@ class KBSearchService:
         self._articles = await self._load_sitemap()
         self._loaded = True
         logger.info(f"KB search loaded: {len(self._articles)} articles")
+        print(f"*** KB search loaded: {len(self._articles)} articles from {CACHE_PATH}", flush=True)
 
     async def _load_sitemap(self) -> dict[str, str]:
         """Download and parse sitemap, extracting article URLs and titles."""
