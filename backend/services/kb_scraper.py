@@ -1,8 +1,11 @@
 """NetApp KB article scraper — downloads full text, builds SQLite FTS5 index.
 
-Can be run standalone:  python -m services.kb_scraper
-Or auto-started from main.py on boot.
-"""
+Manual trigger only.  Usage:
+  KB_COOKIE="dekisession=..." python -m services.kb_scraper
+
+- Sitemap auto-refreshes every 24h via kb_search.py
+- Run this when you have a fresh auth cookie to scrape new articles
+- Incremental: skips already-scraped URLs, safe to interrupt (resumes)"""
 
 from __future__ import annotations
 
@@ -186,8 +189,6 @@ async def run():
 
             try:
                 resp = await client.get(url)
-                if i < 5:
-                    print(f"  [{i}] HTTP {resp.status_code} {url[:80]}", flush=True)
                 if resp.status_code == 200:
                     text = _extract_text(resp.text, title)
                     if text:
