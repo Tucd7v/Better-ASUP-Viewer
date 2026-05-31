@@ -276,6 +276,7 @@ async def scrape_articles() -> None:
         f"*** KB scraper: DONE — {scraped} scraped, {skipped} skipped, {total} total",
         flush=True,
     )
+    print("*** KB scraper: FTS5 index now active — search_kb will use full-text search", flush=True)
 
 
 def _load_urls_from_sitemap() -> list[tuple[str, str]]:
