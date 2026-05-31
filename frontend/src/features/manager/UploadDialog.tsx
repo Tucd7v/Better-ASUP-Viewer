@@ -73,7 +73,8 @@ export default function UploadDialog({ onClose, onDone }: UploadDialogProps) {
     total: number
   ) =>
     new Promise<void>((resolve, reject) => {
-      const sseUrl = `/api/v1/sessions/${sessionId}/progress`
+      const baseUrl = (import.meta as any).env?.VITE_API_URL ?? ''
+      const sseUrl = `${baseUrl}/api/v1/sessions/${sessionId}/progress`
       console.log('[Upload] opening SSE:', sseUrl)
       const es = new EventSource(sseUrl)
 

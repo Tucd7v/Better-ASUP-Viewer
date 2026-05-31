@@ -82,7 +82,17 @@ class KBSearchService:
         return articles
 
     def search(self, query: str, limit: int = 4) -> list[dict]:
-        """Search KB articles by keywords. Returns top N matches with title + URL."""
+        """Search KB articles — FTS5 if available, otherwise title matching."""
+        # Try FTS5 first
+        try:
+            from services.kb_scraper import search_fts
+            results = search_fts(query, limit)
+            if results:
+                return results
+        except Exception:
+            pass
+
+        # Fallback: title keyword matching
         if not self._articles:
             return []
 
@@ -104,6 +114,7 @@ class KBSearchService:
             {
                 "title": title,
                 "url": url,
+                "snippet": title,
                 "score": score,
             }
             for score, title, url in scored[:limit]
