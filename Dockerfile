@@ -11,7 +11,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY backend/ ./backend/
 COPY frontend/dist/ ./frontend/dist/
-COPY aiconfig.yaml ./backend/aiconfig.yaml
+COPY backend/aiconfig.yaml ./backend/aiconfig.yaml
 
 RUN mkdir -p /data/logs
 
