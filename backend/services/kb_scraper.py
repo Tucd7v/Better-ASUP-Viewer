@@ -205,14 +205,14 @@ async def run():
             except Exception:
                 skipped += 1
 
-            # Report every 200
+            # Report every 10
             total_done = scraped + skipped
-            if total_done % 200 == 0:
+            if total_done % 10 == 0:
                 elapsed = time.time() - tick
-                rate = 200 / elapsed if elapsed > 0 else 0
+                rate = 10 / elapsed if elapsed > 0 else 0
                 pct = (i + 1) * 100 // total
                 eta = (total - i - 1) / max(rate, 0.01) / 3600
-                print(f"*** KB scraper: {i+1}/{total} ({pct}%) | {rate:.1f}/s | ETA {eta:.1f}h | {scraped} ok", flush=True)
+                print(f"*** KB scraper: {i+1}/{total} ({pct}%) | {rate:.1f}/s | ETA {eta:.1f}h | [{title[:60]}]", flush=True)
                 tick = time.time()
 
             # Save progress every 100
