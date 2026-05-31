@@ -50,7 +50,7 @@ export default function ManagerPage() {
             letterSpacing: '-0.3px',
           }}
         >
-          ASUP Log Analyzer
+          AiSUP
         </h1>
         <button
           onClick={() => setShowUpload(true)}

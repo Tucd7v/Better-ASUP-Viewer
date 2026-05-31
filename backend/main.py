@@ -17,7 +17,7 @@ from api.chat import router as chat_router
 
 logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
 
-app = FastAPI(title="ASUP Log Analyzer API", version="1.0.0")
+app = FastAPI(title="AiSUP API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
