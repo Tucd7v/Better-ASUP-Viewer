@@ -279,11 +279,16 @@ function ViewerInner() {
 
         if (splitMode) {
           const visibleNodes = prev.filter((n) => !state.hiddenFileIds.has((n.data as { fileId: string }).fileId))
+          console.debug('[SplitMode] visibleNodes', { count: visibleNodes.length, replaceIdx, ids: visibleNodes.map(n => n.id) })
           // Replace specific zone
           if (replaceIdx !== undefined && replaceIdx < visibleNodes.length) {
             const target = visibleNodes[replaceIdx]
+            console.debug('[SplitMode] replacing target', { targetId: target.id, targetFileId: (target.data as any).fileId, newFileId: meta.file.id })
             const newNode = buildNode(meta.file, target.position, meta.sessionId, meta.nodeColor, dispatch)
-            return prev.map((n) => (n.id === target.id ? newNode : n))
+            console.debug('[SplitMode] newNode built', { id: newNode.id, type: newNode.type })
+            const result = prev.map((n) => (n.id === target.id ? newNode : n))
+            console.debug('[SplitMode] replace result', { count: result.length, ids: result.map(n => n.id) })
+            return result
           }
           // Add new card (up to 4)
           if (visibleNodes.length < 4) {
