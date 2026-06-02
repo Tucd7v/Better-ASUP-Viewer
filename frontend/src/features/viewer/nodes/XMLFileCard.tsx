@@ -255,7 +255,7 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
   }
 
   return (
-    <div ref={wrapperRef} style={{ position: 'relative', width: splitMode ? '100%' : width }}>
+    <div ref={wrapperRef} style={{ position: 'relative', width: splitMode ? '100%' : width, height: splitMode ? '100%' : undefined }}>
       <div
         style={{
           background: '#ffffff',
@@ -265,8 +265,10 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
           fontFamily: 'ui-monospace, Consolas, monospace',
           fontSize: 12,
           color: '#1e293b',
-          overflow: 'visible',
-          position: 'relative',
+          overflow: 'hidden',
+          height: splitMode ? '100%' : undefined,
+          display: splitMode ? 'flex' : undefined,
+          flexDirection: splitMode ? 'column' : undefined,
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', background: '#f8fafc', borderBottom: collapsed ? 'none' : '1px solid #e2e8f0', borderRadius: collapsed ? 8 : '8px 8px 0 0' }}>

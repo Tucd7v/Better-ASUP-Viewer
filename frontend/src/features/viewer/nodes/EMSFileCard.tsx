@@ -117,7 +117,7 @@ export default function EMSFileCard({ data }: NodeProps<EMSFileNode>) {
     })
 
   return (
-    <div style={{ position: 'relative', width: splitMode ? '100%' : width, minWidth: splitMode ? undefined : 320 }}>
+    <div style={{ position: 'relative', width: splitMode ? '100%' : width, minWidth: splitMode ? undefined : 320, height: splitMode ? '100%' : undefined }}>
       <div
         style={{
           background: '#ffffff',
@@ -128,6 +128,9 @@ export default function EMSFileCard({ data }: NodeProps<EMSFileNode>) {
           fontSize: 12,
           color: '#1e293b',
           overflow: 'hidden',
+          height: splitMode ? '100%' : undefined,
+          display: splitMode ? 'flex' : undefined,
+          flexDirection: splitMode ? 'column' : undefined,
         }}
       >
         {/* title bar */}
