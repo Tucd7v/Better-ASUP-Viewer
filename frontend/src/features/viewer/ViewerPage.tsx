@@ -287,7 +287,7 @@ function ViewerInner() {
             return [...prev, newNode]
           }
           // Full: replace last
-          const lastVisible = visibleNodes[visibleNodes.length - 1]
+          const lastVisible = visibleNodesList[visibleNodesList.length - 1]
           const newNode = buildNode(meta.file, lastVisible.position, meta.sessionId, meta.nodeColor, dispatch)
           return prev.map((n) => (n.id === lastVisible.id ? newNode : n))
         }
