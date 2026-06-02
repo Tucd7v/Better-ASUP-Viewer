@@ -40,7 +40,8 @@ export interface Tab {
   isAutoAI?: boolean
 }
 
-const NODE_COLORS = { blue: '#3b82f6', orange: '#f97316' }
+const NODE_COLORS_POOL = ['#3b82f6', '#f97316', '#22c55e', '#a855f7', '#ef4444', '#eab308', '#06b6d4', '#ec4899']
+function nodeColorFor(index: number) { return NODE_COLORS_POOL[index % NODE_COLORS_POOL.length] }
 
 const nodeTypes = {
   textFile: TextFileCard,
@@ -431,7 +432,7 @@ function ViewerInner() {
 
   const [groupSessions, setGroupSessions] = useState<{
     id: string
-    color: 'blue' | 'orange'
+    color: string
     hostname?: string
     serialNum?: string
     generatedOn?: string
@@ -453,7 +454,7 @@ function ViewerInner() {
   useEffect(() => {
     async function load() {
       if (params.sessionId) {
-        setGroupSessions([{ id: params.sessionId, color: 'blue' as const }])
+        setGroupSessions([{ id: params.sessionId, color: nodeColorFor(0) }])
       } else if (params.groupId) {
         try {
           const res = await getSessionGroup(params.groupId)
@@ -466,7 +467,7 @@ function ViewerInner() {
             status?: string
           }, i: number) => ({
             id: m.session_id,
-            color: (i === 0 ? 'blue' : 'orange') as 'blue' | 'orange',
+            color: nodeColorFor(i),
             hostname: m.hostname,
             serialNum: m.serial_num,
             generatedOn: m.generated_on,
@@ -508,7 +509,7 @@ function ViewerInner() {
           return [...prev, meta]
         })
 
-        const colorHex = NODE_COLORS[color]
+        const colorHex = color
         nonEmpty.forEach((f) => {
           fileMetaRef.current.set(f.id, { sessionId: id, nodeColor: colorHex, file: f })
         })
