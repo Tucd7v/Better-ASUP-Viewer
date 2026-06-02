@@ -5,7 +5,7 @@ export type Action =
   | { type: 'HIDE_FILE'; fileId: string }
   | { type: 'SHOW_FILE'; fileId: string }
   | { type: 'TOGGLE_COLLAPSE'; fileId: string }
-  | { type: 'SET_FILES'; files: FileRecord[]; sessionId: string; nodeColor: 'blue' | 'orange' }
+  | { type: 'SET_FILES'; files: FileRecord[]; sessionId: string; nodeColor: string }
   | { type: 'UPDATE_NODE_POSITION'; nodeId: string; position: { x: number; y: number } }
   | { type: 'SET_GLOBAL_SEARCH'; fileId: string; query: string; line?: number }
   | { type: 'CLEAR_GLOBAL_SEARCH' }

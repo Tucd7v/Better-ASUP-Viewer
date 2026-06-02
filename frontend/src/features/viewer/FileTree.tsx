@@ -17,11 +17,6 @@ const FILE_TYPE_LABELS: Record<string, string> = {
   other: 'OTHER',
 }
 
-const NODE_COLORS = {
-  blue: '#3b82f6',
-  orange: '#f97316',
-} as const
-
 export default function FileTree({ sessions, clusterName, onFocusFile }: FileTreeProps) {
   const { state, dispatch } = useViewer()
   const [fileSearch, setFileSearch] = useState('')
@@ -45,13 +40,17 @@ export default function FileTree({ sessions, clusterName, onFocusFile }: FileTre
     )
     const missing = [...fileSessionIds]
       .filter((sessionId) => !known.some((s) => s.sessionId === sessionId))
-      .map((sessionId, index) => ({
-        sessionId,
-        serialNum: '',
-        generatedOn: '',
-        nodeColor: (index === 0 ? 'blue' : 'orange') as 'blue' | 'orange',
-        hostname: index === 0 ? 'NodeA' : 'NodeB',
-      }))
+      .map((sessionId, index) => {
+        const fileColor = state.fileList.find((file) => file.sessionId === sessionId)?.nodeColor
+
+        return {
+          sessionId,
+          serialNum: '',
+          generatedOn: '',
+          nodeColor: fileColor ?? '#3b82f6',
+          hostname: index === 0 ? 'NodeA' : 'NodeB',
+        }
+      })
 
     return [...known, ...missing]
   }, [sessions, state.fileList, state.sessions])
@@ -161,7 +160,7 @@ export default function FileTree({ sessions, clusterName, onFocusFile }: FileTre
           <div className="node-list">
             {sessionRows.map((session, index) => {
               const nodeName = session.hostname || (index === 0 ? 'NodeA' : 'NodeB')
-              const color = session.nodeColor ?? (index === 0 ? 'blue' : 'orange')
+              const color = session.nodeColor
               const sessionExpanded = expandedNodes.has(session.sessionId)
               const filesByType =
                 groupedFiles.get(session.sessionId) ?? new Map<string, FileRecord[]>()
@@ -180,7 +179,7 @@ export default function FileTree({ sessions, clusterName, onFocusFile }: FileTre
                     <span className="tree-caret">{sessionExpanded ? '▾' : '▸'}</span>
                     <span
                       className="node-dot"
-                      style={{ backgroundColor: NODE_COLORS[color] }}
+                      style={{ backgroundColor: color }}
                     />
                     <span className="node-name">{nodeName}</span>
                     <span className="node-serial">({shortSerial(session.serialNum || session.sessionId)})</span>

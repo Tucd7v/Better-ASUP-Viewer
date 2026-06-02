@@ -4,7 +4,7 @@ import type { SearchMatch } from '../../types'
 import { useViewer } from './ViewerContext'
 
 interface SearchPanelProps {
-  sessions: { id: string; color: 'blue' | 'orange' }[]
+  sessions: { id: string; color: string }[]
   onFocusFile: (fileId: string) => void
 }
 

@@ -683,7 +683,7 @@ function ViewerInner() {
               const filesRes = await getFiles(sid)
               const files: FileRecord[] = filesRes.data?.files ?? filesRes.data ?? []
               const session = groupSessions.find(s => s.id === sid)
-              const colorHex = NODE_COLORS[session?.color ?? 'blue']
+              const colorHex = session?.color ?? nodeColorFor(0)
               files.filter((f) => !f.is_empty).forEach((f) => {
                 fileMetaRef.current.set(f.id, {
                   sessionId: sid,

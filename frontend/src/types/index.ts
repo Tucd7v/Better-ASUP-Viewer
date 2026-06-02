@@ -5,7 +5,7 @@ export interface FileRecord {
   file_size: number
   is_empty: boolean
   sessionId?: string
-  nodeColor?: 'blue' | 'orange'
+  nodeColor?: string
 }
 
 export interface EMSEvent {
@@ -21,7 +21,7 @@ export interface SessionMeta {
   sessionId: string
   serialNum: string
   generatedOn: string
-  nodeColor: 'blue' | 'orange'
+  nodeColor: string
   hostname?: string
   status?: string
   fileCount?: number
