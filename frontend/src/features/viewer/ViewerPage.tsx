@@ -100,9 +100,7 @@ function SplitGrid({ nodes, nodeTypes, state, onDropFile }: {
     e.preventDefault()
     setDragOverZone(null)
     const fileId = e.dataTransfer.getData('text/plain')
-    const idx = zoneIdx < cardCount ? zoneIdx : undefined
-    console.debug('[SplitMode] drop', { zoneIdx, cardCount, fileId, replaceIdx: idx })
-    if (fileId) onDropFile(fileId, idx)
+    if (fileId) onDropFile(fileId, zoneIdx < cardCount ? zoneIdx : undefined)
   }
 
   return (

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { FileRecord, SessionMeta } from '../../types'
 import { useViewer } from './ViewerContext'
 
@@ -28,6 +28,7 @@ export default function FileTree({ sessions, clusterName, onFocusFile }: FileTre
   const [expandedCluster, setExpandedCluster] = useState(true)
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set())
   const [expandedTypes, setExpandedTypes] = useState<Set<string>>(new Set())
+  const isDragging = useRef(false)
 
   const normalizedFileSearch = fileSearch.trim().toLowerCase()
 
@@ -216,10 +217,15 @@ export default function FileTree({ sessions, clusterName, onFocusFile }: FileTre
                                     type="button"
                                     draggable
                                     onDragStart={(e) => {
+                                      isDragging.current = true
                                       e.dataTransfer.setData('text/plain', file.id)
                                       e.dataTransfer.effectAllowed = 'copy'
                                     }}
-                                    onClick={() => handleClick(file)}
+                                    onDragEnd={() => { isDragging.current = false }}
+                                    onClick={() => {
+                                      if (isDragging.current) return
+                                      handleClick(file)
+                                    }}
                                     title={file.filename}
                                   >
                                     <span className="file-icon">{getTypeIcon(type)}</span>
