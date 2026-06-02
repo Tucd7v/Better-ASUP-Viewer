@@ -57,7 +57,13 @@ export default function FileTree({ sessions, clusterName, onFocusFile }: FileTre
     return [...known, ...missing]
   }, [sessions, state.fileList, state.sessions])
 
+  const partnerHostnameKey = sessionRows
+    .map((session) => session.partnerHostname ?? '')
+    .join(',')
+
   const haPairSessionIds = useMemo(() => {
+    if (!partnerHostnameKey) return new Set<string>()
+
     const byHostname = new Map<string, string>()
     sessionRows.forEach((session) => {
       const hostname = normalizeHostname(session.hostname)
@@ -73,7 +79,7 @@ export default function FileTree({ sessions, clusterName, onFocusFile }: FileTre
       }
     })
     return paired
-  }, [sessionRows])
+  }, [sessionRows, partnerHostnameKey])
 
   const groupedFiles = useMemo(() => {
     const bySession = new Map<string, Map<string, FileRecord[]>>()
