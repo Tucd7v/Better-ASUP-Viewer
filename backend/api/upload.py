@@ -162,6 +162,7 @@ async def get_session_status(session_id: str, db: AsyncSession = Depends(get_db)
         status=session_row.status,
         error_message=session_row.error_message,
         hostname=session_row.hostname or None,
+        partner_hostname=session_row.partner_hostname or None,
         serial_num=session_row.serial_num or None,
         cluster_id=session_row.cluster_id,
         generated_on=session_row.generated_on,

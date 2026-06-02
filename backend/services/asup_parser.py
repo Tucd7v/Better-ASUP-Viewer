@@ -6,6 +6,7 @@ import queue
 import uuid
 from datetime import datetime
 from pathlib import Path
+from xml.etree import ElementTree
 
 import aiofiles
 
@@ -61,6 +62,33 @@ def _make_node_id(cluster_id: str, hostname: str) -> str:
     return hashlib.sha256(f"{cluster_id}:{hostname}".encode()).hexdigest()[:16]
 
 
+def parse_storage_failover_partner(path: Path, hostname: str = "") -> str:
+    try:
+        root = ElementTree.parse(path).getroot()
+    except Exception:
+        return ""
+
+    fallback = ""
+    hostname_normalized = hostname.strip().lower()
+    for row in root.findall(".//{http://asup_search.netapp.com/ns/ASUP/1.1}ROW"):
+        row_node = (row.findtext("{*}node_name") or row.findtext("{*}node") or "").strip()
+        partner = (row.findtext("{*}partner_name") or "").strip()
+        if not partner:
+            continue
+        fallback = fallback or partner
+        if hostname_normalized and row_node.lower() == hostname_normalized:
+            return partner
+    return fallback
+
+
+def _find_storage_failover_file(files_dir: Path) -> Path | None:
+    names = {"storage-failover.xml", "storage_failover.xml"}
+    for p in files_dir.iterdir():
+        if p.is_file() and p.name.lower() in names:
+            return p
+    return None
+
+
 async def _read_first_line(path: Path) -> str:
     try:
         async with aiofiles.open(path, "r", errors="replace") as f:
@@ -114,6 +142,12 @@ class ASUPParserService:
         serial_num = meta.get("serial_num", "")
         cluster_uuid = meta.get("cluster_uuid", "")
         generated_on_raw = meta.get("generated_on", "")
+        storage_failover_path = _find_storage_failover_file(self._files_dir)
+        partner_hostname = (
+            parse_storage_failover_partner(storage_failover_path, hostname)
+            if storage_failover_path
+            else ""
+        )
 
         generated_on = _parse_generated_on(generated_on_raw) if generated_on_raw else None
         cluster_id = cluster_uuid if cluster_uuid else f"STANDALONE:{hostname}"
@@ -156,6 +190,7 @@ class ASUPParserService:
         session_row.node_id = node_id
         session_row.cluster_id = cluster_id
         session_row.hostname = hostname
+        session_row.partner_hostname = partner_hostname
         session_row.serial_num = serial_num
         session_row.os_version = os_version
         session_row.generated_on = generated_on

@@ -16,6 +16,7 @@ class SessionStatusResponse(BaseModel):
     status: str
     error_message: Optional[str] = None
     hostname: Optional[str] = None
+    partner_hostname: Optional[str] = None
     serial_num: Optional[str] = None
     cluster_id: Optional[str] = None
     generated_on: Optional[datetime] = None
@@ -131,6 +132,7 @@ class ClusterGroupMember(BaseModel):
     session_id: str
     serial_num: str
     hostname: str
+    partner_hostname: str = ""
     generated_on: Optional[datetime]
     original_filename: str
     file_count: int

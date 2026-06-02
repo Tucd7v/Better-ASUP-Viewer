@@ -33,6 +33,7 @@ export default function FileTree({ sessions, clusterName, onFocusFile }: FileTre
       : state.sessions.map((s, index) => ({
           ...s,
           hostname: index === 0 ? 'NodeA' : 'NodeB',
+          partnerHostname: '',
         }))
 
     const fileSessionIds = new Set(
@@ -49,11 +50,30 @@ export default function FileTree({ sessions, clusterName, onFocusFile }: FileTre
           generatedOn: '',
           nodeColor: fileColor ?? '#3b82f6',
           hostname: index === 0 ? 'NodeA' : 'NodeB',
+          partnerHostname: '',
         }
       })
 
     return [...known, ...missing]
   }, [sessions, state.fileList, state.sessions])
+
+  const haPairSessionIds = useMemo(() => {
+    const byHostname = new Map<string, string>()
+    sessionRows.forEach((session) => {
+      const hostname = normalizeHostname(session.hostname)
+      if (hostname) byHostname.set(hostname, session.sessionId)
+    })
+
+    const paired = new Set<string>()
+    sessionRows.forEach((session) => {
+      const partnerSessionId = byHostname.get(normalizeHostname(session.partnerHostname))
+      if (partnerSessionId && partnerSessionId !== session.sessionId) {
+        paired.add(session.sessionId)
+        paired.add(partnerSessionId)
+      }
+    })
+    return paired
+  }, [sessionRows])
 
   const groupedFiles = useMemo(() => {
     const bySession = new Map<string, Map<string, FileRecord[]>>()
@@ -168,9 +188,14 @@ export default function FileTree({ sessions, clusterName, onFocusFile }: FileTre
                 (sum, files) => sum + files.length,
                 0
               )
+              const isHAPair = haPairSessionIds.has(session.sessionId)
 
               return (
-                <div className="node-block" key={session.sessionId}>
+                <div
+                  className={`node-block${isHAPair ? ' node-block--ha-pair' : ''}`}
+                  key={session.sessionId}
+                >
+                  {isHAPair && <div className="ha-pair-line" />}
                   <button
                     className="node-row tree-button"
                     type="button"
@@ -278,6 +303,10 @@ function toggleSetValue(source: Set<string>, value: string): Set<string> {
     next.add(value)
   }
   return next
+}
+
+function normalizeHostname(value?: string): string {
+  return (value ?? '').trim().toLowerCase()
 }
 
 function shortSerial(value: string): string {

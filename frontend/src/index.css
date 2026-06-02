@@ -172,8 +172,25 @@ body {
   padding-left: 14px;
 }
 
+.node-block {
+  position: relative;
+}
+
 .node-block + .node-block {
   margin-top: 13px;
+}
+
+.node-block--ha-pair {
+  padding-left: 8px;
+}
+
+.ha-pair-line {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  border-left: 2px solid #3b82f6;
+  pointer-events: none;
 }
 
 .node-row {
@@ -426,17 +443,25 @@ body {
   grid-template-columns: 10px max-content minmax(0, 1fr);
 }
 
-.hud-node-list {
+.hud-node-pager {
   display: grid;
   flex: 1.2 1 260px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  min-width: 0;
+  gap: 8px;
+  border-right: 1px solid #eef2f7;
+  padding: 5px clamp(10px, 2vw, 22px);
+}
+
+.hud-node-list {
+  display: grid;
   min-width: 0;
   grid-auto-flow: column;
   grid-template-rows: repeat(3, auto);
   align-content: center;
   gap: 3px;
-  border-right: 1px solid #eef2f7;
-  padding: 5px clamp(10px, 2vw, 22px);
-  overflow: auto;
+  overflow: hidden;
 }
 
 .hud-node-list .hud-node {
@@ -445,6 +470,35 @@ body {
   min-height: 14px;
   border-right: 0;
   padding: 0;
+}
+
+.hud-node-page-actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.hud-node-page-actions button {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 1px solid #dbe3ef;
+  border-radius: 6px;
+  background: #f8fafc;
+  color: #2563eb;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.hud-node-page-actions button:disabled {
+  color: #94a3b8;
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .hud-node-serial {

@@ -434,6 +434,7 @@ function ViewerInner() {
     id: string
     color: string
     hostname?: string
+    partnerHostname?: string
     serialNum?: string
     generatedOn?: string
     status?: string
@@ -462,6 +463,7 @@ function ViewerInner() {
           const entries = members.map((m: {
             session_id: string
             hostname?: string
+            partner_hostname?: string
             serial_num?: string
             generated_on?: string
             status?: string
@@ -469,6 +471,7 @@ function ViewerInner() {
             id: m.session_id,
             color: nodeColorFor(i),
             hostname: m.hostname,
+            partnerHostname: m.partner_hostname,
             serialNum: m.serial_num,
             generatedOn: m.generated_on,
             status: m.status,
@@ -483,7 +486,7 @@ function ViewerInner() {
   }, [params.sessionId, params.groupId])
 
   useEffect(() => {
-    groupSessions.forEach(({ id, color, hostname, serialNum, generatedOn, status }) => {
+    groupSessions.forEach(({ id, color, hostname, partnerHostname, serialNum, generatedOn, status }) => {
       Promise.all([
         getSessionStatus(id).catch(() => null),
         getFiles(id),
@@ -498,6 +501,7 @@ function ViewerInner() {
           generatedOn: generatedOn ?? sessionData?.generated_on ?? '',
           nodeColor: color,
           hostname: hostname ?? sessionData?.hostname ?? '',
+          partnerHostname: partnerHostname ?? sessionData?.partner_hostname ?? '',
           status: status ?? sessionData?.status ?? '',
           fileCount: sessionData?.file_count,
           clusterId: sessionData?.cluster_id,

@@ -23,6 +23,7 @@ export interface SessionMeta {
   generatedOn: string
   nodeColor: string
   hostname?: string
+  partnerHostname?: string
   status?: string
   fileCount?: number
   clusterId?: string
@@ -50,6 +51,7 @@ export interface ClusterGroupMember {
   session_id: string
   serial_num: string
   hostname: string
+  partner_hostname?: string
   generated_on: string | null
   original_filename: string
   file_count: number
