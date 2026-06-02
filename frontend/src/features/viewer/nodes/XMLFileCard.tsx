@@ -10,6 +10,7 @@ export interface XMLFileCardData extends Record<string, unknown> {
   filename: string
   nodeColor: string
   collapsed: boolean
+  splitMode?: boolean
   onCollapse: () => void
   onHide: () => void
 }
@@ -91,7 +92,7 @@ function ColSwapMenu({
 }
 
 export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
-  const { fileId, sessionId, filename, nodeColor, collapsed, onCollapse, onHide } = data
+  const { fileId, sessionId, filename, nodeColor, collapsed, splitMode, onCollapse, onHide } = data
   const { width, height, setWidth, onResizeX, onResizeY } = useResizable(320, 360)
 
   const [rows, setRows] = useState<TableRow[]>([])
@@ -254,7 +255,7 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
   }
 
   return (
-    <div ref={wrapperRef} style={{ position: 'relative', width }}>
+    <div ref={wrapperRef} style={{ position: 'relative', width: splitMode ? '100%' : width }}>
       <div
         style={{
           background: '#ffffff',

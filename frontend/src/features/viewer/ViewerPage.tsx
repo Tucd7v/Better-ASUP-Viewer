@@ -104,9 +104,11 @@ function SplitGrid({ nodes, nodeTypes, state, onDropFile }: {
         return (
           <div key={node.id} data-zone={idx} style={{
             border: '2px dashed #e2e8f0', borderRadius: 8,
-            overflow: 'auto', position: 'relative',
+            overflow: 'hidden', position: 'relative',
           }} onDragOver={(e) => e.preventDefault()} onDrop={handleDrop}>
-            {CardComponent && <CardComponent data={node.data} />}
+            <div style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+              {CardComponent && <CardComponent data={{ ...node.data, splitMode: true }} />}
+            </div>
           </div>
         )
       })}

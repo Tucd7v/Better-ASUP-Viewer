@@ -10,6 +10,7 @@ export interface TextFileCardData extends Record<string, unknown> {
   filename: string
   nodeColor: string
   collapsed: boolean
+  splitMode?: boolean
   onCollapse: () => void
   onHide: () => void
 }
@@ -32,7 +33,7 @@ function highlight(line: string, term: string): React.ReactNode {
 }
 
 export default function TextFileCard({ data }: NodeProps<TextFileNode>) {
-  const { fileId, sessionId, filename, nodeColor, collapsed, onCollapse, onHide } = data
+  const { fileId, sessionId, filename, nodeColor, collapsed, splitMode, onCollapse, onHide } = data
   const { width, height, onResizeX, onResizeY } = useResizable(900, 340)
 
   const [lines, setLines] = useState<string[]>([])
@@ -97,7 +98,7 @@ export default function TextFileCard({ data }: NodeProps<TextFileNode>) {
   const totalPages = Math.max(1, Math.ceil(totalLines / LIMIT))
 
   return (
-    <div style={{ position: 'relative', width, minWidth: 220 }}>
+    <div style={{ position: 'relative', width: splitMode ? '100%' : width, minWidth: splitMode ? undefined : 220 }}>
       <div
         style={{
           background: '#ffffff',

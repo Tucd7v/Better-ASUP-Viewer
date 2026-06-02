@@ -11,6 +11,7 @@ export interface EMSFileCardData extends Record<string, unknown> {
   filename: string
   nodeColor: string
   collapsed: boolean
+  splitMode?: boolean
   onCollapse: () => void
   onHide: () => void
 }
@@ -48,7 +49,7 @@ function highlight(text: string, query: string): React.ReactNode {
 }
 
 export default function EMSFileCard({ data }: NodeProps<EMSFileNode>) {
-  const { fileId, sessionId, filename, nodeColor, collapsed, onCollapse, onHide } = data
+  const { fileId, sessionId, filename, nodeColor, collapsed, splitMode, onCollapse, onHide } = data
   const { width, height, onResizeX, onResizeY } = useResizable(800, 400)
 
   const [events, setEvents] = useState<EMSEvent[]>([])
@@ -116,7 +117,7 @@ export default function EMSFileCard({ data }: NodeProps<EMSFileNode>) {
     })
 
   return (
-    <div style={{ position: 'relative', width, minWidth: 320 }}>
+    <div style={{ position: 'relative', width: splitMode ? '100%' : width, minWidth: splitMode ? undefined : 320 }}>
       <div
         style={{
           background: '#ffffff',
