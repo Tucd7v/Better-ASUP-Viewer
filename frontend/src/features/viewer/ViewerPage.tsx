@@ -84,6 +84,19 @@ function SplitGrid({ nodes, nodeTypes, state, onDropFile }: {
   const [dragOverZone, setDragOverZone] = useState<number | null>(null)
   const emptySlots = Math.max(0, 4 - cardCount)
 
+  // Empty state: no cards yet
+  if (cardCount === 0) {
+    return (
+      <div style={{
+        width: '100%', height: '100%', background: '#f7f9fc',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        color: '#94a3b8', fontSize: 15,
+      }}>
+        点击左侧日志内容展示
+      </div>
+    )
+  }
+
   const handleDrop = (zoneIdx: number, e: React.DragEvent) => {
     e.preventDefault()
     setDragOverZone(null)
@@ -116,22 +129,6 @@ function SplitGrid({ nodes, nodeTypes, state, onDropFile }: {
               {CardComponent && <CardComponent data={{ ...node.data, splitMode: true }} />}
             </div>
           </div>
-        )
-      })}
-      {Array.from({ length: emptySlots }).map((_, i) => {
-        const zoneIdx = cardCount + i
-        return (
-          <div key={`empty-${i}`} style={{
-            border: dragOverZone === zoneIdx ? '2px solid #3b82f6' : '2px dashed #cbd5e1',
-            borderRadius: 8, background: dragOverZone === zoneIdx ? '#eff6ff' : undefined,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: '#94a3b8', fontSize: 13,
-            transition: 'border 0.15s, background 0.15s',
-          }}
-            onDragOver={(e) => { e.preventDefault(); setDragOverZone(zoneIdx) }}
-            onDragLeave={() => setDragOverZone(null)}
-            onDrop={(e) => handleDrop(zoneIdx, e)}
-          ></div>
         )
       })}
     </div>
