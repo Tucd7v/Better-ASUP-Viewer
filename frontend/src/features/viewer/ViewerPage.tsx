@@ -102,7 +102,7 @@ function SplitCard({ node, nodeTypes, idx, dragOverZone, setDragOverZone, handle
   return (
     <div style={{
       ...style,
-      border: dragOverZone === idx ? '2px solid #3b82f6' : '2px dashed #e2e8f0',
+      border: dragOverZone === idx ? '2px solid #3b82f6' : '2px solid transparent',
       borderRadius: 8, background: dragOverZone === idx ? '#eff6ff' : undefined,
       overflow: 'hidden', position: 'relative',
       transition: 'border 0.15s, background 0.15s',
