@@ -330,7 +330,7 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
                                 position: isPinned ? 'sticky' : undefined,
                                 left: isPinned ? `${pinnedLeft}px` : undefined,
                                 zIndex: isPinned ? 1 : undefined,
-                                background: isPinned ? 'inherit' : undefined,
+                                background: isPinned ? (i % 2 === 0 ? '#ffffff' : '#f8fafc') : undefined,
                               }}
                               title={row[col]}
                             >
