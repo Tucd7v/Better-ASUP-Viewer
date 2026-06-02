@@ -1,10 +1,10 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, type Dispatch, type SetStateAction } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { useViewer } from './ViewerContext'
 import type { ChatMode } from './ViewerPage'
 
-interface Message {
+export interface Message {
   role: 'user' | 'assistant' | 'system'
   content: string
   toolCalls?: { tool: string; args: Record<string, unknown> }[]
@@ -17,11 +17,23 @@ interface AIChatPanelProps {
   onModeChange: (mode: ChatMode) => void
   onFocusFile: (fileId: string) => void
   onClose?: () => void
+  messages?: Message[]
+  onMessagesChange?: Dispatch<SetStateAction<Message[]>>
 }
 
-export default function AIChatPanel({ sessionIds, mode, onModeChange, onFocusFile, onClose }: AIChatPanelProps) {
+export default function AIChatPanel({
+  sessionIds,
+  mode,
+  onModeChange,
+  onFocusFile,
+  onClose,
+  messages: controlledMessages,
+  onMessagesChange,
+}: AIChatPanelProps) {
   const { state, dispatch } = useViewer()
-  const [messages, setMessages] = useState<Message[]>([])
+  const [internalMessages, setInternalMessages] = useState<Message[]>([])
+  const messages = controlledMessages ?? internalMessages
+  const setMessages = onMessagesChange ?? setInternalMessages
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [streamingLines, setStreamingLines] = useState<string[]>([])

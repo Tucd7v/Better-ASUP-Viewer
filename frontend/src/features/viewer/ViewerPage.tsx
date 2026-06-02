@@ -23,7 +23,7 @@ import NodeHUD from './NodeHUD'
 import TextFileCard from './nodes/TextFileCard'
 import XMLFileCard from './nodes/XMLFileCard'
 import EMSFileCard from './nodes/EMSFileCard'
-import AIChatPanel from './AIChatPanel'
+import AIChatPanel, { type Message } from './AIChatPanel'
 import TabBar from './TabBar'
 import { getFiles, getSessionGroup, getSessionStatus } from '../../services/api'
 import { getTemplates, getTemplate, createTemplate, deleteTemplate } from '../../services/api'
@@ -312,6 +312,7 @@ function ViewerInner() {
 
   const [tabs, setTabs] = useState<Tab[]>([{ id: 'tab-1', name: 'View 1', nodes: [], edges: [], chatMode: 'analysis' }])
   const [activeTabId, setActiveTabIdState] = useState('tab-1')
+  const [chatStates, setChatStates] = useState<Record<string, Message[]>>({ 'tab-1': [] })
   const activeTabIdRef = useRef(activeTabId)
 
   const setActiveTabId = useCallback((id: string) => {
@@ -375,6 +376,7 @@ function ViewerInner() {
   const addTab = useCallback(() => {
     const id = `tab-${Date.now()}`
     setTabs(prev => [...prev, { id, name: `View ${prev.length + 1}`, nodes: [], edges: [], chatMode: 'analysis' }])
+    setChatStates(prev => ({ ...prev, [id]: [] }))
     setActiveTabId(id)
   }, [setActiveTabId])
 
@@ -397,6 +399,7 @@ function ViewerInner() {
     } else {
       const id = `ai-${Date.now()}`
       setTabs(prev => [...prev, { id, name: 'AI Analysis', nodes: [], edges: [], chatMode: 'autonomous', isAutoAI: true }])
+      setChatStates(prev => ({ ...prev, [id]: [] }))
       setActiveTabId(id)
     }
   }, [tabs, setActiveTabId])
@@ -411,6 +414,14 @@ function ViewerInner() {
   }, [openAITab])
 
   const chatMode = activeTab.chatMode
+  const activeChatMessages = chatStates[activeTabId] ?? []
+  const setActiveChatMessages = useCallback<React.Dispatch<React.SetStateAction<Message[]>>>((val) => {
+    setChatStates(prev => {
+      const current = prev[activeTabId] ?? []
+      const next = typeof val === 'function' ? val(current) : val
+      return { ...prev, [activeTabId]: next }
+    })
+  }, [activeTabId])
   const [sessions, setSessions] = useState<SessionMeta[]>([])
   const [sidebarWidth, setSidebarWidth] = useState(245)
   const dragging = useRef(false)
@@ -854,7 +865,6 @@ function ViewerInner() {
       />
 
       <main className="viewer-main" style={{ position: 'relative' }}>
-        <TabBar tabs={tabs} activeTabId={activeTabId} onSelect={setActiveTabId} onAdd={addTab} onClose={closeTab} />
         <NodeHUD sessions={sessions} />
 
         {/* Template bar */}
@@ -959,6 +969,8 @@ function ViewerInner() {
           )}
         </div>
 
+        <TabBar tabs={tabs} activeTabId={activeTabId} onSelect={setActiveTabId} onAdd={addTab} onClose={closeTab} />
+
         <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
           {/* Canvas or Split Grid */}
           <div className="viewer-canvas" style={{ flex: 1 }}>
@@ -1013,11 +1025,12 @@ function ViewerInner() {
               <div style={{ width: aiPanelWidth, flexShrink: 0 }}>
                 <AIChatPanel
                   sessionIds={groupSessions.map(s => s.id)}
-                  groupSessions={groupSessions}
                   mode={chatMode}
                   onModeChange={handleChatModeChange}
                   onFocusFile={handleFocusFile}
                   onClose={() => setShowAI(false)}
+                  messages={activeChatMessages}
+                  onMessagesChange={setActiveChatMessages}
                 />
               </div>
             </>
