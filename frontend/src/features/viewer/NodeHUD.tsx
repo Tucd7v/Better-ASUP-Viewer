@@ -1,13 +1,8 @@
 import type { SessionMeta } from '../../types'
 
 interface NodeHUDProps {
-  sessions: SessionMeta[]
+  sessions: Array<Omit<SessionMeta, 'nodeColor'> & { nodeColor?: string }>
 }
-
-const NODE_COLORS = {
-  blue: '#3b82f6',
-  orange: '#f97316',
-} as const
 
 export default function NodeHUD({ sessions }: NodeHUDProps) {
   const rows = sessions.length
@@ -17,7 +12,7 @@ export default function NodeHUD({ sessions }: NodeHUDProps) {
           sessionId: '',
           serialNum: '',
           generatedOn: '',
-          nodeColor: 'blue' as const,
+          nodeColor: '#3b82f6',
           hostname: 'NodeA',
           status: 'healthy',
         },
@@ -26,28 +21,22 @@ export default function NodeHUD({ sessions }: NodeHUDProps) {
   const primary = rows[0]
   const clusterLabel = primary?.clusterId || 'PROD-01'
   const asupTime = rows.find((s) => s.generatedOn)?.generatedOn ?? ''
+  const multiNode = rows.length > 2
 
   return (
-    <div className="node-hud-bar">
+    <div className={`node-hud-bar${multiNode ? ' node-hud-bar--multi' : ''}`}>
       <div className="hud-cluster">
         <span className="hud-label">Cluster:</span>
         <span className="hud-cluster-name">{clusterLabel}</span>
       </div>
 
-      {rows.slice(0, 2).map((session, index) => {
-        const color = session.nodeColor ?? (index === 0 ? 'blue' : 'orange')
-        const nodeName = session.hostname || (index === 0 ? 'NodeA' : 'NodeB')
-        return (
-          <div className="hud-node" key={session.sessionId || nodeName}>
-            <span
-              className="hud-node-dot"
-              style={{ backgroundColor: NODE_COLORS[color] }}
-            />
-            <span className="hud-node-name">{nodeName}</span>
-            <span className="hud-node-serial">{shortSerial(session.serialNum || session.sessionId)}</span>
-          </div>
-        )
-      })}
+      {multiNode ? (
+        <div className="hud-node-list">
+          {rows.map((session, index) => renderNode(session, index))}
+        </div>
+      ) : (
+        rows.map((session, index) => renderNode(session, index))
+      )}
 
       <div className="hud-asup">
         <span className="hud-label">ASUP:</span>
@@ -56,6 +45,34 @@ export default function NodeHUD({ sessions }: NodeHUDProps) {
 
     </div>
   )
+}
+
+function renderNode(
+  session: Omit<SessionMeta, 'nodeColor'> & { nodeColor?: string },
+  index: number,
+) {
+  const nodeName = session.hostname || fallbackNodeName(index)
+
+  return (
+    <div className="hud-node" key={session.sessionId || `${nodeName}-${index}`}>
+      <span
+        className="hud-node-dot"
+        style={{ backgroundColor: session.nodeColor ?? fallbackNodeColor(index) }}
+      />
+      <span className="hud-node-name">{nodeName}</span>
+      <span className="hud-node-serial">{shortSerial(session.serialNum || session.sessionId)}</span>
+    </div>
+  )
+}
+
+function fallbackNodeColor(index: number): string {
+  return index === 0 ? '#3b82f6' : '#f97316'
+}
+
+function fallbackNodeName(index: number): string {
+  if (index === 0) return 'NodeA'
+  if (index === 1) return 'NodeB'
+  return `Node${index + 1}`
 }
 
 function formatDate(iso: string): string {

@@ -368,6 +368,13 @@ body {
   overflow: hidden;
 }
 
+.node-hud-bar--multi {
+  height: auto;
+  min-height: 56px;
+  flex-basis: auto;
+  overflow: visible;
+}
+
 .hud-cluster,
 .hud-node,
 .hud-asup {
@@ -417,6 +424,26 @@ body {
   display: grid;
   flex: 1.2 1 260px;
   grid-template-columns: 10px max-content minmax(0, 1fr);
+}
+
+.hud-node-list {
+  display: flex;
+  flex: 1.2 1 260px;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  border-right: 1px solid #eef2f7;
+  padding: 5px clamp(10px, 2vw, 22px);
+  overflow: auto;
+}
+
+.hud-node-list .hud-node {
+  flex: 0 0 auto;
+  height: auto;
+  min-height: 14px;
+  border-right: 0;
+  padding: 0;
 }
 
 .hud-node-serial {
