@@ -189,10 +189,22 @@ export default function FileTree({ sessions, clusterName, onFocusFile }: FileTre
                 0
               )
               const isHAPair = haPairSessionIds.has(session.sessionId)
+              const connectsToPrevious =
+                isHAPair && areConsecutiveHAPair(sessionRows[index - 1], session)
+              const connectsToNext =
+                isHAPair && areConsecutiveHAPair(session, sessionRows[index + 1])
+              const nodeBlockClasses = [
+                'node-block',
+                isHAPair && 'node-block--ha-pair',
+                connectsToPrevious && 'node-block--ha-pair-end',
+                connectsToNext && 'node-block--ha-pair-start',
+              ]
+                .filter(Boolean)
+                .join(' ')
 
               return (
                 <div
-                  className={`node-block${isHAPair ? ' node-block--ha-pair' : ''}`}
+                  className={nodeBlockClasses}
                   key={session.sessionId}
                 >
                   {isHAPair && <div className="ha-pair-line" />}
@@ -307,6 +319,19 @@ function toggleSetValue(source: Set<string>, value: string): Set<string> {
 
 function normalizeHostname(value?: string): string {
   return (value ?? '').trim().toLowerCase()
+}
+
+function areConsecutiveHAPair(left?: SessionMeta, right?: SessionMeta): boolean {
+  if (!left || !right) return false
+
+  const leftHostname = normalizeHostname(left.hostname)
+  const rightHostname = normalizeHostname(right.hostname)
+  if (!leftHostname || !rightHostname) return false
+
+  return (
+    normalizeHostname(left.partnerHostname) === rightHostname ||
+    normalizeHostname(right.partnerHostname) === leftHostname
+  )
 }
 
 function shortSerial(value: string): string {
