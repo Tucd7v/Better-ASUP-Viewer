@@ -16,6 +16,7 @@ interface AIChatPanelProps {
   mode: ChatMode
   onModeChange: (mode: ChatMode) => void
   onFocusFile: (fileId: string) => void
+  tabFileIds?: string[]
   onClose?: () => void
   messages?: Message[]
   onMessagesChange?: Dispatch<SetStateAction<Message[]>>
@@ -26,6 +27,7 @@ export default function AIChatPanel({
   mode,
   onModeChange,
   onFocusFile,
+  tabFileIds,
   onClose,
   messages: controlledMessages,
   onMessagesChange,
@@ -45,8 +47,9 @@ export default function AIChatPanel({
 
   // Get currently visible file IDs from the canvas
   const getVisibleFileIds = useCallback(() => {
+    if (tabFileIds) return tabFileIds
     return state.fileList.filter(f => !state.hiddenFileIds.has(f.id)).map(f => f.id)
-  }, [state.fileList, state.hiddenFileIds])
+  }, [tabFileIds, state.fileList, state.hiddenFileIds])
 
   const handleSend = async (text?: string) => {
     const userMsg = (text ?? input).trim()

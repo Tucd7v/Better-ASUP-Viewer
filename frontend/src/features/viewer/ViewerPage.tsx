@@ -788,6 +788,14 @@ function ViewerInner() {
     [nodes, state.hiddenFileIds, state.collapsedFileIds]
   )
 
+  const tabFileIds = useMemo(
+    () =>
+      nodes
+        .map((n) => (n.data as { fileId?: string }).fileId)
+        .filter((fileId): fileId is string => Boolean(fileId) && !state.hiddenFileIds.has(fileId)),
+    [nodes, state.hiddenFileIds]
+  )
+
   const startDrag = (e: React.MouseEvent) => {
     e.preventDefault()
     dragging.current = true
@@ -1028,6 +1036,7 @@ function ViewerInner() {
                   mode={chatMode}
                   onModeChange={handleChatModeChange}
                   onFocusFile={handleFocusFile}
+                  tabFileIds={tabFileIds}
                   onClose={() => setShowAI(false)}
                   messages={activeChatMessages}
                   onMessagesChange={setActiveChatMessages}
