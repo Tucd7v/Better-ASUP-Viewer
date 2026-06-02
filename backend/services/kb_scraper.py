@@ -1,11 +1,13 @@
 """NetApp KB article scraper — downloads full text, builds SQLite FTS5 index.
 
 Manual trigger only.  Usage:
-  KB_COOKIE="dekisession=..." python -m services.kb_scraper
+  KB_COOKIE="authtoken=<JWT>" python -m services.kb_scraper
 
+- Requires authtoken (JWT) for full content; dekisession alone is NOT sufficient.
 - Sitemap auto-refreshes every 24h via kb_search.py
 - Run this when you have a fresh auth cookie to scrape new articles
-- Incremental: skips already-scraped URLs, safe to interrupt (resumes)"""
+- Incremental: skips already-scraped URLs, safe to interrupt (resumes)
+- Login gate detection: aborts immediately if cookie expires mid-run"""
 
 from __future__ import annotations
 
@@ -34,13 +36,24 @@ _JITTER = 0.3
 
 # ── Cookie ────────────────────────────────────────────────────────────
 
+# NetApp KB uses authtoken (JWT), not dekisession.
+# dekisession alone does NOT bypass the login gate.
+
 
 def _load_cookie() -> str:
     import os
 
+    # 1. Environment variable (highest priority)
     c = os.environ.get("KB_COOKIE", "")
     if c:
         return c
+
+    # 2. Cookie file
+    cookie_file = BASE_DIR / ".kb_cookie"
+    if cookie_file.exists():
+        return cookie_file.read_text().strip()
+
+    # 3. aiconfig.yaml (lowest priority)
     try:
         import yaml
 
@@ -55,38 +68,95 @@ def _load_cookie() -> str:
 
 # ── HTML extraction ───────────────────────────────────────────────────
 
-_SKIP = [
-    "sign in to view", "go back to previous", "expand/collapse",
-    "skip to main content", "powered by", "©", "copyright",
-    "privacy policy", "terms of use", "site map", "knowledge center",
-    "netapp neighborhood", "customer stories", "partner with netapp",
-    "general terms", "netapp provides no representations",
-    "recommended articles", "product categories", "article review state",
+# Footer cut-points: any line matching one of these truncates extraction.
+_FOOTER_CUT = [
+    "Sign in to view",
+    "Learn more about our award-winning",
+    "Support Policies",
+    "NetApp provides no representations",
+    "SIGN IN", "New to NetApp?", "Create Account",
+    "Environment, Social", "Privacy & Cookie",
+    "US Public Sector", "NetApp OnDemand",
+    "Data Visionary Centers", "Slavery and Human",
+    "NetApp's Response to",
+    # Template placeholders (empty sections)
+    "partnerNotes_text", "additionalInformation_text",
 ]
 
 
-def _extract_text(html: str, title: str = "") -> str:
-    text = re.sub(r"<script[^>]*>.*?</script>", "", html, flags=re.DOTALL)
-    text = re.sub(r"<style[^>]*>.*?</style>", "", text, flags=re.DOTALL)
-    text = re.sub(r"<[^>]+>", "\n", text)
-    text = unescape(text)
-    lines = [re.sub(r"\s+", " ", l).strip() for l in text.split("\n")]
-    lines = [l for l in lines if len(l) > 20]
+_PRE_PLACEHOLDER = "%%HERMES_PRE_BLOCK_%d%%"
 
-    title_words = set(title.lower().split()[:5]) if title else set()
-    found = False
-    content: list[str] = []
+
+def _extract_text(html: str, title: str = "") -> str:
+    """Extract article body from KB page HTML.
+
+    Looks for <section class="mt-content-container"> and extracts clean
+    text, stopping at footer markers or the login gate.
+    <pre> blocks are preserved as fenced code blocks.
+    """
+    import re
+
+    # 1. Isolate content section
+    m = re.search(
+        r'<section class="mt-content-container">(.*?)</section>',
+        html, re.DOTALL,
+    )
+    if not m:
+        return ""
+    body = m.group(1)
+
+    # 2. Strip scripts and styles
+    body = re.sub(r"<script[^>]*>.*?</script>", "", body, flags=re.DOTALL)
+    body = re.sub(r"<style[^>]*>.*?</style>", "", body, flags=re.DOTALL)
+
+    # 3. Extract <pre> blocks and replace with placeholders
+    pre_blocks: list[str] = []
+
+    def _save_pre(m: re.Match) -> str:
+        inner = m.group(1)
+        # Convert <br> inside pre to newlines, strip other tags
+        inner = re.sub(r"<br\s*/?>", "\n", inner, flags=re.IGNORECASE)
+        inner = re.sub(r"<[^>]+>", "", inner)
+        inner = unescape(inner)
+        inner = re.sub(r"[\u200b\u200c\u200d\u200e\u200f\ufeff]", "", inner)
+        # Normalise trailing whitespace per line but keep leading spaces
+        lines = [l.rstrip() for l in inner.split("\n")]
+        pre_blocks.append("\n".join(lines))
+        return _PRE_PLACEHOLDER % (len(pre_blocks) - 1)
+
+    body = re.sub(r"<pre[^>]*>(.*?)</pre>", _save_pre, body, flags=re.DOTALL)
+
+    # 4. Convert remaining HTML to text
+    body = re.sub(r"<br\s*/?>", "\n", body, flags=re.IGNORECASE)
+    body = re.sub(
+        r"</(p|div|h[1-6]|li|tr|section|header|article|table)>",
+        "\n", body, flags=re.IGNORECASE,
+    )
+    body = re.sub(r"<[^>]+>", "", body)
+    body = unescape(body)
+
+    # 5. Clean zero-width and control characters, normalise whitespace
+    body = re.sub(r"[\u200b\u200c\u200d\u200e\u200f\u2028\u2029\ufeff]", "", body)
+    lines = [re.sub(r"\s+", " ", l).strip() for l in body.split("\n")]
+    lines = [l for l in lines if len(l) > 1]
+
+    # 6. Truncate at footer markers
+    clean: list[str] = []
     for line in lines:
-        if not found and title_words:
-            if sum(1 for w in title_words if w in line.lower()) >= 2:
-                found = True
-            continue
-        if not found:
-            continue
-        if any(p in line.lower() for p in _SKIP):
-            continue
-        content.append(line)
-    return "\n".join(content)
+        low = line.lower()
+        if any(m.lower() in low for m in _FOOTER_CUT):
+            break
+        clean.append(line)
+
+    text = "\n".join(clean)
+
+    # 7. Restore <pre> blocks as fenced code blocks
+    for i, block in enumerate(pre_blocks):
+        placeholder = _PRE_PLACEHOLDER % i
+        text = text.replace(placeholder, f"\n```\n{block}\n```\n")
+
+    return text
+
 
 
 # ── Database ──────────────────────────────────────────────────────────
@@ -124,12 +194,29 @@ def _load_urls() -> list[tuple[str, str]]:
 def search_fts(query: str, limit: int = 4) -> list[dict]:
     c = _conn()
     try:
+        # Fetch more candidates, then re-rank with title bonus
         rows = c.execute(
             "SELECT a.url, a.title, snippet(articles_fts,2,'<b>','</b>','...',40) "
             "FROM articles_fts f JOIN articles a ON a.url=f.url "
-            "WHERE articles_fts MATCH ? ORDER BY rank LIMIT ?",
-            (query, limit),
+            "WHERE articles_fts MATCH ? "
+            "AND a.url NOT LIKE '%/E-Series/%' "
+            "AND a.url NOT LIKE '%/SANtricity%' "
+            "AND a.url NOT LIKE '%/solidfire/%' "
+            "ORDER BY rank LIMIT ?",
+            (query, limit * 3),
         ).fetchall()
+
+        # Re-rank: title keyword match gets a big boost
+        keywords = query.lower().split()
+        def _score(row):
+            _, title, _ = row
+            title_lower = title.lower()
+            bonus = sum(2 for kw in keywords if kw in title_lower)
+            return bonus
+
+        rows.sort(key=_score, reverse=True)
+        rows = rows[:limit]
+
         return [{"url": u, "title": t, "snippet": s, "score": 1} for u, t, s in rows]
     except sqlite3.OperationalError:
         return []
@@ -190,6 +277,31 @@ async def run():
             try:
                 resp = await client.get(url)
                 if resp.status_code == 200:
+                    # ── Login gate detection ──────────────────────────
+                    if "Sign in to view the entire content" in resp.text:
+                        print(
+                            "*** KB scraper: LOGIN GATE DETECTED — cookie expired!",
+                            flush=True,
+                        )
+                        print(
+                            "*** KB scraper: ABORTING. Re-run with a fresh authtoken cookie.",
+                            flush=True,
+                        )
+                        # ── QQ alert ──────────────────────────────────
+                        try:
+                            import json, http.client
+                            # Signal file that Hermes cron/monitor picks up
+                            alert_file = BASE_DIR / "kb_login_gate.alert"
+                            alert_file.write_text(json.dumps({
+                                "event": "login_gate",
+                                "url": url,
+                                "title": title,
+                                "time": time.time(),
+                            }))
+                        except Exception:
+                            pass
+                        return
+
                     text = _extract_text(resp.text, title)
                     if text:
                         c = _conn()

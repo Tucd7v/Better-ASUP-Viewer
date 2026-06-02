@@ -71,6 +71,58 @@ const CARD_W = 340
 const CARD_H = 60
 let _spawnOffset = 0
 
+function SplitGrid({ nodes, nodeTypes, state, onDropFile }: {
+  nodes: Node[]
+  nodeTypes: NodeTypes
+  state: { hiddenFileIds: Set<string> }
+  onDropFile: (fileId: string) => void
+}) {
+  const visibleCards = nodes.filter((n) => !state.hiddenFileIds.has((n.data as { fileId: string }).fileId))
+  const cardCount = visibleCards.length
+  const gridCols = cardCount <= 1 ? 1 : cardCount <= 3 ? cardCount : 2
+  const gridRows = cardCount <= 3 ? 1 : 2
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    const fileId = e.dataTransfer.getData('text/plain')
+    if (fileId) onDropFile(fileId)
+  }
+
+  const emptySlots = Math.max(0, 4 - cardCount)
+
+  return (
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: `repeat(${gridCols}, 1fr)`,
+      gridTemplateRows: `repeat(${gridRows}, 1fr)`,
+      width: '100%', height: '100%',
+      gap: 8, padding: 8,
+      background: '#f7f9fc',
+    }}>
+      {visibleCards.map((node, idx) => {
+        const CardComponent = (nodeTypes as Record<string, React.ComponentType<{ data: unknown }>>)[node.type!]
+        return (
+          <div key={node.id} data-zone={idx} style={{
+            border: '2px dashed #e2e8f0', borderRadius: 8,
+            overflow: 'auto', position: 'relative',
+          }} onDragOver={(e) => e.preventDefault()} onDrop={handleDrop}>
+            {CardComponent && <CardComponent data={node.data} />}
+          </div>
+        )
+      })}
+      {Array.from({ length: emptySlots }).map((_, i) => (
+        <div key={`empty-${i}`} style={{
+          border: '2px dashed #cbd5e1', borderRadius: 8,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: '#94a3b8', fontSize: 13,
+        }} onDragOver={(e) => e.preventDefault()} onDrop={handleDrop}>
+          Drop file here
+        </div>
+      ))}
+    </div>
+  )
+}
+
 function ViewerInner() {
   const params = useParams<{ sessionId?: string; groupId?: string }>()
   const { state, dispatch } = useViewer()
@@ -106,6 +158,7 @@ function ViewerInner() {
   const [editingLabel, setEditingLabel] = useState('')
   const [showAI, setShowAI] = useState(false)
   const [aiPanelWidth, setAiPanelWidth] = useState(450)
+  const [splitMode, setSplitMode] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -200,12 +253,24 @@ function ViewerInner() {
       setNodes((prev) => {
         const existing = prev.find((n) => n.id === fileId)
         if (existing) {
-          setTimeout(() => fitView({ nodes: [existing], padding: 0.3, duration: 400 }), 50)
+          if (!splitMode) {
+            setTimeout(() => fitView({ nodes: [existing], padding: 0.3, duration: 400 }), 50)
+          }
           return prev
         }
 
         const meta = fileMetaRef.current.get(fileId)
         if (!meta) return prev
+
+        if (splitMode) {
+          const visibleCount = prev.filter((n) => !state.hiddenFileIds.has((n.data as { fileId: string }).fileId)).length
+          if (visibleCount >= 4) {
+            const visibleNodes = prev.filter((n) => !state.hiddenFileIds.has((n.data as { fileId: string }).fileId))
+            const lastVisible = visibleNodes[visibleNodes.length - 1]
+            const newNode = buildNode(meta.file, lastVisible.position, meta.sessionId, meta.nodeColor, dispatch)
+            return prev.map((n) => (n.id === lastVisible.id ? newNode : n))
+          }
+        }
 
         const vp = getViewport()
         const canvasW = window.innerWidth - sidebarWidth - 4
@@ -220,11 +285,13 @@ function ViewerInner() {
         const position = { x: cx - CARD_W / 2 + offset, y: cy - CARD_H / 2 + offset }
         const newNode = buildNode(meta.file, position, meta.sessionId, meta.nodeColor, dispatch)
 
-        setTimeout(() => fitView({ nodes: [newNode], padding: 0.3, duration: 400 }), 50)
+        if (!splitMode) {
+          setTimeout(() => fitView({ nodes: [newNode], padding: 0.3, duration: 400 }), 50)
+        }
         return [...prev, newNode]
       })
     },
-    [fitView, getViewport, sidebarWidth, dispatch]
+    [fitView, getViewport, sidebarWidth, dispatch, splitMode, state.hiddenFileIds]
   )
 
   const onEdgeDoubleClick = useCallback((event: React.MouseEvent, edge: Edge) => {
@@ -516,6 +583,17 @@ function ViewerInner() {
           >
             ✕ Clear
           </button>
+          <button
+            onClick={() => setSplitMode(!splitMode)}
+            title={splitMode ? 'Switch to canvas mode' : 'Switch to grid mode'}
+            style={{
+              background: 'none', border: '1px solid #e2e8f0', borderRadius: 4,
+              color: splitMode ? '#3b82f6' : '#94a3b8', cursor: 'pointer', padding: '3px 8px',
+              fontSize: 11, fontFamily: 'ui-monospace, Consolas, monospace',
+            }}
+          >
+            {splitMode ? '⊞ Grid' : '⊞ Split'}
+          </button>
           <input
             type="text"
             placeholder="Template name..."
@@ -591,8 +669,9 @@ function ViewerInner() {
         </div>
 
         <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-          {/* Canvas */}
+          {/* Canvas or Split Grid */}
           <div className="viewer-canvas" style={{ flex: 1 }}>
+            {!splitMode && (
             <ReactFlow
               nodes={visibleNodes}
               edges={edges}
@@ -617,6 +696,8 @@ function ViewerInner() {
                 style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}
               />
             </ReactFlow>
+            )}
+            {splitMode && <SplitGrid nodes={visibleNodes} nodeTypes={nodeTypes} state={state} onDropFile={handleFocusFile} />}
           </div>
 
           {/* AI Chat Panel */}

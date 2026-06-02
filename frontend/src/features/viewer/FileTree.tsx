@@ -214,6 +214,11 @@ export default function FileTree({ sessions, clusterName, onFocusFile }: FileTre
                                     className="file-row"
                                     key={file.id}
                                     type="button"
+                                    draggable
+                                    onDragStart={(e) => {
+                                      e.dataTransfer.setData('text/plain', file.id)
+                                      e.dataTransfer.effectAllowed = 'copy'
+                                    }}
                                     onClick={() => handleClick(file)}
                                     title={file.filename}
                                   >
