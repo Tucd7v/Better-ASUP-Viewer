@@ -401,7 +401,21 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
                             }}
                             title={row[col]}
                           >
-                            {row[col]}
+                            {(() => {
+                              const text = row[col] ?? ''
+                              if (!search) return text
+                              const idx = text.toLowerCase().indexOf(search.toLowerCase())
+                              if (idx === -1) return text
+                              return (
+                                <>
+                                  {text.slice(0, idx)}
+                                  <mark style={{ background: '#fbbf24', color: '#1e293b', borderRadius: 2 }}>
+                                    {text.slice(idx, idx + search.length)}
+                                  </mark>
+                                  {text.slice(idx + search.length)}
+                                </>
+                              )
+                            })()}
                           </td>
                         ))}
                       </tr>
