@@ -77,8 +77,7 @@ function SplitGrid({ nodes, nodeTypes, state, onDropFile }: {
   state: { hiddenFileIds: Set<string> }
   onDropFile: (fileId: string, replaceIdx?: number) => void
 }) {
-  const visibleCards = nodes.filter((n) => !state.hiddenFileIds.has((n.data as { fileId: string }).fileId))
-  const cardCount = visibleCards.length
+  const cardCount = nodes.length
   const gridCols = cardCount <= 1 ? 1 : cardCount <= 3 ? cardCount : 2
   const gridRows = cardCount <= 3 ? 1 : 2
   const [dragOverZone, setDragOverZone] = useState<number | null>(null)
@@ -113,7 +112,7 @@ function SplitGrid({ nodes, nodeTypes, state, onDropFile }: {
       gap: 8, padding: 8,
       background: '#f7f9fc',
     }}>
-      {visibleCards.map((node, idx) => {
+      {nodes.map((node, idx) => {
         const CardComponent = (nodeTypes as Record<string, React.ComponentType<{ data: unknown }>>)[node.type!]
         return (
           <div key={node.id} data-zone={idx} style={{
@@ -262,11 +261,9 @@ function ViewerInner() {
 
   const handleFocusFile = useCallback(
     (fileId: string, replaceIdx?: number) => {
-      console.debug('[SplitMode] handleFocusFile', { fileId, replaceIdx, splitMode })
       setNodes((prev) => {
         const existing = prev.find((n) => n.id === fileId)
         if (existing) {
-          console.debug('[SplitMode] file already on canvas, skipping')
           if (!splitMode) {
             setTimeout(() => fitView({ nodes: [existing], padding: 0.3, duration: 400 }), 50)
           }
@@ -274,24 +271,18 @@ function ViewerInner() {
         }
 
         const meta = fileMetaRef.current.get(fileId)
-        console.debug('[SplitMode] meta lookup', { fileId, found: !!meta })
         if (!meta) return prev
 
         if (splitMode) {
-          const visibleNodes = prev.filter((n) => !state.hiddenFileIds.has((n.data as { fileId: string }).fileId))
-          console.debug('[SplitMode] visibleNodes', { count: visibleNodes.length, replaceIdx, ids: visibleNodes.map(n => n.id) })
+          const visibleNodesList = prev.filter((n) => !state.hiddenFileIds.has((n.data as { fileId: string }).fileId))
           // Replace specific zone
-          if (replaceIdx !== undefined && replaceIdx < visibleNodes.length) {
-            const target = visibleNodes[replaceIdx]
-            console.debug('[SplitMode] replacing target', { targetId: target.id, targetFileId: (target.data as any).fileId, newFileId: meta.file.id })
+          if (replaceIdx !== undefined && replaceIdx < visibleNodesList.length) {
+            const target = visibleNodesList[replaceIdx]
             const newNode = buildNode(meta.file, target.position, meta.sessionId, meta.nodeColor, dispatch)
-            console.debug('[SplitMode] newNode built', { id: newNode.id, type: newNode.type })
-            const result = prev.map((n) => (n.id === target.id ? newNode : n))
-            console.debug('[SplitMode] replace result', { count: result.length, ids: result.map(n => n.id) })
-            return result
+            return prev.map((n) => (n.id === target.id ? newNode : n))
           }
           // Add new card (up to 4)
-          if (visibleNodes.length < 4) {
+          if (visibleNodesList.length < 4) {
             const newNode = buildNode(meta.file, { x: 0, y: 0 }, meta.sessionId, meta.nodeColor, dispatch)
             return [...prev, newNode]
           }
