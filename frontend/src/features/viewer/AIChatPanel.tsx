@@ -15,9 +15,10 @@ interface AIChatPanelProps {
   groupSessions: { id: string; hostname?: string; serialNum?: string; color: 'blue' | 'orange' }[]
   onFocusFile: (fileId: string) => void
   onClose?: () => void
+  onOpenAITab?: () => void
 }
 
-export default function AIChatPanel({ sessionIds, groupSessions, onFocusFile, onClose }: AIChatPanelProps) {
+export default function AIChatPanel({ sessionIds, groupSessions, onFocusFile, onClose, onOpenAITab }: AIChatPanelProps) {
   const { state, dispatch } = useViewer()
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
@@ -25,6 +26,12 @@ export default function AIChatPanel({ sessionIds, groupSessions, onFocusFile, on
   const [streamingLines, setStreamingLines] = useState<string[]>([])
   const [mode, setMode] = useState<'analysis' | 'autonomous'>('analysis')
   const chatEndRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (mode === 'autonomous' && onOpenAITab) {
+      onOpenAITab()
+    }
+  }, [mode, onOpenAITab])
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })

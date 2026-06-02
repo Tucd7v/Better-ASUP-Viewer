@@ -6,13 +6,13 @@ import {
   Controls,
   Background,
   BackgroundVariant,
-  useNodesState,
-  useEdgesState,
   addEdge,
+  applyNodeChanges,
+  applyEdgeChanges,
   useReactFlow,
   ReactFlowProvider,
 } from '@xyflow/react'
-import type { Node, Edge, NodeTypes, Connection } from '@xyflow/react'
+import type { Node, Edge, NodeTypes, Connection, NodeChange, EdgeChange } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 
 import { ViewerProvider, useViewer } from './ViewerContext'
@@ -24,9 +24,18 @@ import TextFileCard from './nodes/TextFileCard'
 import XMLFileCard from './nodes/XMLFileCard'
 import EMSFileCard from './nodes/EMSFileCard'
 import AIChatPanel from './AIChatPanel'
+import TabBar from './TabBar'
 import { getFiles, getSessionGroup, getSessionStatus } from '../../services/api'
 import { getTemplates, getTemplate, createTemplate, deleteTemplate } from '../../services/api'
 import type { FileRecord, SessionMeta, TemplateListItem, TemplateCard, TemplateEdge } from '../../types'
+
+export interface Tab {
+  id: string
+  name: string
+  nodes: Node[]
+  edges: Edge[]
+  isAutoAI?: boolean
+}
 
 const NODE_COLORS = { blue: '#3b82f6', orange: '#f97316' }
 
@@ -297,12 +306,79 @@ function SplitGrid({ nodes, nodeTypes, state, onDropFile }: {
 function ViewerInner() {
   const params = useParams<{ sessionId?: string; groupId?: string }>()
   const { state, dispatch } = useViewer()
-  const [nodes, setNodes, onNodesChange] = useNodesState<Node>([])
-  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([])
+
+  const [tabs, setTabs] = useState<Tab[]>([{ id: 'tab-1', name: 'View 1', nodes: [], edges: [] }])
+  const [activeTabId, setActiveTabId] = useState('tab-1')
+
+  const activeTab = tabs.find(t => t.id === activeTabId)!
+
+  const updateActiveTab = useCallback((updater: (tab: Tab) => Tab) => {
+    setTabs(prev => prev.map(t => t.id === activeTabId ? updater(t) : t))
+  }, [activeTabId])
+
+  const setNodes: React.Dispatch<React.SetStateAction<Node[]>> = useCallback((val) => {
+    setTabs(prev => prev.map(t => t.id === activeTabId
+      ? { ...t, nodes: typeof val === 'function' ? val(t.nodes) : val }
+      : t
+    ))
+  }, [activeTabId])
+
+  const setEdges: React.Dispatch<React.SetStateAction<Edge[]>> = useCallback((val) => {
+    setTabs(prev => prev.map(t => t.id === activeTabId
+      ? { ...t, edges: typeof val === 'function' ? val(t.edges) : val }
+      : t
+    ))
+  }, [activeTabId])
+
+  const nodes = activeTab.nodes
+  const edges = activeTab.edges
+
+  const onNodesChange = useCallback((changes: NodeChange<Node>[]) => {
+    setTabs(prev => prev.map(t => t.id === activeTabId
+      ? { ...t, nodes: applyNodeChanges(changes, t.nodes) }
+      : t
+    ))
+  }, [activeTabId])
+
+  const onEdgesChange = useCallback((changes: EdgeChange<Edge>[]) => {
+    setTabs(prev => prev.map(t => t.id === activeTabId
+      ? { ...t, edges: applyEdgeChanges(changes, t.edges) }
+      : t
+    ))
+  }, [activeTabId])
+
   const onConnect = useCallback(
     (connection: Connection) => setEdges((eds) => addEdge({ ...connection, animated: false, style: { stroke: '#94a3b8', strokeWidth: 2 }, data: { label: '' } }, eds)),
     [setEdges]
   )
+
+  const addTab = useCallback(() => {
+    const id = `tab-${Date.now()}`
+    setTabs(prev => [...prev, { id, name: `View ${prev.length + 1}`, nodes: [], edges: [] }])
+    setActiveTabId(id)
+  }, [])
+
+  const closeTab = useCallback((id: string) => {
+    setTabs(prev => {
+      const next = prev.filter(t => t.id !== id)
+      if (next.length === 0) return prev
+      if (id === activeTabId) {
+        setActiveTabId(next[next.length - 1].id)
+      }
+      return next
+    })
+  }, [activeTabId])
+
+  const openAITab = useCallback(() => {
+    const existing = tabs.find(t => t.isAutoAI)
+    if (existing) {
+      setActiveTabId(existing.id)
+    } else {
+      const id = `ai-${Date.now()}`
+      setTabs(prev => [...prev, { id, name: 'AI Analysis', nodes: [], edges: [], isAutoAI: true }])
+      setActiveTabId(id)
+    }
+  }, [tabs])
   const [sessions, setSessions] = useState<SessionMeta[]>([])
   const [sidebarWidth, setSidebarWidth] = useState(245)
   const dragging = useRef(false)
@@ -745,6 +821,7 @@ function ViewerInner() {
       />
 
       <main className="viewer-main" style={{ position: 'relative' }}>
+        <TabBar tabs={tabs} activeTabId={activeTabId} onSelect={setActiveTabId} onAdd={addTab} onClose={closeTab} />
         <NodeHUD sessions={sessions} />
 
         {/* Template bar */}
@@ -854,10 +931,14 @@ function ViewerInner() {
           <div className="viewer-canvas" style={{ flex: 1 }}>
             {!splitMode && (
             <ReactFlow
+              key={activeTabId}
               nodes={visibleNodes}
               edges={edges}
               nodeTypes={nodeTypes}
               onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              onConnect={onConnect}
+              onEdgeDoubleClick={onEdgeDoubleClick}
               fitView={false}
               minZoom={0.1}
               maxZoom={2}
@@ -902,6 +983,7 @@ function ViewerInner() {
                   groupSessions={groupSessions}
                   onFocusFile={handleFocusFile}
                   onClose={() => setShowAI(false)}
+                  onOpenAITab={openAITab}
                 />
               </div>
             </>
