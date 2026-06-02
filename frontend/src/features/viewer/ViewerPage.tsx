@@ -878,7 +878,7 @@ function ViewerInner() {
               />
             </ReactFlow>
             )}
-            {splitMode && <SplitGrid nodes={visibleNodes} nodeTypes={nodeTypes} state={state} onDropFile={handleFocusFile} />}
+            {splitMode && <SplitGrid nodes={visibleNodes.filter(n => !n.hidden)} nodeTypes={nodeTypes} state={state} onDropFile={handleFocusFile} />}
           </div>
 
           {/* AI Chat Panel */}
