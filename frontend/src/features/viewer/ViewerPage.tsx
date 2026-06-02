@@ -261,6 +261,7 @@ function ViewerInner() {
 
   const handleFocusFile = useCallback(
     (fileId: string, replaceIdx?: number) => {
+      dispatch({ type: 'SHOW_FILE', fileId })
       setNodes((prev) => {
         const existing = prev.find((n) => n.id === fileId)
         if (existing) {
