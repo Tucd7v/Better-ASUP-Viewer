@@ -262,9 +262,11 @@ function ViewerInner() {
 
   const handleFocusFile = useCallback(
     (fileId: string, replaceIdx?: number) => {
+      console.debug('[SplitMode] handleFocusFile', { fileId, replaceIdx, splitMode })
       setNodes((prev) => {
         const existing = prev.find((n) => n.id === fileId)
         if (existing) {
+          console.debug('[SplitMode] file already on canvas, skipping')
           if (!splitMode) {
             setTimeout(() => fitView({ nodes: [existing], padding: 0.3, duration: 400 }), 50)
           }
@@ -272,6 +274,7 @@ function ViewerInner() {
         }
 
         const meta = fileMetaRef.current.get(fileId)
+        console.debug('[SplitMode] meta lookup', { fileId, found: !!meta })
         if (!meta) return prev
 
         if (splitMode) {
