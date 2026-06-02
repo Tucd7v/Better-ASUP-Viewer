@@ -29,11 +29,14 @@ import { getFiles, getSessionGroup, getSessionStatus } from '../../services/api'
 import { getTemplates, getTemplate, createTemplate, deleteTemplate } from '../../services/api'
 import type { FileRecord, SessionMeta, TemplateListItem, TemplateCard, TemplateEdge } from '../../types'
 
+export type ChatMode = 'analysis' | 'autonomous'
+
 export interface Tab {
   id: string
   name: string
   nodes: Node[]
   edges: Edge[]
+  chatMode: ChatMode
   isAutoAI?: boolean
 }
 
@@ -307,8 +310,18 @@ function ViewerInner() {
   const params = useParams<{ sessionId?: string; groupId?: string }>()
   const { state, dispatch } = useViewer()
 
-  const [tabs, setTabs] = useState<Tab[]>([{ id: 'tab-1', name: 'View 1', nodes: [], edges: [] }])
-  const [activeTabId, setActiveTabId] = useState('tab-1')
+  const [tabs, setTabs] = useState<Tab[]>([{ id: 'tab-1', name: 'View 1', nodes: [], edges: [], chatMode: 'analysis' }])
+  const [activeTabId, setActiveTabIdState] = useState('tab-1')
+  const activeTabIdRef = useRef(activeTabId)
+
+  const setActiveTabId = useCallback((id: string) => {
+    activeTabIdRef.current = id
+    setActiveTabIdState(id)
+  }, [])
+
+  useEffect(() => {
+    activeTabIdRef.current = activeTabId
+  }, [activeTabId])
 
   const activeTab = tabs.find(t => t.id === activeTabId)!
 
@@ -329,6 +342,13 @@ function ViewerInner() {
       : t
     ))
   }, [activeTabId])
+
+  const setNodesForTab = useCallback((tabId: string, val: React.SetStateAction<Node[]>) => {
+    setTabs(prev => prev.map(t => t.id === tabId
+      ? { ...t, nodes: typeof val === 'function' ? val(t.nodes) : val }
+      : t
+    ))
+  }, [])
 
   const nodes = activeTab.nodes
   const edges = activeTab.edges
@@ -354,9 +374,9 @@ function ViewerInner() {
 
   const addTab = useCallback(() => {
     const id = `tab-${Date.now()}`
-    setTabs(prev => [...prev, { id, name: `View ${prev.length + 1}`, nodes: [], edges: [] }])
+    setTabs(prev => [...prev, { id, name: `View ${prev.length + 1}`, nodes: [], edges: [], chatMode: 'analysis' }])
     setActiveTabId(id)
-  }, [])
+  }, [setActiveTabId])
 
   const closeTab = useCallback((id: string) => {
     setTabs(prev => {
@@ -372,13 +392,25 @@ function ViewerInner() {
   const openAITab = useCallback(() => {
     const existing = tabs.find(t => t.isAutoAI)
     if (existing) {
+      setTabs(prev => prev.map(t => t.id === existing.id ? { ...t, chatMode: 'autonomous' } : t))
       setActiveTabId(existing.id)
     } else {
       const id = `ai-${Date.now()}`
-      setTabs(prev => [...prev, { id, name: 'AI Analysis', nodes: [], edges: [], isAutoAI: true }])
+      setTabs(prev => [...prev, { id, name: 'AI Analysis', nodes: [], edges: [], chatMode: 'autonomous', isAutoAI: true }])
       setActiveTabId(id)
     }
-  }, [tabs])
+  }, [tabs, setActiveTabId])
+
+  const handleChatModeChange = useCallback((chatMode: ChatMode) => {
+    if (chatMode === 'autonomous') {
+      openAITab()
+      return
+    }
+    const targetTabId = activeTabIdRef.current
+    setTabs(prev => prev.map(t => t.id === targetTabId ? { ...t, chatMode } : t))
+  }, [openAITab])
+
+  const chatMode = activeTab.chatMode
   const [sessions, setSessions] = useState<SessionMeta[]>([])
   const [sidebarWidth, setSidebarWidth] = useState(245)
   const dragging = useRef(false)
@@ -497,8 +529,9 @@ function ViewerInner() {
 
   const handleFocusFile = useCallback(
     (fileId: string, replaceIdx?: number) => {
+      const targetTabId = activeTabIdRef.current
       dispatch({ type: 'SHOW_FILE', fileId })
-      setNodes((prev) => {
+      setNodesForTab(targetTabId, (prev) => {
         const existing = prev.find((n) => n.id === fileId)
         if (existing) {
           if (!splitMode) {
@@ -548,7 +581,7 @@ function ViewerInner() {
         return [...prev, newNode]
       })
     },
-    [fitView, getViewport, sidebarWidth, dispatch, splitMode, state.hiddenFileIds]
+    [fitView, getViewport, sidebarWidth, dispatch, splitMode, state.hiddenFileIds, setNodesForTab]
   )
 
   const onEdgeDoubleClick = useCallback((event: React.MouseEvent, edge: Edge) => {
@@ -981,9 +1014,10 @@ function ViewerInner() {
                 <AIChatPanel
                   sessionIds={groupSessions.map(s => s.id)}
                   groupSessions={groupSessions}
+                  mode={chatMode}
+                  onModeChange={handleChatModeChange}
                   onFocusFile={handleFocusFile}
                   onClose={() => setShowAI(false)}
-                  onOpenAITab={openAITab}
                 />
               </div>
             </>

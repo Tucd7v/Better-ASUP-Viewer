@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { useViewer } from './ViewerContext'
+import type { ChatMode } from './ViewerPage'
 
 interface Message {
   role: 'user' | 'assistant' | 'system'
@@ -12,26 +13,19 @@ interface Message {
 
 interface AIChatPanelProps {
   sessionIds: string[]
-  groupSessions: { id: string; hostname?: string; serialNum?: string; color: 'blue' | 'orange' }[]
+  mode: ChatMode
+  onModeChange: (mode: ChatMode) => void
   onFocusFile: (fileId: string) => void
   onClose?: () => void
-  onOpenAITab?: () => void
 }
 
-export default function AIChatPanel({ sessionIds, groupSessions, onFocusFile, onClose, onOpenAITab }: AIChatPanelProps) {
+export default function AIChatPanel({ sessionIds, mode, onModeChange, onFocusFile, onClose }: AIChatPanelProps) {
   const { state, dispatch } = useViewer()
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [streamingLines, setStreamingLines] = useState<string[]>([])
-  const [mode, setMode] = useState<'analysis' | 'autonomous'>('analysis')
   const chatEndRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (mode === 'autonomous' && onOpenAITab) {
-      onOpenAITab()
-    }
-  }, [mode, onOpenAITab])
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -198,7 +192,7 @@ export default function AIChatPanel({ sessionIds, groupSessions, onFocusFile, on
         {/* Mode toggle */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <button
-            onClick={() => setMode('analysis')}
+            onClick={() => onModeChange('analysis')}
             style={{
               flex: 1, border: `1px solid ${mode === 'analysis' ? '#3b82f6' : '#e2e8f0'}`,
               borderRadius: 6, padding: '4px 0', fontSize: 11, fontWeight: 500, cursor: 'pointer',
@@ -209,7 +203,7 @@ export default function AIChatPanel({ sessionIds, groupSessions, onFocusFile, on
             🔒 分析模式
           </button>
           <button
-            onClick={() => setMode('autonomous')}
+            onClick={() => onModeChange('autonomous')}
             style={{
               flex: 1, border: `1px solid ${mode === 'autonomous' ? '#3b82f6' : '#e2e8f0'}`,
               borderRadius: 6, padding: '4px 0', fontSize: 11, fontWeight: 500, cursor: 'pointer',
