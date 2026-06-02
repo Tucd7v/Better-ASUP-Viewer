@@ -166,7 +166,7 @@ export default function EMSFileCard({ data }: NodeProps<EMSFileNode>) {
         </div>
 
         {!collapsed && (
-          <div>
+          <div style={{ display: splitMode ? 'flex' : undefined, flexDirection: splitMode ? 'column' : undefined, flex: splitMode ? 1 : undefined, minHeight: splitMode ? 0 : undefined }}>
             {/* filter bar */}
             <div
               style={{ display: 'flex', gap: 6, padding: '6px 10px', borderBottom: '1px solid #e2e8f0' }}
@@ -206,7 +206,7 @@ export default function EMSFileCard({ data }: NodeProps<EMSFileNode>) {
 
             {/* nowheel intercepts scroll; nodrag + userSelect allow text selection */}
             <div
-              style={{ height, overflowY: 'auto', userSelect: 'text', cursor: 'text' }}
+              style={{ height: splitMode ? undefined : height, overflowY: 'auto', flex: splitMode ? 1 : undefined, minHeight: splitMode ? 0 : undefined, userSelect: 'text', cursor: 'text' }}
               className="nodrag nowheel"
             >
               {loading ? (

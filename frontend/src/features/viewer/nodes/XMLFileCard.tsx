@@ -283,7 +283,7 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
         </div>
 
         {!collapsed && (
-          <>
+          <div style={{ display: splitMode ? 'flex' : undefined, flexDirection: splitMode ? 'column' : undefined, flex: splitMode ? 1 : undefined, minHeight: splitMode ? 0 : undefined }}>
             <div style={{ padding: '6px 10px', borderBottom: '1px solid #e2e8f0', display: 'flex', gap: 4 }} className="nodrag">
               <input
                 type="text"
@@ -300,9 +300,11 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
             </div>
             <div
               style={{
-                maxHeight: height,
+                height: splitMode ? undefined : height,
                 overflowX: needsScroll ? 'scroll' : 'hidden',
                 overflowY: 'auto',
+                flex: splitMode ? 1 : undefined,
+                minHeight: splitMode ? 0 : undefined,
                 borderRadius: '0 0 8px 8px',
                 userSelect: 'text',
                 cursor: 'text',
@@ -417,7 +419,7 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
             >
               <div style={{ width: 30, height: 2, borderRadius: 1, background: '#94a3b8' }} />
             </div>
-          </>
+          </div>
         )}
       </div>
 

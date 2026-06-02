@@ -127,7 +127,7 @@ export default function TextFileCard({ data }: NodeProps<TextFileNode>) {
         </div>
 
         {!collapsed && (
-          <div>
+          <div style={{ display: splitMode ? 'flex' : undefined, flexDirection: splitMode ? 'column' : undefined, flex: splitMode ? 1 : undefined, minHeight: splitMode ? 0 : undefined }}>
             <div style={{ padding: '6px 10px', borderBottom: '1px solid #e2e8f0', display: 'flex', gap: 4 }} className="nodrag">
               <input
                 type="text"
@@ -156,7 +156,7 @@ export default function TextFileCard({ data }: NodeProps<TextFileNode>) {
               )}
             </div>
 
-            <div ref={listRef} style={{ height, overflowY: 'auto', padding: '4px 0', userSelect: 'text', cursor: 'text' }} className="nodrag nowheel" onPointerDown={(e) => e.stopPropagation()}>
+            <div ref={listRef} style={{ height: splitMode ? undefined : height, overflowY: 'auto', flex: splitMode ? 1 : undefined, minHeight: splitMode ? 0 : undefined, padding: '4px 0', userSelect: 'text', cursor: 'text' }} className="nodrag nowheel" onPointerDown={(e) => e.stopPropagation()}>
               {loading ? (
                 <div style={{ padding: '8px 10px', color: '#94a3b8' }}>Loading…</div>
               ) : (

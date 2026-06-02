@@ -130,9 +130,8 @@ function SplitGrid({ nodes, nodeTypes, state, onDropFile }: {
           }}
             onDragOver={(e) => { e.preventDefault(); setDragOverZone(zoneIdx) }}
             onDragLeave={() => setDragOverZone(null)}
-            onDrop={(e) => handleDrop(zoneIdx, e)}>
-            Drop file here
-          </div>
+            onDrop={(e) => handleDrop(zoneIdx, e)}
+          ></div>
         )
       })}
     </div>
