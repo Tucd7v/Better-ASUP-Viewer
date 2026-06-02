@@ -901,7 +901,7 @@ function ViewerInner() {
               fontSize: 11, fontFamily: 'ui-monospace, Consolas, monospace',
             }}
           >
-            {splitMode ? '⊞ Grid' : '⊞ Split'}
+            ⊞ Grid
           </button>
           <input
             type="text"

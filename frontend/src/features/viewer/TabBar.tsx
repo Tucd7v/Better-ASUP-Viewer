@@ -43,7 +43,7 @@ export default function TabBar({ tabs, activeTabId, onSelect, onAdd, onClose }: 
       <button
         onClick={onAdd}
         style={{
-          marginLeft: 'auto', padding: '0 10px', height: '100%',
+          padding: '0 10px', height: '100%',
           background: 'none', border: 'none', color: '#64748b',
           cursor: 'pointer', fontSize: 16, flexShrink: 0,
         }}
