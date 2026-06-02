@@ -98,7 +98,7 @@ export default function TextFileCard({ data }: NodeProps<TextFileNode>) {
   const totalPages = Math.max(1, Math.ceil(totalLines / LIMIT))
 
   return (
-    <div style={{ position: 'relative', width: splitMode ? '100%' : width, minWidth: splitMode ? undefined : 220 }}>
+    <div style={{ position: 'relative', width: splitMode ? '100%' : width, minWidth: splitMode ? undefined : 220, height: splitMode ? '100%' : undefined }}>
       <div
         style={{
           background: '#ffffff',
@@ -109,6 +109,9 @@ export default function TextFileCard({ data }: NodeProps<TextFileNode>) {
           fontSize: 12,
           color: '#1e293b',
           overflow: 'hidden',
+          height: splitMode ? '100%' : undefined,
+          display: splitMode ? 'flex' : undefined,
+          flexDirection: splitMode ? 'column' : undefined,
         }}
       >
         {/* header */}

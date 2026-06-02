@@ -75,20 +75,21 @@ function SplitGrid({ nodes, nodeTypes, state, onDropFile }: {
   nodes: Node[]
   nodeTypes: NodeTypes
   state: { hiddenFileIds: Set<string> }
-  onDropFile: (fileId: string) => void
+  onDropFile: (fileId: string, replaceIdx?: number) => void
 }) {
   const visibleCards = nodes.filter((n) => !state.hiddenFileIds.has((n.data as { fileId: string }).fileId))
   const cardCount = visibleCards.length
   const gridCols = cardCount <= 1 ? 1 : cardCount <= 3 ? cardCount : 2
   const gridRows = cardCount <= 3 ? 1 : 2
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault()
-    const fileId = e.dataTransfer.getData('text/plain')
-    if (fileId) onDropFile(fileId)
-  }
-
+  const [dragOverZone, setDragOverZone] = useState<number | null>(null)
   const emptySlots = Math.max(0, 4 - cardCount)
+
+  const handleDrop = (zoneIdx: number, e: React.DragEvent) => {
+    e.preventDefault()
+    setDragOverZone(null)
+    const fileId = e.dataTransfer.getData('text/plain')
+    if (fileId) onDropFile(fileId, zoneIdx < cardCount ? zoneIdx : undefined)
+  }
 
   return (
     <div style={{
@@ -103,24 +104,37 @@ function SplitGrid({ nodes, nodeTypes, state, onDropFile }: {
         const CardComponent = (nodeTypes as Record<string, React.ComponentType<{ data: unknown }>>)[node.type!]
         return (
           <div key={node.id} data-zone={idx} style={{
-            border: '2px dashed #e2e8f0', borderRadius: 8,
+            border: dragOverZone === idx ? '2px solid #3b82f6' : '2px dashed #e2e8f0',
+            borderRadius: 8, background: dragOverZone === idx ? '#eff6ff' : undefined,
             overflow: 'hidden', position: 'relative',
-          }} onDragOver={(e) => e.preventDefault()} onDrop={handleDrop}>
+            transition: 'border 0.15s, background 0.15s',
+          }}
+            onDragOver={(e) => { e.preventDefault(); setDragOverZone(idx) }}
+            onDragLeave={() => setDragOverZone(null)}
+            onDrop={(e) => handleDrop(idx, e)}>
             <div style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
               {CardComponent && <CardComponent data={{ ...node.data, splitMode: true }} />}
             </div>
           </div>
         )
       })}
-      {Array.from({ length: emptySlots }).map((_, i) => (
-        <div key={`empty-${i}`} style={{
-          border: '2px dashed #cbd5e1', borderRadius: 8,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: '#94a3b8', fontSize: 13,
-        }} onDragOver={(e) => e.preventDefault()} onDrop={handleDrop}>
-          Drop file here
-        </div>
-      ))}
+      {Array.from({ length: emptySlots }).map((_, i) => {
+        const zoneIdx = cardCount + i
+        return (
+          <div key={`empty-${i}`} style={{
+            border: dragOverZone === zoneIdx ? '2px solid #3b82f6' : '2px dashed #cbd5e1',
+            borderRadius: 8, background: dragOverZone === zoneIdx ? '#eff6ff' : undefined,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: '#94a3b8', fontSize: 13,
+            transition: 'border 0.15s, background 0.15s',
+          }}
+            onDragOver={(e) => { e.preventDefault(); setDragOverZone(zoneIdx) }}
+            onDragLeave={() => setDragOverZone(null)}
+            onDrop={(e) => handleDrop(zoneIdx, e)}>
+            Drop file here
+          </div>
+        )
+      })}
     </div>
   )
 }
@@ -251,7 +265,7 @@ function ViewerInner() {
   }, [fitView])
 
   const handleFocusFile = useCallback(
-    (fileId: string) => {
+    (fileId: string, replaceIdx?: number) => {
       setNodes((prev) => {
         const existing = prev.find((n) => n.id === fileId)
         if (existing) {
@@ -265,13 +279,22 @@ function ViewerInner() {
         if (!meta) return prev
 
         if (splitMode) {
-          const visibleCount = prev.filter((n) => !state.hiddenFileIds.has((n.data as { fileId: string }).fileId)).length
-          if (visibleCount >= 4) {
-            const visibleNodes = prev.filter((n) => !state.hiddenFileIds.has((n.data as { fileId: string }).fileId))
-            const lastVisible = visibleNodes[visibleNodes.length - 1]
-            const newNode = buildNode(meta.file, lastVisible.position, meta.sessionId, meta.nodeColor, dispatch)
-            return prev.map((n) => (n.id === lastVisible.id ? newNode : n))
+          const visibleNodes = prev.filter((n) => !state.hiddenFileIds.has((n.data as { fileId: string }).fileId))
+          // Replace specific zone
+          if (replaceIdx !== undefined && replaceIdx < visibleNodes.length) {
+            const target = visibleNodes[replaceIdx]
+            const newNode = buildNode(meta.file, target.position, meta.sessionId, meta.nodeColor, dispatch)
+            return prev.map((n) => (n.id === target.id ? newNode : n))
           }
+          // Add new card (up to 4)
+          if (visibleNodes.length < 4) {
+            const newNode = buildNode(meta.file, { x: 0, y: 0 }, meta.sessionId, meta.nodeColor, dispatch)
+            return [...prev, newNode]
+          }
+          // Full: replace last
+          const lastVisible = visibleNodes[visibleNodes.length - 1]
+          const newNode = buildNode(meta.file, lastVisible.position, meta.sessionId, meta.nodeColor, dispatch)
+          return prev.map((n) => (n.id === lastVisible.id ? newNode : n))
         }
 
         const vp = getViewport()
