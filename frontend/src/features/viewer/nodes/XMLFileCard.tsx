@@ -541,8 +541,8 @@ const filenameStyle: React.CSSProperties = {
   minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#334155', flexShrink: 1, lineHeight: '16px',
 }
 const headerDividerStyle: React.CSSProperties = {
-  width: 1, height: 12, background: '#e2e8f0', flexShrink: 0,
+  width: 1, height: 12, background: '#e2e8f0', flexShrink: 0, marginTop: 2,
 }
 const hostnameStyle: React.CSSProperties = {
-  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#94a3b8', fontSize: 11, flexShrink: 1, lineHeight: '16px',
+  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#94a3b8', fontSize: 11, flexShrink: 1, lineHeight: '16px', marginTop: 2,
 }
