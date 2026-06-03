@@ -880,8 +880,8 @@ function ViewerInner() {
       <main className="viewer-main" style={{ position: 'relative' }}>
         <NodeHUD sessions={sessions} />
 
-        {/* Template bar */}
-        <div className="template-bar nodrag" style={{
+        {/* Toolbar */}
+        <div className="toolbar nodrag" style={{
           display: 'flex', alignItems: 'center', gap: 8,
           padding: '6px 16px', background: '#f8fafc',
           borderBottom: '1px solid #e2e8f0', fontSize: 12,
@@ -925,8 +925,6 @@ function ViewerInner() {
           <button onClick={handleSaveTemplate} style={templateBtnStyle}>
             💾 Save
           </button>
-          <div style={{ width: 1, height: 16, background: '#e2e8f0' }} />
-          <div style={{ width: 1, height: 16, background: '#e2e8f0' }} />
           <select
             value={selectedTemplateId}
             onChange={(e) => { setSelectedTemplateId(e.target.value); handleLoadTemplate(e.target.value) }}
@@ -982,6 +980,26 @@ function ViewerInner() {
               <button onClick={() => setTemplateMsg(null)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: 11, padding: '0 2px' }}>×</button>
             </>
           )}
+          <div style={{ width: 1, height: 16, background: '#e2e8f0' }} />
+          <button
+            onClick={() => {
+              setShowAI(true)
+              handleChatModeChange(chatMode === 'analysis' ? 'autonomous' : 'analysis')
+            }}
+            style={{
+              background: chatMode === 'autonomous' ? '#eff6ff' : '#fff',
+              border: `1px solid ${chatMode === 'autonomous' ? '#3b82f6' : '#e2e8f0'}`,
+              borderRadius: 4,
+              color: chatMode === 'autonomous' ? '#1d4ed8' : '#475569',
+              cursor: 'pointer',
+              padding: '3px 8px',
+              fontSize: 11,
+              fontWeight: 500,
+              fontFamily: 'system-ui, -apple-system, sans-serif',
+            }}
+          >
+            {chatMode === 'analysis' ? '🔍 AI Analysis' : '🤖 AI Auto'}
+          </button>
         </div>
 
         <TabBar tabs={tabs} activeTabId={activeTabId} onSelect={setActiveTabId} onAdd={addTab} onClose={closeTab} />
@@ -1052,23 +1070,6 @@ function ViewerInner() {
             </>
           )}
 
-          {/* AI toggle button — floating on canvas when panel is hidden */}
-          {!showAI && (
-            <button
-              onClick={() => setShowAI(true)}
-              style={{
-                position: 'absolute', top: 60, right: 12, zIndex: 100,
-                background: '#ffffff', border: '1px solid #e2e8f0',
-                borderRadius: 20, padding: '4px 12px',
-                cursor: 'pointer', fontSize: 12, fontWeight: 500,
-                color: '#475569', display: 'flex', alignItems: 'center', gap: 4,
-                boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                fontFamily: 'system-ui, -apple-system, sans-serif',
-              }}
-            >
-              <span>🤖</span> AI
-            </button>
-          )}
         </div>
 
         {editingEdgeId && (
