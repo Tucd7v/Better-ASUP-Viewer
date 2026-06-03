@@ -20,11 +20,77 @@ export type XMLFileNode = Node<XMLFileCardData, 'xmlFile'>
 interface TableRow { [key: string]: string }
 type SortDir = 'asc' | 'desc' | null
 
+const MENU_WIDTH = 180
+
+function ColSwapMenu({
+  allCols,
+  targetSlot,
+  left,
+  top,
+  cardWidth,
+  onSelect,
+  onClose,
+}: {
+  allCols: string[]
+  targetSlot: string
+  left: number
+  top: number
+  cardWidth: number
+  onSelect: (col: string) => void
+  onClose: () => void
+}) {
+  const clampedLeft = Math.max(0, Math.min(left, cardWidth - MENU_WIDTH))
+
+  return (
+    <>
+      <div style={{ position: 'absolute', inset: 0, zIndex: 9998 }} onMouseDown={onClose} />
+      <div
+        style={{
+          position: 'absolute',
+          top,
+          left: clampedLeft,
+          zIndex: 9999,
+          background: '#fff',
+          border: '1px solid #e2e8f0',
+          borderRadius: 6,
+          boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+          width: MENU_WIDTH,
+          maxHeight: 240,
+          overflowY: 'auto',
+          fontFamily: 'ui-monospace, Consolas, monospace',
+          fontSize: 11,
+        }}
+        onMouseDown={(e) => e.stopPropagation()}
+        className="nowheel nodrag"
+      >
+        {allCols.map((col) => (
+          <div
+            key={col}
+            onClick={() => { onSelect(col); onClose() }}
+            style={{
+              padding: '6px 12px',
+              cursor: 'pointer',
+              color: col === targetSlot ? '#2563eb' : '#334155',
+              background: col === targetSlot ? '#eff6ff' : 'transparent',
+              fontWeight: col === targetSlot ? 600 : 400,
+            }}
+            onMouseEnter={(e) => { if (col !== targetSlot) e.currentTarget.style.background = '#f1f5f9' }}
+            onMouseLeave={(e) => { if (col !== targetSlot) e.currentTarget.style.background = 'transparent' }}
+          >
+            {col}
+          </div>
+        ))}
+      </div>
+    </>
+  )
+}
+
 export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
   const { fileId, sessionId, filename, nodeColor, collapsed, splitMode, onCollapse, onHide } = data
   const { width, height, setWidth, onResizeX, onResizeY } = useResizable(320, 360)
 
   const [rows, setRows] = useState<TableRow[]>([])
+  const [allColumns, setAllColumns] = useState<string[]>([])
   const [columns, setColumns] = useState<string[]>([])
   const [sortCol, setSortCol] = useState<string | null>(null)
   const [sortDir, setSortDir] = useState<SortDir>(null)
@@ -36,6 +102,10 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
   const dragCol = useRef<string | null>(null)
   const dragOverCol = useRef<string | null>(null)
   const [dragTarget, setDragTarget] = useState<string | null>(null)
+  const [swapMenuCol, setSwapMenuCol] = useState<string | null>(null)
+  const [swapMenuPos, setSwapMenuPos] = useState<{ left: number; top: number }>({ left: 0, top: 0 })
+  const wrapperRef = useRef<HTMLDivElement>(null)
+  const thRefs = useRef<Map<string, HTMLTableCellElement>>(new Map())
 
   const rowRefs = useRef<(HTMLTableRowElement | null)[]>([])
   const [highlightRow, setHighlightRow] = useState<number | null>(null)
@@ -50,6 +120,7 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
         const d = res.data
         if (Array.isArray(d.rows) && d.rows.length > 0) {
           const cols = Object.keys(d.rows[0])
+          setAllColumns(cols)
           setColumns(cols)
           setRows(d.rows)
           const colW = cols.reduce((sum, c) => sum + Math.max(100, c.length * 9), 0)
@@ -59,6 +130,7 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
           const ls: string[] = d.lines
           if (ls.length > 0) {
             const cols = ls[0].split('\t')
+            setAllColumns(cols)
             setColumns(cols)
             const rowData = ls.slice(1).map((l) => {
               const vals = l.split('\t')
@@ -139,6 +211,41 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
     setDragTarget(null)
   }
 
+  const handleSwap = (targetSlot: string, newCol: string) => {
+    if (targetSlot === newCol) return
+    setColumns((cols) => {
+      const next = [...cols]
+      const targetIdx = next.indexOf(targetSlot)
+      const newIdx = next.indexOf(newCol)
+      if (newIdx !== -1) {
+        next[targetIdx] = newCol
+        next[newIdx] = targetSlot
+      } else {
+        next[targetIdx] = newCol
+      }
+      return next
+    })
+  }
+
+  const openSwapMenu = (col: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (swapMenuCol === col) {
+      setSwapMenuCol(null)
+      return
+    }
+    const th = thRefs.current.get(col)
+    const wrapper = wrapperRef.current
+    if (th && wrapper) {
+      const thRect = th.getBoundingClientRect()
+      const wRect = wrapper.getBoundingClientRect()
+      setSwapMenuPos({
+        left: thRect.left - wRect.left,
+        top: thRect.bottom - wRect.top + 4,
+      })
+    }
+    setSwapMenuCol(col)
+  }
+
   const togglePinnedCol = (col: string) => {
     setPinnedCols((prev) => {
       const next = new Set(prev)
@@ -167,7 +274,7 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
   }
 
   return (
-    <div style={{ position: 'relative', width: splitMode ? '100%' : width, height: splitMode ? '100%' : undefined }}>
+    <div ref={wrapperRef} style={{ position: 'relative', width: splitMode ? '100%' : width, height: splitMode ? '100%' : undefined }}>
       <div
         style={{
           background: '#ffffff',
@@ -250,6 +357,7 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
                         return (
                           <th
                             key={col}
+                            ref={(el) => { if (el) thRefs.current.set(col, el); else thRefs.current.delete(col) }}
                             draggable
                             onDragStart={() => onDragStart(col)}
                             onDragEnter={() => onDragEnter(col)}
@@ -257,7 +365,7 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
                             onDragEnd={onDragEnd}
                             onClick={() => handleSort(col)}
                             style={{
-                              padding: '5px 24px 5px 10px',
+                              padding: '5px 46px 5px 10px',
                               boxSizing: 'border-box',
                               minWidth: columnWidth,
                               width: columnWidth,
@@ -277,6 +385,26 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
                             }}
                           >
                             {col}{sortIndicator(col)}
+                            <button
+                              onClick={(e) => openSwapMenu(col, e)}
+                              title="Switch column"
+                              style={{
+                                position: 'absolute',
+                                right: 24,
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                background: swapMenuCol === col ? '#e0e7ff' : 'none',
+                                border: 'none',
+                                borderRadius: 3,
+                                color: swapMenuCol === col ? '#4f46e5' : '#94a3b8',
+                                cursor: 'pointer',
+                                fontSize: 10,
+                                padding: '1px 3px',
+                                lineHeight: 1,
+                              }}
+                            >
+                              ⇄
+                            </button>
                             <button
                               onClick={(e) => { e.stopPropagation(); togglePinnedCol(col) }}
                               title={isPinned ? 'Unlock column' : 'Lock column'}
@@ -387,6 +515,18 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
         className="nodrag"
         style={{ position: 'absolute', top: 0, right: -4, width: 8, height: '100%', cursor: 'ew-resize', zIndex: 10 }}
       />
+
+      {swapMenuCol && (
+        <ColSwapMenu
+          allCols={allColumns}
+          targetSlot={swapMenuCol}
+          left={swapMenuPos.left}
+          top={swapMenuPos.top}
+          cardWidth={width}
+          onSelect={(newCol) => handleSwap(swapMenuCol, newCol)}
+          onClose={() => setSwapMenuCol(null)}
+        />
+      )}
     </div>
   )
 }
