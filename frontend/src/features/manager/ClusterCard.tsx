@@ -11,7 +11,7 @@ interface ClusterCardProps {
 function fmt(iso: string | null): string {
   if (!iso) return '—'
   try {
-    const d = new Date(iso)
+    const d = new Date(iso.endsWith('Z') ? iso : iso + 'Z')
     const pad = (n: number) => String(n).padStart(2, '0')
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
   } catch { return iso }

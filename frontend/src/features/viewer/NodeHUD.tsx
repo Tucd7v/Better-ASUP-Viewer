@@ -137,7 +137,7 @@ function fallbackNodeName(index: number): string {
 function formatDate(iso: string): string {
   if (!iso) return '—'
   try {
-    const d = new Date(iso)
+    const d = new Date(iso.endsWith('Z') ? iso : iso + 'Z')
     const yyyy = d.getFullYear()
     const mm = String(d.getMonth() + 1).padStart(2, '0')
     const dd = String(d.getDate()).padStart(2, '0')

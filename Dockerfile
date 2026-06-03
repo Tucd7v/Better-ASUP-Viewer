@@ -13,8 +13,6 @@ COPY backend/ ./backend/
 COPY frontend/dist/ ./frontend/dist/
 COPY backend/aiconfig.yaml ./backend/aiconfig.yaml
 
-RUN mkdir -p /data/logs
-
 WORKDIR /app/backend
 ENV PYTHONPATH=/app/backend
 
