@@ -1,26 +1,73 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { getClusters } from '../../services/api'
 import type { Cluster } from '../../types'
 import ClusterCard from './ClusterCard'
 import UploadDialog from './UploadDialog'
 
+type TimeFilter = 'today' | '7d' | '30d' | 'all'
+
+const MS_PER_DAY = 86400000
+
+function parseUtc8(iso: string): number {
+  const trimmed = iso.trim()
+  if (!trimmed) return Number.NaN
+
+  const withoutZone = trimmed
+    .replace(' ', 'T')
+    .replace(/(?:Z|[+-]\d{2}:?\d{2})$/i, '')
+  const withTime = /^\d{4}-\d{2}-\d{2}$/.test(withoutZone)
+    ? `${withoutZone}T00:00:00`
+    : withoutZone
+
+  return Date.parse(`${withTime}+08:00`)
+}
+
+function inRange(iso: string, days: number): boolean {
+  const parsed = parseUtc8(iso)
+  return Number.isFinite(parsed) && Date.now() - parsed <= days * MS_PER_DAY
+}
+
 export default function ManagerPage() {
   const [clusters, setClusters] = useState<Cluster[]>([])
   const [search, setSearch] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [dateFilter, setDateFilter] = useState<TimeFilter>('all')
+  const [onlyToday, setOnlyToday] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [showUpload, setShowUpload] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
+  const timeFilter: TimeFilter = onlyToday ? 'today' : dateFilter
+
+  const refreshClusters = () => {
+    setLoading(true)
+    setRefreshKey((k) => k + 1)
+  }
 
   useEffect(() => {
-    const t = setTimeout(() => {
-      setLoading(true)
-      getClusters(search || undefined)
-        .then((res) => setClusters(res.data?.clusters ?? []))
-        .catch(() => setClusters([]))
-        .finally(() => setLoading(false))
-    }, 300)
-    return () => clearTimeout(t)
-  }, [search, refreshKey])
+    getClusters()
+      .then((res) => setClusters(res.data?.clusters ?? []))
+      .catch(() => setClusters([]))
+      .finally(() => setLoading(false))
+  }, [refreshKey])
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase()
+
+    return clusters.filter((cluster) => {
+      const matchesSearch =
+        !q ||
+        cluster.id.toLowerCase().includes(q) ||
+        cluster.nodes.some((node) =>
+          node.hostname.toLowerCase().includes(q) ||
+          node.serial_num.toLowerCase().includes(q)
+        )
+
+      if (!matchesSearch) return false
+      if (timeFilter === 'all') return true
+
+      const days = timeFilter === 'today' ? 1 : timeFilter === '7d' ? 7 : 30
+      return inRange(cluster.last_seen, days)
+    })
+  }, [clusters, search, timeFilter])
 
   return (
     <div
@@ -70,24 +117,72 @@ export default function ManagerPage() {
       </header>
 
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '24px 20px' }}>
-        <input
-          type="text"
-          placeholder="Search clusters…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          style={{
-            width: '100%',
-            background: '#ffffff',
-            border: '1px solid #e2e8f0',
-            borderRadius: 6,
-            color: '#1e293b',
-            padding: '10px 14px',
-            fontSize: 14,
-            outline: 'none',
-            marginBottom: 20,
-            boxSizing: 'border-box',
-          }}
-        />
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 20, flexWrap: 'wrap' }}>
+          <input
+            type="text"
+            placeholder="Search cluster ID, hostname, serial number…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{
+              flex: '1 1 320px',
+              minWidth: 0,
+              background: '#ffffff',
+              border: '1px solid #e2e8f0',
+              borderRadius: 6,
+              color: '#1e293b',
+              padding: '10px 14px',
+              fontSize: 14,
+              outline: 'none',
+              boxSizing: 'border-box',
+            }}
+          />
+          <select
+            value={dateFilter}
+            onChange={(e) => {
+              setDateFilter(e.target.value as TimeFilter)
+              setOnlyToday(false)
+            }}
+            style={{
+              background: '#ffffff',
+              border: '1px solid #e2e8f0',
+              borderRadius: 6,
+              color: '#1e293b',
+              cursor: 'pointer',
+              fontSize: 14,
+              outline: 'none',
+              padding: '10px 12px',
+            }}
+          >
+            <option value="today">Today</option>
+            <option value="7d">7 days</option>
+            <option value="30d">30 days</option>
+            <option value="all">All</option>
+          </select>
+          <button
+            onClick={() => {
+              if (onlyToday) {
+                setOnlyToday(false)
+              } else {
+                setDateFilter('all')
+                setOnlyToday(true)
+              }
+            }}
+            aria-pressed={onlyToday}
+            style={{
+              background: onlyToday ? '#1d4ed8' : '#ffffff',
+              border: onlyToday ? '1px solid #1d4ed8' : '1px solid #e2e8f0',
+              borderRadius: 6,
+              color: onlyToday ? '#ffffff' : '#1e293b',
+              cursor: 'pointer',
+              fontSize: 14,
+              fontWeight: 600,
+              padding: '10px 14px',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Only show Today
+          </button>
+        </div>
 
         {loading && (
           <div style={{ color: '#94a3b8', fontSize: 14, textAlign: 'center', padding: '20px 0' }}>
@@ -95,7 +190,7 @@ export default function ManagerPage() {
           </div>
         )}
 
-        {!loading && clusters.length === 0 && (
+        {!loading && filtered.length === 0 && (
           <div
             style={{
               textAlign: 'center',
@@ -112,15 +207,15 @@ export default function ManagerPage() {
         )}
 
         {!loading &&
-          clusters.map((cluster) => (
-            <ClusterCard key={cluster.id} cluster={cluster} onDeleted={() => setRefreshKey((k) => k + 1)} />
+          filtered.map((cluster) => (
+            <ClusterCard key={cluster.id} cluster={cluster} onDeleted={refreshClusters} />
           ))}
       </div>
 
       {showUpload && (
         <UploadDialog
           onClose={() => setShowUpload(false)}
-          onDone={() => setRefreshKey((k) => k + 1)}
+          onDone={refreshClusters}
         />
       )}
     </div>
