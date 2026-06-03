@@ -13,14 +13,14 @@ body {
 
 #root {
   width: 100%;
-  height: 100vh;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
 }
 
 .viewer-layout {
   display: flex;
-  height: 100vh;
+  min-height: 100vh;
   overflow: hidden;
   background: #f7f9fc;
   color: #0f172a;
