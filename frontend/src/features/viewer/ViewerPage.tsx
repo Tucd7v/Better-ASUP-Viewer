@@ -895,8 +895,9 @@ function ViewerInner() {
               fontSize: 11, fontFamily: 'ui-monospace, Consolas, monospace',
             }}
           >
-            ✕ Clear
+            ✕ Clear Canvas
           </button>
+          <div style={{ width: 1, height: 16, background: '#e2e8f0' }} />
           <button
             onClick={() => setSplitMode(!splitMode)}
             title={splitMode ? 'Switch to canvas mode' : 'Switch to grid mode'}
@@ -908,6 +909,7 @@ function ViewerInner() {
           >
             ⊞ Grid
           </button>
+          <div style={{ flex: 1 }} />
           <input
             type="text"
             placeholder="Template name..."
