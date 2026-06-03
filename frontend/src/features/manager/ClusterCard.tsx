@@ -17,6 +17,15 @@ function fmt(iso: string | null): string {
   } catch { return iso }
 }
 
+function fmtNode(iso: string | null): string {
+  if (!iso) return ''
+  try {
+    const d = new Date(iso)
+    const pad = (n: number) => String(n).padStart(2, '0')
+    return `${pad(d.getHours())}:${pad(d.getMinutes())}`
+  } catch { return '' }
+}
+
 // A single session row (used inside groups and singles)
 function SessionRow({ m, onDeleted }: { m: ClusterGroupMember; onDeleted?: () => void }) {
   const [deleting, setDeleting] = useState(false)
@@ -39,7 +48,7 @@ function SessionRow({ m, onDeleted }: { m: ClusterGroupMember; onDeleted?: () =>
           {m.serial_num || m.hostname || '—'}
         </div>
         <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 1 }}>
-          {m.original_filename} · {m.file_count} files · {fmt(m.generated_on)}
+          {m.original_filename} · {m.file_count} files · {fmtNode(m.generated_on)}
         </div>
       </div>
       <Link
@@ -63,9 +72,13 @@ function SessionRow({ m, onDeleted }: { m: ClusterGroupMember; onDeleted?: () =>
 // A paired group row with its own expand/collapse
 function GroupRow({ group, onDeleted }: { group: ClusterGroup; onDeleted?: () => void }) {
   const [expanded, setExpanded] = useState(false)
-  const title = group.members
-    .map((m) => fmt(m.generated_on))
-    .join('  ·  ')
+  const times = group.members
+    .map((m) => m.generated_on)
+    .filter(Boolean)
+    .sort()
+  const title = times.length === 0 ? '—' : times.length === 1
+    ? fmtNode(times[0])
+    : `${fmtNode(times[0])} – ${fmtNode(times[times.length - 1])}`
 
   return (
     <div style={{ border: '1px solid #bfdbfe', borderRadius: 6, overflow: 'hidden', background: '#f0f9ff' }}>
