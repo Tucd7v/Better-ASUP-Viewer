@@ -321,14 +321,13 @@ const headerDividerStyle: React.CSSProperties = {
 }
 
 const hostnameStyle: React.CSSProperties = {
-  maxWidth: 120,
   overflow: 'hidden',
   textOverflow: 'ellipsis',
   whiteSpace: 'nowrap',
   color: '#94a3b8',
   fontSize: 11,
   flexShrink: 1,
-}
+};
 
 const selectStyle: React.CSSProperties = {
   background: '#f8fafc',
