@@ -27,6 +27,15 @@ function fmtNode(iso: string | null): string {
   } catch { return '' }
 }
 
+function fmtPlain(iso: string | null): string {
+  if (!iso) return ''
+  try {
+    const d = new Date(iso)
+    const pad = (n: number) => String(n).padStart(2, '0')
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+  } catch { return '' }
+}
+
 // A single session row (used inside groups and singles)
 function SessionRow({ m, onDeleted }: { m: ClusterGroupMember; onDeleted?: () => void }) {
   const [deleting, setDeleting] = useState(false)
@@ -79,7 +88,7 @@ function GroupRow({ group, onDeleted }: { group: ClusterGroup; onDeleted?: () =>
     .sort()
   const title = times.length === 0 ? '—' : times.length === 1
     ? fmtNode(times[0])
-    : `${fmtNode(times[0])} – ${fmtNode(times[times.length - 1])}`
+    : `${fmtPlain(times[0])} – ${fmtNode(times[times.length - 1])}`
 
   return (
     <div style={{ border: '1px solid #bfdbfe', borderRadius: 6, overflow: 'hidden', background: '#f0f9ff' }}>
