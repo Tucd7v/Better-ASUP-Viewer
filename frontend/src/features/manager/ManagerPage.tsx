@@ -4,8 +4,6 @@ import type { Cluster } from '../../types'
 import ClusterCard from './ClusterCard'
 import UploadDialog from './UploadDialog'
 
-type TimeFilter = 'today' | '7d' | '30d' | 'all'
-
 const MS_PER_DAY = 86400000
 
 function parseUtc8(iso: string): number {
@@ -27,15 +25,29 @@ function inRange(iso: string, days: number): boolean {
   return Number.isFinite(parsed) && Date.now() - parsed <= days * MS_PER_DAY
 }
 
+function inDateRange(iso: string, fromDate: string, toDate: string): boolean {
+  const parsed = parseUtc8(iso)
+  const from = parseUtc8(fromDate)
+  const to = parseUtc8(`${toDate}T23:59:59.999`)
+
+  return (
+    Number.isFinite(parsed) &&
+    Number.isFinite(from) &&
+    Number.isFinite(to) &&
+    parsed >= from &&
+    parsed <= to
+  )
+}
+
 export default function ManagerPage() {
   const [clusters, setClusters] = useState<Cluster[]>([])
   const [search, setSearch] = useState('')
-  const [dateFilter, setDateFilter] = useState<TimeFilter>('all')
+  const [fromDate, setFromDate] = useState('')
+  const [toDate, setToDate] = useState('')
   const [onlyToday, setOnlyToday] = useState(false)
   const [loading, setLoading] = useState(true)
   const [showUpload, setShowUpload] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
-  const timeFilter: TimeFilter = onlyToday ? 'today' : dateFilter
 
   const refreshClusters = () => {
     setLoading(true)
@@ -48,6 +60,22 @@ export default function ManagerPage() {
       .catch(() => setClusters([]))
       .finally(() => setLoading(false))
   }, [refreshKey])
+
+  const matchedClusterIds = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    if (!q) return new Set<string>()
+
+    return new Set(
+      clusters
+        .filter((cluster) =>
+          cluster.nodes.some((node) =>
+            node.hostname.toLowerCase().includes(q) ||
+            node.serial_num.toLowerCase().includes(q)
+          )
+        )
+        .map((cluster) => cluster.id)
+    )
+  }, [clusters, search])
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -62,12 +90,13 @@ export default function ManagerPage() {
         )
 
       if (!matchesSearch) return false
-      if (timeFilter === 'all') return true
 
-      const days = timeFilter === 'today' ? 1 : timeFilter === '7d' ? 7 : 30
-      return inRange(cluster.last_seen, days)
+      if (onlyToday) return inRange(cluster.last_seen, 1)
+      if (fromDate && toDate) return inDateRange(cluster.last_seen, fromDate, toDate)
+
+      return true
     })
-  }, [clusters, search, timeFilter])
+  }, [clusters, search, onlyToday, fromDate, toDate])
 
   return (
     <div
@@ -136,34 +165,53 @@ export default function ManagerPage() {
               boxSizing: 'border-box',
             }}
           />
-          <select
-            value={dateFilter}
-            onChange={(e) => {
-              setDateFilter(e.target.value as TimeFilter)
-              setOnlyToday(false)
-            }}
-            style={{
-              background: '#ffffff',
-              border: '1px solid #e2e8f0',
-              borderRadius: 6,
-              color: '#1e293b',
-              cursor: 'pointer',
-              fontSize: 14,
-              outline: 'none',
-              padding: '10px 12px',
-            }}
-          >
-            <option value="today">Today</option>
-            <option value="7d">7 days</option>
-            <option value="30d">30 days</option>
-            <option value="all">All</option>
-          </select>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#64748b', fontSize: 13 }}>
+            From
+            <input
+              type="date"
+              value={fromDate}
+              onChange={(e) => {
+                setFromDate(e.target.value)
+                setOnlyToday(false)
+              }}
+              style={{
+                background: '#ffffff',
+                border: '1px solid #e2e8f0',
+                borderRadius: 6,
+                color: '#1e293b',
+                fontSize: 14,
+                outline: 'none',
+                padding: '9px 10px',
+              }}
+            />
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#64748b', fontSize: 13 }}>
+            To
+            <input
+              type="date"
+              value={toDate}
+              onChange={(e) => {
+                setToDate(e.target.value)
+                setOnlyToday(false)
+              }}
+              style={{
+                background: '#ffffff',
+                border: '1px solid #e2e8f0',
+                borderRadius: 6,
+                color: '#1e293b',
+                fontSize: 14,
+                outline: 'none',
+                padding: '9px 10px',
+              }}
+            />
+          </label>
           <button
             onClick={() => {
               if (onlyToday) {
                 setOnlyToday(false)
               } else {
-                setDateFilter('all')
+                setFromDate('')
+                setToDate('')
                 setOnlyToday(true)
               }
             }}
@@ -208,7 +256,12 @@ export default function ManagerPage() {
 
         {!loading &&
           filtered.map((cluster) => (
-            <ClusterCard key={cluster.id} cluster={cluster} onDeleted={refreshClusters} />
+            <ClusterCard
+              key={cluster.id}
+              cluster={cluster}
+              autoExpand={matchedClusterIds.has(cluster.id)}
+              onDeleted={refreshClusters}
+            />
           ))}
       </div>
 

@@ -5,6 +5,7 @@ import { getClusterOverview, deleteSession } from '../../services/api'
 
 interface ClusterCardProps {
   cluster: Cluster
+  autoExpand?: boolean
   onDeleted?: () => void
 }
 
@@ -110,10 +111,17 @@ function GroupRow({ group, onDeleted }: { group: ClusterGroup; onDeleted?: () =>
   )
 }
 
-export default function ClusterCard({ cluster, onDeleted }: ClusterCardProps) {
+export default function ClusterCard({ cluster, autoExpand = false, onDeleted }: ClusterCardProps) {
   const [expanded, setExpanded] = useState(false)
   const [overview, setOverview] = useState<ClusterOverview | null>(null)
   const [loadKey, setLoadKey] = useState(0)
+
+  useEffect(() => {
+    if (!autoExpand) return
+    const timeoutId = window.setTimeout(() => setExpanded(true), 0)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [autoExpand])
 
   useEffect(() => {
     if (!expanded) return
