@@ -982,10 +982,7 @@ function ViewerInner() {
           )}
           <div style={{ width: 1, height: 16, background: '#e2e8f0' }} />
           <button
-            onClick={() => {
-              setShowAI(true)
-              handleChatModeChange(chatMode === 'analysis' ? 'autonomous' : 'analysis')
-            }}
+            onClick={() => setShowAI(!showAI)}
             style={{
               background: chatMode === 'autonomous' ? '#eff6ff' : '#fff',
               border: `1px solid ${chatMode === 'autonomous' ? '#3b82f6' : '#e2e8f0'}`,
