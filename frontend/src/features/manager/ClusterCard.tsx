@@ -1,31 +1,89 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { Cluster, ClusterGroup, ClusterGroupMember, ClusterOverview } from '../../types'
-import { getClusterOverview, deleteSession } from '../../services/api'
+import { deleteSession, getClusterOverview } from '../../services/api'
 
 interface ClusterCardProps {
   cluster: Cluster
   onDeleted?: () => void
 }
 
-function fmt(iso: string | null): string {
-  if (!iso) return '—'
-  try {
-    const d = new Date(iso.endsWith('Z') ? iso : iso + 'Z')
-    const pad = (n: number) => String(n).padStart(2, '0')
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
-  } catch { return iso }
+type DateParts = {
+  date: string
+  time: string
+  label: string
 }
 
-// A single session row (used inside groups and singles)
-function SessionRow({ m, onDeleted }: { m: ClusterGroupMember; onDeleted?: () => void }) {
+function parseDate(iso: string | null | undefined): Date | null {
+  if (!iso) return null
+  const d = new Date(iso.endsWith('Z') ? iso : `${iso}Z`)
+  return Number.isNaN(d.getTime()) ? null : d
+}
+
+function fmt(iso: string | null | undefined): string {
+  const d = parseDate(iso)
+  if (!d) return iso || '—'
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+}
+
+function dateParts(iso: string | null | undefined): DateParts {
+  const label = fmt(iso)
+  if (label === '—') return { date: '—', time: '', label }
+  const [date, time = ''] = label.split(' ')
+  return { date, time: time.slice(0, 5), label }
+}
+
+function isLast24Hours(iso: string | null | undefined): boolean {
+  const d = parseDate(iso)
+  if (!d) return false
+  return Date.now() - d.getTime() <= 24 * 60 * 60 * 1000
+}
+
+function groupFileCount(group: ClusterGroup): number {
+  return group.members.reduce((sum, m) => sum + (m.file_count || 0), 0)
+}
+
+function overviewFilesLast24h(overview: ClusterOverview | null): number | null {
+  if (!overview) return null
+  const grouped = overview.groups.flatMap((group) => group.members)
+  const members = [...grouped, ...overview.singles]
+
+  return members.reduce((sum, member) => {
+    if (!isLast24Hours(member.generated_on)) return sum
+    return sum + (member.file_count || 0)
+  }, 0)
+}
+
+function clusterFilesLast24h(cluster: Cluster, overview: ClusterOverview | null): number | null {
+  const explicit = cluster.files_last_24h ?? cluster.file_count_24h
+  if (typeof explicit === 'number') return explicit
+
+  const fromOverview = overviewFilesLast24h(overview)
+  if (typeof fromOverview === 'number') return fromOverview
+
+  const nodesWithCounts = cluster.nodes.filter((node) => typeof node.file_count === 'number')
+  if (nodesWithCounts.length === 0) return null
+
+  return nodesWithCounts.reduce((sum, node) => {
+    const nodeTime = node.uploaded_at ?? node.last_seen ?? cluster.last_seen
+    if (!isLast24Hours(nodeTime)) return sum
+    return sum + (node.file_count || 0)
+  }, 0)
+}
+
+function nodeLabel(member: ClusterGroupMember): string {
+  return member.hostname || member.serial_num || 'Unknown node'
+}
+
+function SessionLine({ member, onDeleted }: { member: ClusterGroupMember; onDeleted?: () => void }) {
   const [deleting, setDeleting] = useState(false)
 
   const handleDelete = async () => {
     if (!window.confirm('Delete this session and all its files?')) return
     setDeleting(true)
     try {
-      await deleteSession(m.session_id)
+      await deleteSession(member.session_id)
       onDeleted?.()
     } finally {
       setDeleting(false)
@@ -33,63 +91,62 @@ function SessionRow({ m, onDeleted }: { m: ClusterGroupMember; onDeleted?: () =>
   }
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 12px', background: '#ffffff', border: '1px solid #f1f5f9', borderRadius: 4, flexWrap: 'wrap' }}>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 12, color: '#334155', fontFamily: 'ui-monospace, Consolas, monospace', fontWeight: 500 }}>
-          {m.serial_num || m.hostname || '—'}
-        </div>
-        <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 1 }}>
-          {m.original_filename} · {m.file_count} files · {fmt(m.generated_on)}
-        </div>
+    <div className="manager-session-line">
+      <div className="manager-session-main">
+        <span className="manager-node-name" title={nodeLabel(member)}>
+          {nodeLabel(member)}
+        </span>
+        {member.serial_num && member.serial_num !== member.hostname && (
+          <span className="manager-node-serial" title={member.serial_num}>
+            {member.serial_num}
+          </span>
+        )}
+        <span className="manager-file-badge" title={`${member.file_count} files`}>
+          {member.file_count}
+        </span>
       </div>
-      <Link
-        to={`/viewer/${m.session_id}`}
-        style={{ fontSize: 12, color: '#3b82f6', textDecoration: 'none', padding: '2px 8px', border: '1px solid rgba(59,130,246,0.25)', borderRadius: 4, background: 'rgba(59,130,246,0.06)', whiteSpace: 'nowrap' }}
-      >
-        Open →
-      </Link>
-      <button
-        onClick={handleDelete}
-        disabled={deleting}
-        title="Delete session"
-        style={{ background: 'none', border: 'none', color: deleting ? '#cbd5e1' : '#f87171', cursor: deleting ? 'wait' : 'pointer', fontSize: 13, padding: '0 2px' }}
-      >
-        🗑
-      </button>
+      <div className="manager-session-meta" title={member.original_filename}>
+        {fmt(member.generated_on)} · {member.original_filename || 'ASUP session'}
+      </div>
+      <div className="manager-session-actions">
+        <Link to={`/viewer/${member.session_id}`} title="Open session">
+          Open
+        </Link>
+        <button
+          type="button"
+          onClick={handleDelete}
+          disabled={deleting}
+          title="Delete session"
+        >
+          Delete
+        </button>
+      </div>
     </div>
   )
 }
 
-// A paired group row with its own expand/collapse
 function GroupRow({ group, onDeleted }: { group: ClusterGroup; onDeleted?: () => void }) {
-  const [expanded, setExpanded] = useState(false)
-  const title = group.members
-    .map((m) => fmt(m.generated_on))
-    .join('  ·  ')
+  const [expanded, setExpanded] = useState(true)
 
   return (
-    <div style={{ border: '1px solid #bfdbfe', borderRadius: 6, overflow: 'hidden', background: '#f0f9ff' }}>
-      <div
-        onClick={() => setExpanded((v) => !v)}
-        style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 12px', cursor: 'pointer', userSelect: 'none' }}
-      >
-        <span style={{ color: '#3b82f6', fontSize: 11 }}>{expanded ? '▼' : '▶'}</span>
-        <span style={{ fontSize: 13 }}>🔗</span>
-        <span style={{ flex: 1, fontSize: 12, color: '#1e40af', fontFamily: 'ui-monospace, Consolas, monospace' }}>
-          {title}
-        </span>
+    <div className="manager-ha-group">
+      <div className="manager-ha-heading">
+        <button type="button" onClick={() => setExpanded((v) => !v)}>
+          <span className="manager-caret">{expanded ? '▼' : '▶'}</span>
+          <span>HA pair</span>
+          <span className="manager-file-badge">{groupFileCount(group)}</span>
+        </button>
         <Link
           to={`/viewer/group/${group.id}`}
-          onClick={(e) => e.stopPropagation()}
-          style={{ fontSize: 11, color: '#2563eb', textDecoration: 'none', background: 'rgba(37,99,235,0.1)', border: '1px solid rgba(37,99,235,0.3)', borderRadius: 4, padding: '2px 8px', whiteSpace: 'nowrap', fontWeight: 500 }}
+          title="Open grouped view"
         >
-          Group View →
+          Group View
         </Link>
       </div>
       {expanded && (
-        <div style={{ borderTop: '1px solid #bfdbfe', padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 4, background: '#f8fbff' }}>
-          {group.members.map((m) => (
-            <SessionRow key={m.session_id} m={m} onDeleted={onDeleted} />
+        <div className="manager-ha-members">
+          {group.members.map((member) => (
+            <SessionLine key={member.session_id} member={member} onDeleted={onDeleted} />
           ))}
         </div>
       )}
@@ -97,66 +154,130 @@ function GroupRow({ group, onDeleted }: { group: ClusterGroup; onDeleted?: () =>
   )
 }
 
+function ClusterNodeList({ cluster }: { cluster: Cluster }) {
+  if (cluster.nodes.length === 0) {
+    return <span className="manager-muted">No nodes</span>
+  }
+
+  return (
+    <div className="manager-node-summary-list">
+      {cluster.nodes.map((node) => {
+        const count = node.file_count ?? node.session_count
+        const label = node.hostname || node.id
+
+        return (
+          <div key={node.id} className="manager-node-summary">
+            <span className="manager-node-name" title={label}>
+              {label}
+            </span>
+            <span className="manager-file-badge" title={node.file_count == null ? `${count} sessions` : `${count} files`}>
+              {count}
+            </span>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function ExpandedNodeList({
+  overview,
+  loading,
+  onDeleted,
+}: {
+  overview: ClusterOverview | null
+  loading: boolean
+  onDeleted?: () => void
+}) {
+  if (loading) return <span className="manager-muted">Loading nodes…</span>
+  if (!overview) return <span className="manager-muted">Unable to load nodes</span>
+
+  const hasRows = overview.groups.length > 0 || overview.singles.length > 0
+  if (!hasRows) return <span className="manager-muted">No sessions</span>
+
+  return (
+    <div className="manager-expanded-nodes">
+      {overview.groups.map((group) => (
+        <GroupRow key={group.id} group={group} onDeleted={onDeleted} />
+      ))}
+      {overview.singles.map((member) => (
+        <SessionLine key={member.session_id} member={member} onDeleted={onDeleted} />
+      ))}
+    </div>
+  )
+}
+
 export default function ClusterCard({ cluster, onDeleted }: ClusterCardProps) {
   const [expanded, setExpanded] = useState(false)
   const [overview, setOverview] = useState<ClusterOverview | null>(null)
+  const [loadingOverview, setLoadingOverview] = useState(false)
   const [loadKey, setLoadKey] = useState(0)
 
   useEffect(() => {
     if (!expanded) return
+
+    let cancelled = false
+    setLoadingOverview(true)
     getClusterOverview(cluster.id)
-      .then((res) => setOverview(res.data))
-      .catch(() => setOverview(null))
+      .then((res) => {
+        if (!cancelled) setOverview(res.data)
+      })
+      .catch(() => {
+        if (!cancelled) setOverview(null)
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingOverview(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
   }, [expanded, cluster.id, loadKey])
 
-  const refresh = () => setLoadKey((k) => k + 1)
+  const refresh = () => {
+    setLoadKey((k) => k + 1)
+    onDeleted?.()
+  }
 
-  const lastSeen = fmt(cluster.last_seen)
+  const latest = dateParts(cluster.last_seen)
+  const filesLast24h = useMemo(() => clusterFilesLast24h(cluster, overview), [cluster, overview])
 
   return (
-    <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 8, overflow: 'hidden', marginBottom: 12 }}>
-      {/* Cluster header */}
-      <div
-        onClick={() => setExpanded((v) => !v)}
-        style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', cursor: 'pointer', userSelect: 'none' }}
-      >
-        <span style={{ color: '#94a3b8', fontSize: 12 }}>{expanded ? '▼' : '▶'}</span>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontFamily: 'ui-monospace, Consolas, monospace', fontSize: 13, color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {cluster.id}
-          </div>
-          <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 1 }}>
-            Last upload: {lastSeen}
-          </div>
-        </div>
-        <span style={{ fontSize: 11, color: '#64748b', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: 4, padding: '2px 8px', whiteSpace: 'nowrap' }}>
-          {cluster.node_count} node{cluster.node_count !== 1 ? 's' : ''}
-        </span>
-      </div>
-
-      {expanded && (
-        <div style={{ borderTop: '1px solid #e2e8f0', padding: '10px 16px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {!overview ? (
-            <div style={{ color: '#94a3b8', fontSize: 12 }}>Loading…</div>
+    <Fragment>
+      <tr className={expanded ? 'manager-cluster-row is-expanded' : 'manager-cluster-row'}>
+        <td>
+          <button
+            type="button"
+            className="manager-cluster-toggle"
+            onClick={() => setExpanded((v) => !v)}
+            aria-expanded={expanded}
+          >
+            <span className="manager-caret">{expanded ? '▼' : '▶'}</span>
+            <span className="manager-cluster-name" title={cluster.id}>
+              {cluster.id}
+            </span>
+          </button>
+        </td>
+        <td>
+          <time className="manager-time" dateTime={cluster.last_seen} title={latest.label}>
+            <span>{latest.date}</span>
+            {latest.time && <span>{latest.time}</span>}
+          </time>
+        </td>
+        <td>
+          {expanded ? (
+            <ExpandedNodeList overview={overview} loading={loadingOverview} onDeleted={refresh} />
           ) : (
-            <>
-              {/* Paired groups */}
-              {overview.groups.map((g) => (
-                <GroupRow key={g.id} group={g} onDeleted={() => { refresh(); onDeleted?.() }} />
-              ))}
-
-              {/* Ungrouped singles */}
-              {overview.singles.map((m) => (
-                <SessionRow key={m.session_id} m={m} onDeleted={() => { refresh(); onDeleted?.() }} />
-              ))}
-
-              {overview.groups.length === 0 && overview.singles.length === 0 && (
-                <div style={{ color: '#94a3b8', fontSize: 12 }}>No sessions</div>
-              )}
-            </>
+            <ClusterNodeList cluster={cluster} />
           )}
-        </div>
-      )}
-    </div>
+        </td>
+        <td>
+          <div className="manager-log-count">
+            <span>{filesLast24h == null ? '—' : filesLast24h} files</span>
+            <span>last 24h</span>
+          </div>
+        </td>
+      </tr>
+    </Fragment>
   )
 }
