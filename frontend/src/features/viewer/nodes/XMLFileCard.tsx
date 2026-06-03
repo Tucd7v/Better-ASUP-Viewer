@@ -236,13 +236,11 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
     const th = thRefs.current.get(col)
     const wrapper = wrapperRef.current
     if (th && wrapper) {
-      requestAnimationFrame(() => {
-        const thRect = th.getBoundingClientRect()
-        const wRect = wrapper.getBoundingClientRect()
-        setSwapMenuPos({
-          left: thRect.left - wRect.left,
-          top: thRect.bottom - wRect.top + 4,
-        })
+      const thRect = th.getBoundingClientRect()
+      const wRect = wrapper.getBoundingClientRect()
+      setSwapMenuPos({
+        left: thRect.left - wRect.left,
+        top: thRect.bottom - wRect.top + 4,
       })
     }
     setSwapMenuCol(col)
@@ -540,11 +538,11 @@ const headerTitleStyle: React.CSSProperties = {
   display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0,
 }
 const filenameStyle: React.CSSProperties = {
-  minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#334155', flexShrink: 1, lineHeight: '16px',
+  minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#334155', flexShrink: 1,
 }
 const headerDividerStyle: React.CSSProperties = {
   width: 1, height: 12, background: '#e2e8f0', flexShrink: 0,
 }
 const hostnameStyle: React.CSSProperties = {
-  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#94a3b8', fontSize: 11, flexShrink: 1, lineHeight: '16px',
+  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#94a3b8', fontSize: 11, flexShrink: 1,
 }
