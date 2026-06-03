@@ -43,7 +43,7 @@ function ColSwapMenu({
 
   return (
     <>
-      <div style={{ position: 'absolute', inset: 0, zIndex: 9998 }} onMouseDown={onClose} />
+      <div style={{ position: 'absolute', inset: 0, zIndex: 9998 }} onClick={onClose} />
       <div
         style={{
           position: 'absolute',
@@ -60,7 +60,7 @@ function ColSwapMenu({
           fontFamily: 'ui-monospace, Consolas, monospace',
           fontSize: 11,
         }}
-        onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
         className="nowheel nodrag"
       >
         {allCols.map((col) => (
