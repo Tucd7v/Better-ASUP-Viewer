@@ -83,7 +83,7 @@ function GroupRow({ group, onDeleted }: { group: ClusterGroup; onDeleted?: () =>
           onClick={(e) => e.stopPropagation()}
           style={{ fontSize: 11, color: '#2563eb', textDecoration: 'none', background: 'rgba(37,99,235,0.1)', border: '1px solid rgba(37,99,235,0.3)', borderRadius: 4, padding: '2px 8px', whiteSpace: 'nowrap', fontWeight: 500 }}
         >
-          Dual-Node →
+          Group View →
         </Link>
       </div>
       {expanded && (
