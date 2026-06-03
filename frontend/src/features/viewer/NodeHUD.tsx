@@ -7,8 +7,27 @@ interface NodeHUDProps {
 
 export default function NodeHUD({ sessions }: NodeHUDProps) {
   const [page, setPage] = useState(0)
-  const rows = sessions.length
-    ? sessions
+
+  const sorted = useMemo(() => {
+    if (sessions.length === 0) return sessions
+    const used = new Set<string>()
+    const out: typeof sessions = []
+    for (const s of sessions) {
+      if (used.has(s.sessionId)) continue
+      out.push(s)
+      used.add(s.sessionId)
+      const partner = (s as any).partnerHostname?.trim().toLowerCase()
+      if (!partner) continue
+      const mate = sessions.find(
+        (c) => c.sessionId !== s.sessionId && (c.hostname || '').trim().toLowerCase() === partner && !used.has(c.sessionId),
+      )
+      if (mate) { out.push(mate); used.add(mate.sessionId) }
+    }
+    return out
+  }, [sessions])
+
+  const rows = sorted.length
+    ? sorted
     : [
         {
           sessionId: '',
