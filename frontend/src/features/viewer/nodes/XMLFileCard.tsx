@@ -40,6 +40,7 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
   const rowRefs = useRef<(HTMLTableRowElement | null)[]>([])
   const [highlightRow, setHighlightRow] = useState<number | null>(null)
   const { state, dispatch: viewDispatch } = useViewer()
+  const hostname = state.sessions.find((session) => session.sessionId === sessionId)?.hostname?.trim() ?? ''
 
   useEffect(() => {
     if (collapsed) return
@@ -184,9 +185,19 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', background: '#f8fafc', borderBottom: collapsed ? 'none' : '1px solid #e2e8f0', borderRadius: collapsed ? 8 : '8px 8px 0 0' }}>
           <span>📊</span>
-          <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#334155' }} title={filename}>
-            {filename}
-          </span>
+          <div style={headerTitleStyle}>
+            <span style={filenameStyle} title={filename}>
+              {filename}
+            </span>
+            {hostname && (
+              <>
+                <span aria-hidden="true" style={headerDividerStyle} />
+                <span style={hostnameStyle} title={hostname}>
+                  {hostname}
+                </span>
+              </>
+            )}
+          </div>
           <button onClick={onCollapse} style={btnStyle} title={collapsed ? 'Expand' : 'Collapse'}>
             {collapsed ? '[+]' : '[−]'}
           </button>
@@ -382,4 +393,16 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
 
 const btnStyle: React.CSSProperties = {
   background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '0 2px', fontSize: 11, fontFamily: 'ui-monospace, Consolas, monospace',
+}
+const headerTitleStyle: React.CSSProperties = {
+  display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0,
+}
+const filenameStyle: React.CSSProperties = {
+  flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#334155',
+}
+const headerDividerStyle: React.CSSProperties = {
+  width: 1, height: 12, background: '#e2e8f0', flexShrink: 0,
+}
+const hostnameStyle: React.CSSProperties = {
+  maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#94a3b8', fontSize: 11, flexShrink: 1,
 }

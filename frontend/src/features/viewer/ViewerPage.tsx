@@ -529,6 +529,7 @@ function ViewerInner() {
           if (exists) return prev
           return [...prev, meta]
         })
+        dispatch({ type: 'UPSERT_SESSION', session: meta })
 
         const colorHex = color
         nonEmpty.forEach((f) => {

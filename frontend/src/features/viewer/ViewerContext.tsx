@@ -6,6 +6,7 @@ export type Action =
   | { type: 'SHOW_FILE'; fileId: string }
   | { type: 'TOGGLE_COLLAPSE'; fileId: string }
   | { type: 'SET_FILES'; files: FileRecord[]; sessionId: string; nodeColor: string }
+  | { type: 'UPSERT_SESSION'; session: SessionMeta }
   | { type: 'UPDATE_NODE_POSITION'; nodeId: string; position: { x: number; y: number } }
   | { type: 'SET_GLOBAL_SEARCH'; fileId: string; query: string; line?: number }
   | { type: 'CLEAR_GLOBAL_SEARCH' }
@@ -55,6 +56,17 @@ function reducer(state: ViewerState, action: Action): ViewerState {
         sessions: newSessions,
         fileList: [...state.fileList, ...newFiles],
         hiddenFileIds: newHidden,
+      }
+    }
+    case 'UPSERT_SESSION': {
+      const sessionExists = state.sessions.some((s) => s.sessionId === action.session.sessionId)
+      return {
+        ...state,
+        sessions: sessionExists
+          ? state.sessions.map((s) =>
+              s.sessionId === action.session.sessionId ? { ...s, ...action.session } : s
+            )
+          : [...state.sessions, action.session],
       }
     }
     case 'HIDE_FILE': {
