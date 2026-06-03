@@ -984,10 +984,10 @@ function ViewerInner() {
           <button
             onClick={() => setShowAI(!showAI)}
             style={{
-              background: chatMode === 'autonomous' ? '#eff6ff' : '#fff',
-              border: `1px solid ${chatMode === 'autonomous' ? '#3b82f6' : '#e2e8f0'}`,
+              background: showAI ? '#eff6ff' : chatMode === 'autonomous' ? '#eff6ff' : '#fff',
+              border: `1px solid ${showAI ? '#3b82f6' : chatMode === 'autonomous' ? '#3b82f6' : '#e2e8f0'}`,
               borderRadius: 4,
-              color: chatMode === 'autonomous' ? '#1d4ed8' : '#475569',
+              color: showAI ? '#1d4ed8' : chatMode === 'autonomous' ? '#1d4ed8' : '#475569',
               cursor: 'pointer',
               padding: '3px 8px',
               fontSize: 11,
