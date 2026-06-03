@@ -11,7 +11,7 @@ interface ClusterCardProps {
 function fmt(iso: string | null): string {
   if (!iso) return '—'
   try {
-    const d = new Date(iso)
+    const d = new Date(iso.endsWith('Z') ? iso : iso + 'Z')
     const pad = (n: number) => String(n).padStart(2, '0')
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
   } catch { return iso }
@@ -39,7 +39,7 @@ function SessionRow({ m, onDeleted }: { m: ClusterGroupMember; onDeleted?: () =>
           {m.serial_num || m.hostname || '—'}
         </div>
         <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 1 }}>
-          {m.original_filename} · {m.file_count} files
+          {m.original_filename} · {m.file_count} files · {fmt(m.generated_on)}
         </div>
       </div>
       <Link
@@ -64,8 +64,8 @@ function SessionRow({ m, onDeleted }: { m: ClusterGroupMember; onDeleted?: () =>
 function GroupRow({ group, onDeleted }: { group: ClusterGroup; onDeleted?: () => void }) {
   const [expanded, setExpanded] = useState(false)
   const title = group.members
-    .map((m) => m.hostname || m.serial_num || '—')
-    .join(' + ')
+    .map((m) => fmt(m.generated_on))
+    .join('  ·  ')
 
   return (
     <div style={{ border: '1px solid #bfdbfe', borderRadius: 6, overflow: 'hidden', background: '#f0f9ff' }}>
@@ -126,7 +126,7 @@ export default function ClusterCard({ cluster, onDeleted }: ClusterCardProps) {
             {cluster.id}
           </div>
           <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 1 }}>
-            ASUP Capture: {lastSeen}
+            Last upload: {lastSeen}
           </div>
         </div>
         <span style={{ fontSize: 11, color: '#64748b', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: 4, padding: '2px 8px', whiteSpace: 'nowrap' }}>
