@@ -104,8 +104,10 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
   const [dragTarget, setDragTarget] = useState<string | null>(null)
   const [swapMenuCol, setSwapMenuCol] = useState<string | null>(null)
   const [swapMenuPos, setSwapMenuPos] = useState<{ left: number; top: number }>({ left: 0, top: 0 })
+  const [swapMenuCardWidth, setSwapMenuCardWidth] = useState(width)
   const wrapperRef = useRef<HTMLDivElement>(null)
   const thRefs = useRef<Map<string, HTMLTableCellElement>>(new Map())
+  const swapMenuFrame = useRef<number | null>(null)
 
   const rowRefs = useRef<(HTMLTableRowElement | null)[]>([])
   const [highlightRow, setHighlightRow] = useState<number | null>(null)
@@ -146,6 +148,14 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
       .catch(() => setRows([]))
       .finally(() => setLoading(false))
   }, [fileId, sessionId, collapsed])
+
+  useEffect(() => {
+    return () => {
+      if (swapMenuFrame.current !== null) {
+        cancelAnimationFrame(swapMenuFrame.current)
+      }
+    }
+  }, [])
 
   // Respond to global search
   useEffect(() => {
@@ -229,21 +239,34 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
 
   const openSwapMenu = (col: string, e: React.MouseEvent) => {
     e.stopPropagation()
+    if (swapMenuFrame.current !== null) {
+      cancelAnimationFrame(swapMenuFrame.current)
+      swapMenuFrame.current = null
+    }
     if (swapMenuCol === col) {
       setSwapMenuCol(null)
       return
     }
-    const th = thRefs.current.get(col)
-    const wrapper = wrapperRef.current
-    if (th && wrapper) {
+    if (rows.length === 0) return
+
+    setSwapMenuCol(null)
+    swapMenuFrame.current = requestAnimationFrame(() => {
+      swapMenuFrame.current = null
+      const th = thRefs.current.get(col)
+      const wrapper = wrapperRef.current
+      if (!th || !wrapper) return
+
       const thRect = th.getBoundingClientRect()
       const wRect = wrapper.getBoundingClientRect()
+      const scaleX = wrapper.offsetWidth > 0 ? wRect.width / wrapper.offsetWidth : 1
+      const scaleY = wrapper.offsetHeight > 0 ? wRect.height / wrapper.offsetHeight : scaleX
       setSwapMenuPos({
-        left: thRect.left - wRect.left,
-        top: thRect.bottom - wRect.top + 4,
+        left: (thRect.left - wRect.left) / (scaleX || 1),
+        top: (thRect.bottom - wRect.top) / (scaleY || 1) + 4,
       })
-    }
-    setSwapMenuCol(col)
+      setSwapMenuCardWidth(wrapper.offsetWidth || width)
+      setSwapMenuCol(col)
+    })
   }
 
   const togglePinnedCol = (col: string) => {
@@ -522,7 +545,7 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
           targetSlot={swapMenuCol}
           left={swapMenuPos.left}
           top={swapMenuPos.top}
-          cardWidth={width}
+          cardWidth={swapMenuCardWidth}
           onSelect={(newCol) => handleSwap(swapMenuCol, newCol)}
           onClose={() => setSwapMenuCol(null)}
         />
