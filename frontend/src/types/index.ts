@@ -33,17 +33,7 @@ export interface Cluster {
   id: string
   node_count: number
   last_seen: string
-  files_last_24h?: number
-  file_count_24h?: number
-  nodes: {
-    id: string
-    hostname: string
-    serial_num: string
-    session_count: number
-    file_count?: number
-    last_seen?: string
-    uploaded_at?: string
-  }[]
+  nodes: { id: string; hostname: string; serial_num: string; session_count: number }[]
 }
 
 export interface Session {
