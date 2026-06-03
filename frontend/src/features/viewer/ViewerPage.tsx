@@ -1163,7 +1163,6 @@ function ViewerInner() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, minWidth: 0 }}>
             <span>Cards: {nodes.length}</span>
             <span>Total: {totalCards}</span>
-            <span>Edges: {edges.length}</span>
             <span>Memory: {memoryLabel}</span>
             <span style={{ color: splitMode ? '#3b82f6' : undefined }}>Grid</span>
           </div>
