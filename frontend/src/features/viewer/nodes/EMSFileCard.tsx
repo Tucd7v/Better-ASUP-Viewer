@@ -327,6 +327,8 @@ const hostnameStyle: React.CSSProperties = {
   color: '#94a3b8',
   fontSize: 11,
   flexShrink: 1,
+  lineHeight: '16px',
+  marginTop: 2,
 };
 
 const selectStyle: React.CSSProperties = {
