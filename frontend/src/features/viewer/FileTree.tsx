@@ -81,6 +81,40 @@ export default function FileTree({ sessions, clusterName, onFocusFile }: FileTre
     return paired
   }, [sessionRows, partnerHostnameKey])
 
+  const sortedSessionRows = useMemo(() => {
+    const result: typeof sessionRows = []
+    const used = new Set<string>()
+
+    for (const session of sessionRows) {
+      if (used.has(session.sessionId)) continue
+
+      result.push(session)
+      used.add(session.sessionId)
+
+      if (!haPairSessionIds.has(session.sessionId)) continue
+
+      const hostname = normalizeHostname(session.hostname)
+      const partnerName = normalizeHostname(session.partnerHostname)
+      if (!hostname && !partnerName) continue
+
+      const partner = sessionRows.find(
+        (candidate) =>
+          candidate.sessionId !== session.sessionId &&
+          (
+            normalizeHostname(candidate.hostname) === partnerName ||
+            normalizeHostname(candidate.partnerHostname) === hostname
+          ) &&
+          !used.has(candidate.sessionId)
+      )
+      if (partner) {
+        result.push(partner)
+        used.add(partner.sessionId)
+      }
+    }
+
+    return result
+  }, [sessionRows, haPairSessionIds])
+
   const groupedFiles = useMemo(() => {
     const bySession = new Map<string, Map<string, FileRecord[]>>()
     state.fileList.forEach((file) => {
@@ -184,7 +218,7 @@ export default function FileTree({ sessions, clusterName, onFocusFile }: FileTre
 
         {expandedCluster && (
           <div className="node-list">
-            {sessionRows.map((session, index) => {
+            {sortedSessionRows.map((session, index) => {
               const nodeName = session.hostname || (index === 0 ? 'NodeA' : 'NodeB')
               const color = session.nodeColor
               const sessionExpanded = expandedNodes.has(session.sessionId)
@@ -196,9 +230,9 @@ export default function FileTree({ sessions, clusterName, onFocusFile }: FileTre
               )
               const isHAPair = haPairSessionIds.has(session.sessionId)
               const connectsToPrevious =
-                isHAPair && areConsecutiveHAPair(sessionRows[index - 1], session)
+                isHAPair && areConsecutiveHAPair(sortedSessionRows[index - 1], session)
               const connectsToNext =
-                isHAPair && areConsecutiveHAPair(session, sessionRows[index + 1])
+                isHAPair && areConsecutiveHAPair(session, sortedSessionRows[index + 1])
               const nodeBlockClasses = [
                 'node-block',
                 isHAPair && 'node-block--ha-pair',
