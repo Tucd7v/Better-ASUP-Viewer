@@ -260,7 +260,6 @@ export default function FileTree({ sessions, clusterName, onFocusFile }: FileTre
                     />
                     <span className="node-name">{nodeName}</span>
                     <span className="node-serial">({shortSerial(session.serialNum || session.sessionId)})</span>
-                    <span className="tree-count">{fileCount}</span>
                   </button>
 
                   {sessionExpanded && (
