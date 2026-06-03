@@ -451,6 +451,23 @@ function ViewerInner() {
   const [showAI, setShowAI] = useState(false)
   const [aiPanelWidth, setAiPanelWidth] = useState(450)
   const [splitMode, setSplitMode] = useState(false)
+  const [memoryUsed, setMemoryUsed] = useState<number | null>(null)
+
+  useEffect(() => {
+    const updateMemory = () => {
+      const usedJSHeapSize = (performance as Performance & {
+        memory?: { usedJSHeapSize?: number }
+      }).memory?.usedJSHeapSize
+      setMemoryUsed(typeof usedJSHeapSize === 'number' ? usedJSHeapSize : null)
+    }
+
+    updateMemory()
+    const timer = window.setInterval(updateMemory, 5000)
+    return () => window.clearInterval(timer)
+  }, [])
+
+  const totalCards = tabs.reduce((sum, t) => sum + t.nodes.length, 0)
+  const memoryLabel = memoryUsed == null ? '—' : `${(memoryUsed / (1024 * 1024)).toFixed(1)} MB`
 
   useEffect(() => {
     async function load() {
@@ -1126,6 +1143,32 @@ function ViewerInner() {
             </div>
           </div>
         )}
+
+        <div
+          style={{
+            height: 28,
+            background: '#f1f5f9',
+            borderTop: '1px solid #e2e8f0',
+            fontSize: 11,
+            fontFamily: 'ui-monospace, SFMono-Regular, Consolas, monospace',
+            color: '#64748b',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '0 16px',
+            boxSizing: 'border-box',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, minWidth: 0 }}>
+            <span>Cards: {nodes.length}</span>
+            <span>Total: {totalCards}</span>
+            <span>Edges: {edges.length}</span>
+            <span>Memory: {memoryLabel}</span>
+            <span style={{ color: splitMode ? '#3b82f6' : undefined }}>Grid</span>
+          </div>
+          <div style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{activeTab.name}</div>
+        </div>
       </main>
     </div>
   )
