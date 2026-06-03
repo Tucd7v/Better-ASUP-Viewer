@@ -224,7 +224,7 @@ const headerTitleStyle: React.CSSProperties = {
   display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0,
 }
 const filenameStyle: React.CSSProperties = {
-  flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#334155',
+  minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#334155', flexShrink: 1,
 }
 const headerDividerStyle: React.CSSProperties = {
   width: 1, height: 12, background: '#e2e8f0', flexShrink: 0,

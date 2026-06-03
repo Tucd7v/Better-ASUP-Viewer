@@ -305,13 +305,13 @@ const headerTitleStyle: React.CSSProperties = {
 }
 
 const filenameStyle: React.CSSProperties = {
-  flex: 1,
   minWidth: 0,
   overflow: 'hidden',
   textOverflow: 'ellipsis',
   whiteSpace: 'nowrap',
   color: '#334155',
-}
+  flexShrink: 1,
+};
 
 const headerDividerStyle: React.CSSProperties = {
   width: 1,
