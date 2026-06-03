@@ -101,7 +101,8 @@ export default function ManagerPage() {
   return (
     <div
       style={{
-        minHeight: '100vh',
+        height: '100vh',
+        overflowY: 'auto',
         background: '#f1f5f9',
         color: '#1e293b',
         fontFamily: 'system-ui, -apple-system, sans-serif',
