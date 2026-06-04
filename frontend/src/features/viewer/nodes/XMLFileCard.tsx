@@ -96,7 +96,6 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
   const [sortDir, setSortDir] = useState<SortDir>(null)
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(false)
-  const [tableWidth, setTableWidth] = useState(0)
   const [pinnedCols, setPinnedCols] = useState<Set<string>>(new Set())
 
   const dragCol = useRef<string | null>(null)
@@ -126,7 +125,6 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
           setColumns(cols)
           setRows(d.rows)
           const colW = cols.reduce((sum, c) => sum + Math.max(100, c.length * 9), 0)
-          setTableWidth(colW)
           setWidth(Math.max(320, Math.min(1000, colW + 20)))
         } else if (Array.isArray(d.lines)) {
           const ls: string[] = d.lines
@@ -140,7 +138,6 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
             })
             setRows(rowData)
             const colW = cols.reduce((sum, c) => sum + Math.max(100, c.length * 9), 0)
-            setTableWidth(colW)
             setWidth(Math.max(320, Math.min(1000, colW + 20)))
           }
         }
@@ -278,8 +275,6 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
     })
   }
 
-  const needsScroll = tableWidth > 0 && tableWidth > width - 20
-
   const getColumnWidth = (col: string) => Math.max(100, col.length * 9)
 
   const getPinnedLeft = (col: string) => {
@@ -353,7 +348,7 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
             <div
               style={{
                 height: splitMode ? undefined : height,
-                overflowX: needsScroll ? 'scroll' : 'hidden',
+                overflowX: 'auto',
                 overflowY: 'auto',
                 flex: splitMode ? 1 : undefined,
                 minHeight: splitMode ? 0 : undefined,
