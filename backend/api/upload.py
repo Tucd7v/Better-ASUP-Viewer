@@ -80,7 +80,14 @@ async def _process_session(session_id: str, archive_path: Path, files_dir: Path,
                         session_row.error_message = "Duplicate: same cluster, hostname and ASUP capture time already uploaded"
                         await db.commit()
                         q.put({"_error": "Duplicate: same cluster, hostname and ASUP capture time already uploaded"})
-                        print(f"[PROCESS] DUPLICATE skipped", flush=True)
+                        # Clean up duplicate files and session
+                        import shutil
+                        dup_dir = UPLOAD_DIR / session_id
+                        if dup_dir.exists():
+                            shutil.rmtree(dup_dir)
+                        await db.delete(session_row)
+                        await db.commit()
+                        print(f"[PROCESS] DUPLICATE cleaned up", flush=True)
                         return
 
                 session_row.status = "done"
