@@ -77,8 +77,9 @@ async def _process_session(session_id: str, archive_path: Path, files_dir: Path,
                     )
                     if dup.scalar_one_or_none() is not None:
                         session_row.status = "error"
-                        session_row.error_message = "Duplicate: same cluster, hostname, and ASUP capture time already uploaded"
+                        session_row.error_message = "Duplicate: same cluster, hostname and ASUP capture time already uploaded"
                         await db.commit()
+                        q.put({"_error": "Duplicate: same cluster, hostname and ASUP capture time already uploaded"})
                         print(f"[PROCESS] DUPLICATE skipped", flush=True)
                         return
 
