@@ -23,6 +23,15 @@ function fmtNode(iso: string | null): string {
   try {
     const d = new Date(iso)
     const pad = (n: number) => String(n).padStart(2, '0')
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())} (ASUP Capture Time)`
+  } catch { return '' }
+}
+
+function fmtUpload(iso: string | null): string {
+  if (!iso) return ''
+  try {
+    const d = new Date(iso.endsWith('Z') ? iso : iso + 'Z')
+    const pad = (n: number) => String(n).padStart(2, '0')
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())} (UTC+8)`
   } catch { return '' }
 }
@@ -60,7 +69,7 @@ function SessionRow({ m, onDeleted }: { m: ClusterGroupMember; onDeleted?: () =>
         <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 1 }}>
           {m.original_filename} · {m.file_count} files · {fmtNode(m.generated_on)}
           <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 2 }}>
-            Uploaded: {fmtNode(m.uploaded_at || '')}
+            Uploaded: {fmtUpload(m.uploaded_at || '')}
           </div>
         </div>
       </div>
