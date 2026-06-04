@@ -508,33 +508,42 @@ async def _build_context(session_ids: list[str], context_file_ids: list[str] | N
 
             if rec.file_type == "ems":
                 data = await svc.read_ems(fp, rec.filename, offset=offset, limit=min(limit, 200))
+                hostname, serial = session_info.get(rec.session_id, ("", ""))
                 return {
                     "file_id": file_id,
                     "session_id": rec.session_id,
                     "filename": rec.filename,
                     "file_type": "ems",
+                    "hostname": hostname,
+                    "serial_num": serial,
                     "events": data.get("events", []),
                 }
             elif rec.file_type == "xml":
                 data = await svc.read_xml(fp, rec.filename)
                 rows = data.get("rows", [])
                 cols = list(rows[0].keys()) if rows else []
+                hostname, serial = session_info.get(rec.session_id, ("", ""))
                 return {
                     "file_id": file_id,
                     "session_id": rec.session_id,
                     "filename": rec.filename,
                     "file_type": "xml",
+                    "hostname": hostname,
+                    "serial_num": serial,
                     "columns": cols,
                     "rows": rows[offset:offset+limit],
                     "total_rows": len(rows),
                 }
             else:
                 data = await svc.read_text(fp, rec.filename, offset=offset, limit=limit)
+                hostname, serial = session_info.get(rec.session_id, ("", ""))
                 return {
                     "file_id": file_id,
                     "session_id": rec.session_id,
                     "filename": rec.filename,
                     "file_type": "text",
+                    "hostname": hostname,
+                    "serial_num": serial,
                     "lines": data.get("lines", []),
                     "total_lines": data.get("total_lines", 0),
                 }
@@ -626,7 +635,12 @@ async def chat(body: ChatRequest):
         file_list_str = ""
         for entry in catalog:
             if entry["file_id"] in body.context_file_ids:
-                file_list_str += f"  [{entry['file_id']}] {entry['filename']} ({entry['file_type']})\n"
+                hostname = entry.get("hostname", "")
+                serial = entry.get("serial_num", "")
+                node_tag = f" — node: {hostname}" if hostname else ""
+                if serial:
+                    node_tag += f" (SN: {serial})"
+                file_list_str += f"  [{entry['file_id']}] {entry['filename']} ({entry['file_type']}){node_tag}\n"
         if file_list_str:
             user_message = f"查看用户画布内容——以下文件已打开，请仅分析这些文件：\n\n{file_list_str}\n\n用户问题：{body.message}"
         else:
@@ -657,7 +671,12 @@ async def chat_stream(body: ChatRequest):
         file_list_str = ""
         for entry in catalog:
             if entry["file_id"] in body.context_file_ids:
-                file_list_str += f"  [{entry['file_id']}] {entry['filename']} ({entry['file_type']})\n"
+                hostname = entry.get("hostname", "")
+                serial = entry.get("serial_num", "")
+                node_tag = f" — node: {hostname}" if hostname else ""
+                if serial:
+                    node_tag += f" (SN: {serial})"
+                file_list_str += f"  [{entry['file_id']}] {entry['filename']} ({entry['file_type']}){node_tag}\n"
         if file_list_str:
             user_message = f"查看用户画布内容——以下文件已打开，请仅分析这些文件：\n\n{file_list_str}\n\n用户问题：{body.message}"
         else:
