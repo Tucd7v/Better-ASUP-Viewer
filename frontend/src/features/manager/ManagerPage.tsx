@@ -229,7 +229,7 @@ export default function ManagerPage() {
               whiteSpace: 'nowrap',
             }}
           >
-            Only show Today
+            Show Today Upload
           </button>
         </div>
 
