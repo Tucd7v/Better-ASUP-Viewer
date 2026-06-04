@@ -154,7 +154,7 @@ export default function ManagerPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             style={{
-              flex: '1 1 320px',
+              flex: '1 1 200px',
               minWidth: 0,
               background: '#ffffff',
               border: '1px solid #e2e8f0',
