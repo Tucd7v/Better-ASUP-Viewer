@@ -130,7 +130,7 @@ export default function UploadDialog({ onClose, onDone }: UploadDialogProps) {
         justifyContent: 'center',
         zIndex: 1000,
       }}
-      onClick={(e) => e.target === e.currentTarget && onClose()}
+      onClick={(e) => e.target === e.currentTarget && stage !== 'uploading' && stage !== 'processing' && onClose()}
     >
       <div
         style={{
@@ -154,7 +154,7 @@ export default function UploadDialog({ onClose, onDone }: UploadDialogProps) {
           <h2 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: '#1e293b' }}>
             Upload ASUP File
           </h2>
-          <button onClick={onClose} style={closeBtnStyle}>
+          <button onClick={onClose} style={{ ...closeBtnStyle, opacity: stage === 'uploading' || stage === 'processing' ? 0.3 : 1, cursor: stage === 'uploading' || stage === 'processing' ? 'not-allowed' : 'pointer' }} disabled={stage === 'uploading' || stage === 'processing'}>
             ×
           </button>
         </div>
