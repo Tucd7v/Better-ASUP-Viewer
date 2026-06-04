@@ -134,6 +134,7 @@ class ClusterGroupMember(BaseModel):
     hostname: str
     partner_hostname: str = ""
     generated_on: Optional[datetime]
+    uploaded_at: Optional[datetime] = None
     original_filename: str
     file_count: int
     status: str
