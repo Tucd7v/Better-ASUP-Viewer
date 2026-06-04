@@ -25,7 +25,6 @@ class ClusteringService:
 
         already_grouped = select(SessionGroupMember.session_id)
 
-        # Find all unmatched sessions in the window
         result = await db.execute(
             select(Session)
             .where(
@@ -36,13 +35,13 @@ class ClusteringService:
                 Session.generated_on <= window_end,
                 Session.id.not_in(already_grouped),
             )
+            .limit(1)
         )
-        peers = result.scalars().all()
+        peer = result.scalar_one_or_none()
 
-        if not peers:
+        if peer is None:
             return None
 
-        # Create one group with all matching sessions
         group = SessionGroup(
             id=str(uuid.uuid4()),
             cluster_id=session.cluster_id,
@@ -50,7 +49,6 @@ class ClusteringService:
         )
         db.add(group)
         db.add(SessionGroupMember(group_id=group.id, session_id=session.id))
-        for peer in peers:
-            db.add(SessionGroupMember(group_id=group.id, session_id=peer.id))
+        db.add(SessionGroupMember(group_id=group.id, session_id=peer.id))
         await db.commit()
         return group.id
