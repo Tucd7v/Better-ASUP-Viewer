@@ -64,6 +64,24 @@ async def _process_session(session_id: str, archive_path: Path, files_dir: Path,
                 await db.commit()
                 print(f"[PROCESS] parse OK: {len(records)} records meta={meta}", flush=True)
 
+                # Check for duplicate: same cluster_id + hostname + generated_on
+                if session_row.cluster_id and session_row.hostname and session_row.generated_on:
+                    dup = await db.execute(
+                        select(Session).where(
+                            Session.id != session_id,
+                            Session.cluster_id == session_row.cluster_id,
+                            Session.hostname == session_row.hostname,
+                            Session.generated_on == session_row.generated_on,
+                            Session.status == "done",
+                        ).limit(1)
+                    )
+                    if dup.scalar_one_or_none() is not None:
+                        session_row.status = "error"
+                        session_row.error_message = "Duplicate: same cluster, hostname, and ASUP capture time already uploaded"
+                        await db.commit()
+                        print(f"[PROCESS] DUPLICATE skipped", flush=True)
+                        return
+
                 session_row.status = "done"
                 await db.commit()
                 await ClusteringService.try_group(session_row, db)
