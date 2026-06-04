@@ -37,7 +37,6 @@ export default function TextFileCard({ data }: NodeProps<TextFileNode>) {
   const { width, height, onResizeX, onResizeY } = useResizable(900, 340)
 
   const [lines, setLines] = useState<string[]>([])
-  const [totalLines, setTotalLines] = useState(0)
   const [page, setPage] = useState(0)
   const [search, setSearch] = useState('')
   const [matchIndex, setMatchIndex] = useState(0)
@@ -56,7 +55,6 @@ export default function TextFileCard({ data }: NodeProps<TextFileNode>) {
         const d = res.data
         if (Array.isArray(d.lines)) {
           setLines(d.lines)
-          setTotalLines(d.total_lines ?? d.lines.length)
         }
       })
       .catch(() => setLines([]))
@@ -69,10 +67,11 @@ export default function TextFileCard({ data }: NodeProps<TextFileNode>) {
     if (gs && gs.fileId === fileId && gs.query) {
       setSearch(gs.query)
       if (gs.line !== undefined) {
-        const targetPage = Math.floor((gs.line - 1) / LIMIT)
+        const targetLine = gs.line
+        const targetPage = Math.floor((targetLine - 1) / LIMIT)
         setPage(targetPage)
         setTimeout(() => {
-          const targetEl = matchRefs.current[gs.line - 1]
+          const targetEl = matchRefs.current[targetLine - 1]
           if (targetEl) {
             targetEl.scrollIntoView({ block: 'center', behavior: 'smooth' })
           }
@@ -95,8 +94,6 @@ export default function TextFileCard({ data }: NodeProps<TextFileNode>) {
     const el = matchRefs.current[matchIndices[idx]]
     el?.scrollIntoView({ block: 'center', behavior: 'smooth' })
   }
-
-  const totalPages = Math.max(1, Math.ceil(totalLines / LIMIT))
 
   return (
     <div style={{ position: 'relative', width: splitMode ? '100%' : width, minWidth: splitMode ? undefined : 220, height: splitMode ? '100%' : undefined }}>
@@ -125,9 +122,18 @@ export default function TextFileCard({ data }: NodeProps<TextFileNode>) {
             {hostname && (
               <>
                 <span aria-hidden="true" style={headerDividerStyle} />
-                <span style={hostnameStyle} title={hostname}>
+                <button
+                  type="button"
+                  className="nodrag card-hostname-button"
+                  style={hostnameStyle}
+                  title={hostname}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    viewDispatch({ type: 'FOCUS_NODE', hostname })
+                  }}
+                >
                   {hostname}
-                </span>
+                </button>
               </>
             )}
           </div>
@@ -230,7 +236,7 @@ const headerDividerStyle: React.CSSProperties = {
   width: 1, height: 12, background: '#e2e8f0', flexShrink: 0, marginTop: 2,
 }
 const hostnameStyle: React.CSSProperties = {
-  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#94a3b8', fontSize: 11, flexShrink: 1, lineHeight: '16px', marginTop: 2,
+  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#94a3b8', fontSize: 11, flexShrink: 1, lineHeight: '16px', marginTop: 2, background: 'none', border: 0, padding: 0, cursor: 'pointer', fontFamily: 'ui-monospace, Consolas, monospace',
 };
 const inputStyle: React.CSSProperties = {
   width: '100%', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 4, color: '#1e293b', padding: '3px 6px', fontSize: 11, fontFamily: 'ui-monospace, Consolas, monospace', outline: 'none',

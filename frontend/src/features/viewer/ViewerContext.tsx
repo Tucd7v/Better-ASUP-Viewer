@@ -10,6 +10,8 @@ export type Action =
   | { type: 'UPDATE_NODE_POSITION'; nodeId: string; position: { x: number; y: number } }
   | { type: 'SET_GLOBAL_SEARCH'; fileId: string; query: string; line?: number }
   | { type: 'CLEAR_GLOBAL_SEARCH' }
+  | { type: 'FOCUS_NODE'; hostname: string }
+  | { type: 'CLEAR_FOCUS_NODE' }
 
 interface ViewerState {
   sessions: SessionMeta[]
@@ -18,6 +20,7 @@ interface ViewerState {
   collapsedFileIds: Set<string>
   nodePositions: Map<string, { x: number; y: number }>
   globalSearch: { fileId: string; query: string; line?: number } | null
+  focusNode: string | null
 }
 
 const initialState: ViewerState = {
@@ -27,6 +30,7 @@ const initialState: ViewerState = {
   collapsedFileIds: new Set(),
   nodePositions: new Map(),
   globalSearch: null,
+  focusNode: null,
 }
 
 function reducer(state: ViewerState, action: Action): ViewerState {
@@ -97,6 +101,10 @@ function reducer(state: ViewerState, action: Action): ViewerState {
       return { ...state, globalSearch: { fileId: action.fileId, query: action.query, line: action.line } }
     case 'CLEAR_GLOBAL_SEARCH':
       return { ...state, globalSearch: null }
+    case 'FOCUS_NODE':
+      return { ...state, focusNode: action.hostname }
+    case 'CLEAR_FOCUS_NODE':
+      return { ...state, focusNode: null }
     default:
       return state
   }

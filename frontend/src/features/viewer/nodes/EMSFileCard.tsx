@@ -153,9 +153,18 @@ export default function EMSFileCard({ data }: NodeProps<EMSFileNode>) {
             {hostname && (
               <>
                 <span aria-hidden="true" style={headerDividerStyle} />
-                <span style={hostnameStyle} title={hostname}>
+                <button
+                  type="button"
+                  className="nodrag card-hostname-button"
+                  style={hostnameStyle}
+                  title={hostname}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    viewDispatch({ type: 'FOCUS_NODE', hostname })
+                  }}
+                >
                   {hostname}
-                </span>
+                </button>
               </>
             )}
           </div>
@@ -329,6 +338,11 @@ const hostnameStyle: React.CSSProperties = {
   flexShrink: 1,
   lineHeight: '16px',
   marginTop: 2,
+  background: 'none',
+  border: 0,
+  padding: 0,
+  cursor: 'pointer',
+  fontFamily: 'ui-monospace, Consolas, monospace',
 };
 
 const selectStyle: React.CSSProperties = {

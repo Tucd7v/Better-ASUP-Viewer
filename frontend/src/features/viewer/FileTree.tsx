@@ -23,7 +23,10 @@ export default function FileTree({ sessions, clusterName, onFocusFile }: FileTre
   const [expandedCluster, setExpandedCluster] = useState(true)
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set())
   const [expandedTypes, setExpandedTypes] = useState<Set<string>>(new Set())
+  const [flashingSessionId, setFlashingSessionId] = useState<string | null>(null)
   const isDragging = useRef(false)
+  const nodeRefs = useRef<Map<string, HTMLButtonElement>>(new Map())
+  const focusTimerRef = useRef<number | null>(null)
 
   const normalizedFileSearch = fileSearch.trim().toLowerCase()
 
@@ -159,6 +162,56 @@ export default function FileTree({ sessions, clusterName, onFocusFile }: FileTre
     })
   }, [normalizedFileSearch, state.fileList])
 
+  useEffect(() => {
+    const targetHostname = normalizeHostname(state.focusNode)
+    if (!targetHostname) return
+
+    const targetSession = sortedSessionRows.find(
+      (session, index) =>
+        normalizeHostname(session.hostname || (index === 0 ? 'NodeA' : 'NodeB')) === targetHostname
+    )
+
+    if (!targetSession) {
+      dispatch({ type: 'CLEAR_FOCUS_NODE' })
+      return
+    }
+
+    setExpandedCluster(true)
+    setExpandedNodes((prev) => {
+      const next = new Set(prev)
+      next.add(targetSession.sessionId)
+      return next
+    })
+    setFlashingSessionId(targetSession.sessionId)
+
+    window.setTimeout(() => {
+      nodeRefs.current.get(targetSession.sessionId)?.scrollIntoView({
+        block: 'center',
+        behavior: 'smooth',
+      })
+    }, 0)
+
+    if (focusTimerRef.current !== null) {
+      window.clearTimeout(focusTimerRef.current)
+    }
+
+    focusTimerRef.current = window.setTimeout(() => {
+      setFlashingSessionId((current) =>
+        current === targetSession.sessionId ? null : current
+      )
+      dispatch({ type: 'CLEAR_FOCUS_NODE' })
+      focusTimerRef.current = null
+    }, 2000)
+  }, [state.focusNode, sortedSessionRows, dispatch])
+
+  useEffect(() => {
+    return () => {
+      if (focusTimerRef.current !== null) {
+        window.clearTimeout(focusTimerRef.current)
+      }
+    }
+  }, [])
+
   const handleClick = (file: FileRecord) => {
     if (state.hiddenFileIds.has(file.id)) {
       dispatch({ type: 'SHOW_FILE', fileId: file.id })
@@ -241,6 +294,13 @@ export default function FileTree({ sessions, clusterName, onFocusFile }: FileTre
               ]
                 .filter(Boolean)
                 .join(' ')
+              const nodeRowClasses = [
+                'node-row',
+                'tree-button',
+                flashingSessionId === session.sessionId && 'file-tree-node-flash',
+              ]
+                .filter(Boolean)
+                .join(' ')
 
               return (
                 <div
@@ -249,8 +309,12 @@ export default function FileTree({ sessions, clusterName, onFocusFile }: FileTre
                 >
                   {isHAPair && <div className="ha-pair-line" />}
                   <button
-                    className="node-row tree-button"
+                    className={nodeRowClasses}
                     type="button"
+                    ref={(el) => {
+                      if (el) nodeRefs.current.set(session.sessionId, el)
+                      else nodeRefs.current.delete(session.sessionId)
+                    }}
                     onClick={() => toggleNode(session.sessionId)}
                   >
                     <span className="tree-caret">{sessionExpanded ? '▾' : '▸'}</span>
@@ -356,7 +420,7 @@ function toggleSetValue(source: Set<string>, value: string): Set<string> {
   return next
 }
 
-function normalizeHostname(value?: string): string {
+function normalizeHostname(value?: string | null): string {
   return (value ?? '').trim().toLowerCase()
 }
 

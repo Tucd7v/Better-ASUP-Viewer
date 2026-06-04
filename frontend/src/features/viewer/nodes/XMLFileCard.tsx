@@ -317,9 +317,18 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
             {hostname && (
               <>
                 <span aria-hidden="true" style={headerDividerStyle} />
-                <span style={hostnameStyle} title={hostname}>
+                <button
+                  type="button"
+                  className="nodrag card-hostname-button"
+                  style={hostnameStyle}
+                  title={hostname}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    viewDispatch({ type: 'FOCUS_NODE', hostname })
+                  }}
+                >
                   {hostname}
-                </span>
+                </button>
               </>
             )}
           </div>
@@ -562,5 +571,5 @@ const headerDividerStyle: React.CSSProperties = {
   width: 1, height: 12, background: '#e2e8f0', flexShrink: 0, marginTop: 2,
 }
 const hostnameStyle: React.CSSProperties = {
-  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#94a3b8', fontSize: 11, flexShrink: 1, lineHeight: '16px', marginTop: 2,
+  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#94a3b8', fontSize: 11, flexShrink: 1, lineHeight: '16px', marginTop: 2, background: 'none', border: 0, padding: 0, cursor: 'pointer', fontFamily: 'ui-monospace, Consolas, monospace',
 }
