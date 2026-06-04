@@ -53,6 +53,7 @@ export interface ClusterGroupMember {
   hostname: string
   partner_hostname?: string
   generated_on: string | null
+  uploaded_at: string | null
   original_filename: string
   file_count: number
   status: string

@@ -59,6 +59,9 @@ function SessionRow({ m, onDeleted }: { m: ClusterGroupMember; onDeleted?: () =>
         </div>
         <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 1 }}>
           {m.original_filename} · {m.file_count} files · {fmtNode(m.generated_on)}
+          <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 2 }}>
+            Uploaded: {fmtNode(m.uploaded_at || '')}
+          </div>
         </div>
       </div>
       <Link
