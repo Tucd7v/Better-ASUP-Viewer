@@ -150,7 +150,7 @@ export default function ManagerPage() {
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 20, flexWrap: 'wrap' }}>
           <input
             type="text"
-            placeholder="Search cluster ID, hostname, serial number…"
+            placeholder="Search cluster, hostname, SN…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             style={{
