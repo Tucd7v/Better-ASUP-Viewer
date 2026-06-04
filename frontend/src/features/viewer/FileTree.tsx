@@ -233,7 +233,7 @@ export default function FileTree({ sessions, clusterName, onFocusFile }: FileTre
   return (
     <aside className="file-tree-shell">
       <div className="file-tree-header">
-        <span>Node list</span>
+        <span>AiSUP Viewer</span>
         <div className="file-tree-actions">
           <button
             type="button"
