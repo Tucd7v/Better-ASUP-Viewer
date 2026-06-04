@@ -46,9 +46,14 @@ class ClusteringService:
         )
 
         for group_id, min_generated_on, max_generated_on in group_ranges.all():
+            # Strip timezone for comparison (DB may store tz-aware datetimes)
+            if min_generated_on and min_generated_on.tzinfo:
+                min_generated_on = min_generated_on.replace(tzinfo=None)
+            if max_generated_on and max_generated_on.tzinfo:
+                max_generated_on = max_generated_on.replace(tzinfo=None)
             group_window_start = min_generated_on - GROUPING_WINDOW
             group_window_end = max_generated_on + GROUPING_WINDOW
-            if group_window_start <= session.generated_on <= group_window_end:
+            if group_window_start <= session.generated_on.replace(tzinfo=None) if session.generated_on.tzinfo else session.generated_on <= group_window_end:
                 db.add(SessionGroupMember(group_id=group_id, session_id=session.id))
                 await db.commit()
                 return group_id
