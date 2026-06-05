@@ -40,6 +40,10 @@ function ColSwapMenu({
   onClose: () => void
 }) {
   const clampedLeft = Math.max(0, Math.min(left, cardWidth - MENU_WIDTH))
+  const [filter, setFilter] = useState('')
+  const filtered = filter
+    ? allCols.filter((c) => c.toLowerCase().includes(filter.toLowerCase()))
+    : allCols
 
   return (
     <>
@@ -56,14 +60,36 @@ function ColSwapMenu({
           boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
           width: MENU_WIDTH,
           maxHeight: 240,
-          overflowY: 'auto',
           fontFamily: 'ui-monospace, Consolas, monospace',
           fontSize: 11,
+          display: 'flex',
+          flexDirection: 'column',
         }}
         onClick={(e) => e.stopPropagation()}
         className="nowheel nodrag"
       >
-        {allCols.map((col) => (
+        <div style={{ padding: '4px 6px', borderBottom: '1px solid #e2e8f0', flexShrink: 0 }}>
+          <input
+            type=\"text\"
+            placeholder=\"Filter…\"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className=\"nodrag\"
+            autoFocus
+            style={{
+              width: '100%',
+              border: '1px solid #e2e8f0',
+              borderRadius: 4,
+              padding: '3px 6px',
+              fontSize: 11,
+              fontFamily: 'ui-monospace, Consolas, monospace',
+              outline: 'none',
+              boxSizing: 'border-box',
+            }}
+          />
+        </div>
+        <div style={{ overflowY: 'auto', flex: 1 }}>
+        {filtered.map((col) => (
           <div
             key={col}
             onClick={() => { onSelect(col); onClose() }}
@@ -80,6 +106,7 @@ function ColSwapMenu({
             {col}
           </div>
         ))}
+        </div>
       </div>
     </>
   )
