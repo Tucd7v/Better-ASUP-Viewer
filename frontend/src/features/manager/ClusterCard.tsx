@@ -219,8 +219,10 @@ function GroupRow({ group, onDeleted }: { group: ClusterGroup; onDeleted?: () =>
   return (
     <div
       style={{
+        borderLeft: '3px solid #a855f7',
+        paddingLeft: 10,
         borderTop: `1px solid ${colors.border}`,
-        padding: '14px 0',
+        padding: '14px 0 14px 10px',
       }}
     >
       <div
@@ -257,7 +259,7 @@ function GroupRow({ group, onDeleted }: { group: ClusterGroup; onDeleted?: () =>
               marginTop: 4,
             }}
           >
-            {group.members.length} grouped sessions
+            {group.members.length} grouped nodes
           </div>
         </div>
         <Link
@@ -392,7 +394,7 @@ export default function ClusterCard({ cluster, autoExpand = false, onDeleted }: 
                 textTransform: 'uppercase',
               }}
             >
-              Sessions
+              Nodes
             </div>
 
             {!overview ? (
@@ -425,7 +427,7 @@ export default function ClusterCard({ cluster, autoExpand = false, onDeleted }: 
 
                 {overview.groups.length === 0 && overview.singles.length === 0 && (
                   <div style={{ color: colors.textTertiary, fontSize: 12, lineHeight: '16px', padding: '14px 0' }}>
-                    No sessions
+                    No nodes
                   </div>
                 )}
               </>
