@@ -108,7 +108,7 @@ function TipsTicker() {
   }, [])
   return (
     <span style={{
-      fontSize: 11, color: '#94a3b8', overflow: 'hidden',
+      fontSize: 11, color: '#cbd5e1', overflow: 'hidden',
       whiteSpace: 'nowrap', maxWidth: 420,
     }}>
       💡 {TIPS[idx]}
