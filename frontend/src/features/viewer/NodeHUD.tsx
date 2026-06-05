@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { SessionMeta } from '../../types'
 
 interface NodeHUDProps {
@@ -17,7 +17,7 @@ export default function NodeHUD({ sessions }: NodeHUDProps) {
       if (used.has(s.sessionId)) continue
       out.push(s)
       used.add(s.sessionId)
-      const partner = (s as any).partnerHostname?.trim().toLowerCase()
+      const partner = s.partnerHostname?.trim().toLowerCase()
       if (!partner) continue
       const mate = sessions.find(
         (c) => c.sessionId !== s.sessionId && (c.hostname || '').trim().toLowerCase() === partner && !used.has(c.sessionId),
@@ -27,9 +27,10 @@ export default function NodeHUD({ sessions }: NodeHUDProps) {
     return out
   }, [sessions])
 
-  const rows = sorted.length
-    ? sorted
-    : [
+  const rows = useMemo(
+    () => sorted.length
+      ? sorted
+      : [
         {
           sessionId: '',
           serialNum: '',
@@ -38,7 +39,9 @@ export default function NodeHUD({ sessions }: NodeHUDProps) {
           hostname: 'NodeA',
           status: 'healthy',
         },
-      ]
+      ],
+    [sorted],
+  )
 
   const primary = rows[0]
   const clusterName = primary?.clusterName || primary?.cluster_name || ''
@@ -51,15 +54,12 @@ export default function NodeHUD({ sessions }: NodeHUDProps) {
   const rowsPerCol = rows.length === 4 ? 2 : 3
   const maxVisible = rowsPerCol * 2
   const pageCount = Math.ceil(rows.length / maxVisible)
+  const currentPage = Math.min(page, Math.max(0, pageCount - 1))
   const hasPages = pageCount > 1
   const visibleRows = useMemo(
-    () => rows.slice(page * maxVisible, page * maxVisible + maxVisible),
-    [maxVisible, page, rows],
+    () => rows.slice(currentPage * maxVisible, currentPage * maxVisible + maxVisible),
+    [currentPage, maxVisible, rows],
   )
-
-  useEffect(() => {
-    setPage((current) => Math.min(current, Math.max(0, pageCount - 1)))
-  }, [pageCount])
 
   return (
     <div className={`node-hud-bar${multiNode ? ' node-hud-bar--multi' : ''}`}>
@@ -82,24 +82,24 @@ export default function NodeHUD({ sessions }: NodeHUDProps) {
             className="hud-node-list"
             style={{ gridTemplateRows: `repeat(${rowsPerCol}, auto)` }}
           >
-            {visibleRows.map((session, index) => renderNode(session, page * maxVisible + index))}
+            {visibleRows.map((session, index) => renderNode(session, currentPage * maxVisible + index))}
           </div>
           {hasPages && (
             <div className="hud-node-page-actions">
               <button
                 type="button"
                 aria-label="Previous nodes"
-                disabled={page === 0}
-                onClick={() => setPage((current) => Math.max(0, current - 1))}
+                disabled={currentPage === 0}
+                onClick={() => setPage(Math.max(0, currentPage - 1))}
               >
                 ←
               </button>
-              <span>{page + 1}/{pageCount}</span>
+              <span>{currentPage + 1}/{pageCount}</span>
               <button
                 type="button"
                 aria-label="Next nodes"
-                disabled={page >= pageCount - 1}
-                onClick={() => setPage((current) => Math.min(pageCount - 1, current + 1))}
+                disabled={currentPage >= pageCount - 1}
+                onClick={() => setPage(Math.min(pageCount - 1, currentPage + 1))}
               >
                 →
               </button>
@@ -124,6 +124,7 @@ function renderNode(
   index: number,
 ) {
   const nodeName = session.hostname || fallbackNodeName(index)
+  const modelName = session.modelName || session.model_name || ''
 
   return (
     <div className="hud-node" key={session.sessionId || `${nodeName}-${index}`}>
@@ -132,6 +133,7 @@ function renderNode(
         style={{ backgroundColor: session.nodeColor ?? fallbackNodeColor(index) }}
       />
       <span className="hud-node-name">{nodeName}</span>
+      {modelName && <span className="hud-node-model">{modelName}</span>}
       <span className="hud-node-serial">{shortSerial(session.serialNum || session.sessionId)}</span>
     </div>
   )

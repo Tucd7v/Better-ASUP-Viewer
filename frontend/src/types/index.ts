@@ -29,6 +29,8 @@ export interface SessionMeta {
   clusterId?: string
   clusterName?: string
   cluster_name?: string
+  modelName?: string
+  model_name?: string
 }
 
 export interface Cluster {
@@ -36,7 +38,7 @@ export interface Cluster {
   cluster_name: string
   node_count: number
   last_seen: string
-  nodes: { id: string; hostname: string; serial_num: string; session_count: number }[]
+  nodes: { id: string; hostname: string; serial_num: string; model_name: string; session_count: number }[]
 }
 
 export interface Session {
@@ -47,12 +49,14 @@ export interface Session {
   original_filename: string
   file_count: number
   status: string
+  model_name: string
   group_id?: string
 }
 
 export interface ClusterGroupMember {
   session_id: string
   cluster_name: string
+  model_name: string
   serial_num: string
   hostname: string
   partner_hostname?: string

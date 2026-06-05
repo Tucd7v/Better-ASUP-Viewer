@@ -48,6 +48,7 @@ function fmtPlain(iso: string | null): string {
 // A single session row (used inside groups and singles)
 function SessionRow({ m, onDeleted }: { m: ClusterGroupMember; onDeleted?: () => void }) {
   const [deleting, setDeleting] = useState(false)
+  const nodeLabel = m.hostname || m.serial_num || '—'
 
   const handleDelete = async () => {
     if (!window.confirm('Delete this session and all its files?')) return
@@ -64,10 +65,15 @@ function SessionRow({ m, onDeleted }: { m: ClusterGroupMember; onDeleted?: () =>
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 12px', background: '#ffffff', border: '1px solid #f1f5f9', borderRadius: 4, flexWrap: 'wrap' }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 12, color: '#334155', fontFamily: 'ui-monospace, Consolas, monospace', fontWeight: 500 }}>
-          {m.serial_num || m.hostname || '—'}
+          {nodeLabel}
+          {m.model_name && (
+            <span style={{ fontSize: 11, color: '#94a3b8', marginLeft: 8, fontFamily: 'system-ui, -apple-system, sans-serif', fontWeight: 500 }}>
+              {m.model_name}
+            </span>
+          )}
         </div>
         <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 1 }}>
-          {m.original_filename} · {m.file_count} files · {fmtNode(m.generated_on)}
+          {m.serial_num && m.hostname ? `${m.serial_num} · ` : ''}{m.original_filename} · {m.file_count} files · {fmtNode(m.generated_on)}
           <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 2 }}>
             Uploaded: {fmtUpload(m.uploaded_at || '')}
           </div>

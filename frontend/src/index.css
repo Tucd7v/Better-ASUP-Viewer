@@ -475,6 +475,7 @@ body {
 
 .hud-cluster-name,
 .hud-node-name,
+.hud-node-model,
 .hud-node-serial,
 .hud-asup span:last-child {
   display: inline-flex;
@@ -495,7 +496,7 @@ body {
 .hud-node {
   display: grid;
   flex: 1.2 1 260px;
-  grid-template-columns: 10px max-content minmax(0, 1fr);
+  grid-template-columns: 10px max-content max-content minmax(0, 1fr);
 }
 
 .hud-node-pager {
@@ -560,6 +561,12 @@ body {
   font-family: inherit;
   letter-spacing: 0;
   color: #0f172a;
+}
+
+.hud-node-model {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .hud-asup {

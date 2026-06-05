@@ -526,6 +526,7 @@ function ViewerInner() {
     hostname?: string
     partnerHostname?: string
     serialNum?: string
+    modelName?: string
     clusterName?: string
     generatedOn?: string
     status?: string
@@ -573,6 +574,7 @@ function ViewerInner() {
             hostname?: string
             partner_hostname?: string
             serial_num?: string
+            model_name?: string
             cluster_name?: string
             generated_on?: string
             status?: string
@@ -582,6 +584,7 @@ function ViewerInner() {
             hostname: m.hostname,
             partnerHostname: m.partner_hostname,
             serialNum: m.serial_num,
+            modelName: m.model_name,
             clusterName: m.cluster_name,
             generatedOn: m.generated_on,
             status: m.status,
@@ -596,7 +599,7 @@ function ViewerInner() {
   }, [params.sessionId, params.groupId])
 
   useEffect(() => {
-    groupSessions.forEach(({ id, color, hostname, partnerHostname, serialNum, clusterName, generatedOn, status }) => {
+    groupSessions.forEach(({ id, color, hostname, partnerHostname, serialNum, modelName, clusterName, generatedOn, status }) => {
       Promise.all([
         getSessionStatus(id).catch(() => null),
         getFiles(id),
@@ -608,6 +611,8 @@ function ViewerInner() {
         const meta: SessionMeta = {
           sessionId: id,
           serialNum: serialNum ?? sessionData?.serial_num ?? '',
+          modelName: modelName ?? sessionData?.model_name ?? '',
+          model_name: modelName ?? sessionData?.model_name ?? '',
           generatedOn: generatedOn ?? sessionData?.generated_on ?? '',
           nodeColor: color,
           hostname: hostname ?? sessionData?.hostname ?? '',
@@ -634,7 +639,7 @@ function ViewerInner() {
         dispatch({ type: 'SET_FILES', files: nonEmpty, sessionId: id, nodeColor: color })
       }).catch(console.error)
     })
-  }, [groupSessions])
+  }, [groupSessions, dispatch])
 
   useEffect(() => {
     if (params.sessionId || params.groupId) {

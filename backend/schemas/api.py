@@ -20,6 +20,7 @@ class SessionStatusResponse(BaseModel):
     serial_num: Optional[str] = None
     cluster_id: Optional[str] = None
     cluster_name: Optional[str] = None
+    model_name: Optional[str] = None
     generated_on: Optional[datetime] = None
     file_count: int = 0
 
@@ -74,6 +75,7 @@ class NodeSummary(BaseModel):
     id: str
     hostname: str
     serial_num: str
+    model_name: str = ""
     session_count: int
 
     model_config = {"from_attributes": True}
@@ -102,6 +104,7 @@ class SessionSummary(BaseModel):
     original_filename: str
     file_count: int
     status: str
+    model_name: str = ""
     group_id: Optional[str] = None
 
     model_config = {"from_attributes": True}
@@ -116,6 +119,7 @@ class NodeSessionsResponse(BaseModel):
 class GroupMemberOut(BaseModel):
     session_id: str
     hostname: str
+    model_name: str = ""
     generated_on: Optional[datetime]
 
 
@@ -134,6 +138,7 @@ class SessionGroupsResponse(BaseModel):
 class ClusterGroupMember(BaseModel):
     session_id: str
     cluster_name: str = ""
+    model_name: str = ""
     serial_num: str
     hostname: str
     partner_hostname: str = ""

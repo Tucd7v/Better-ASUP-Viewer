@@ -6,6 +6,8 @@ import type { Session } from '../../types'
 interface NodeRowProps {
   clusterId: string
   nodeId: string
+  hostname?: string
+  modelName?: string
   serialNum: string
   osVersion: string
   sessionCount: number
@@ -15,6 +17,8 @@ interface NodeRowProps {
 export default function NodeRow({
   clusterId,
   nodeId,
+  hostname,
+  modelName,
   serialNum,
   osVersion,
   sessionCount,
@@ -78,8 +82,13 @@ export default function NodeRow({
               color: '#1e293b',
             }}
           >
-            {serialNum}
+            {hostname || serialNum}
           </span>
+          {modelName && (
+            <span style={{ fontSize: 11, color: '#94a3b8', marginLeft: 8 }}>
+              {modelName}
+            </span>
+          )}
           {osVersion && (
             <span style={{ fontSize: 11, color: '#94a3b8', marginLeft: 8 }}>
               {osVersion}
@@ -160,7 +169,7 @@ export default function NodeRow({
                       {s.original_filename}
                     </div>
                     <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>
-                      {formatDate(s.generated_on)} · {s.file_count} file
+                      {s.model_name ? `${s.model_name} · ` : ''}{formatDate(s.generated_on)} · {s.file_count} file
                       {s.file_count !== 1 ? 's' : ''}
                     </div>
                   </div>

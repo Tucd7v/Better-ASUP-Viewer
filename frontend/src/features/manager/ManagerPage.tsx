@@ -72,7 +72,8 @@ export default function ManagerPage() {
         .filter((cluster) =>
           cluster.nodes.some((node) =>
             node.hostname.toLowerCase().includes(q) ||
-            node.serial_num.toLowerCase().includes(q)
+            node.serial_num.toLowerCase().includes(q) ||
+            (node.model_name || '').toLowerCase().includes(q)
           )
         )
         .map((cluster) => cluster.id)
@@ -88,7 +89,8 @@ export default function ManagerPage() {
         cluster.id.toLowerCase().includes(q) ||
         cluster.nodes.some((node) =>
           node.hostname.toLowerCase().includes(q) ||
-          node.serial_num.toLowerCase().includes(q)
+          node.serial_num.toLowerCase().includes(q) ||
+          (node.model_name || '').toLowerCase().includes(q)
         )
 
       if (!matchesSearch) return false

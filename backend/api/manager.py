@@ -41,6 +41,19 @@ async def _get_cluster_name(db: AsyncSession, cluster_id: str | None) -> str:
     return result.scalar_one_or_none() or ""
 
 
+async def _get_node_model_name(db: AsyncSession, node_id: str | None) -> str:
+    if not node_id:
+        return ""
+
+    result = await db.execute(
+        select(Session.model_name)
+        .where(Session.node_id == node_id, Session.model_name != "")
+        .order_by(Session.uploaded_at.desc())
+        .limit(1)
+    )
+    return result.scalar_one_or_none() or ""
+
+
 @router.get("/clusters", response_model=ClustersResponse)
 async def list_clusters(
     q: str | None = Query(default=None),
@@ -54,7 +67,12 @@ async def list_clusters(
     if q:
         pattern = f"%{q}%"
         named_cluster_ids = select(Session.cluster_id).where(Session.cluster_name.ilike(pattern))
-        cluster_filter = or_(Cluster.id.ilike(pattern), Cluster.id.in_(named_cluster_ids))
+        model_cluster_ids = select(Session.cluster_id).where(Session.model_name.ilike(pattern))
+        cluster_filter = or_(
+            Cluster.id.ilike(pattern),
+            Cluster.id.in_(named_cluster_ids),
+            Cluster.id.in_(model_cluster_ids),
+        )
         stmt = stmt.where(cluster_filter)
         count_stmt = count_stmt.where(cluster_filter)
 
@@ -67,15 +85,17 @@ async def list_clusters(
 
     out = []
     for c in clusters:
-        nodes = [
-            NodeSummary(
-                id=n.id,
-                hostname=n.hostname,
-                serial_num=n.serial_num or "",
-                session_count=n.session_count or 0,
+        nodes = []
+        for n in (c.nodes or []):
+            nodes.append(
+                NodeSummary(
+                    id=n.id,
+                    hostname=n.hostname,
+                    serial_num=n.serial_num or "",
+                    model_name=await _get_node_model_name(db, n.id),
+                    session_count=n.session_count or 0,
+                )
             )
-            for n in (c.nodes or [])
-        ]
         out.append(
             ClusterOut(
                 id=c.id,
@@ -129,6 +149,7 @@ async def node_sessions(
                 original_filename=s.original_filename or "",
                 file_count=file_count,
                 status=s.status,
+                model_name=s.model_name or "",
                 group_id=group_id,
             )
         )
@@ -158,6 +179,7 @@ async def cluster_groups(cluster_id: str, db: AsyncSession = Depends(get_db)):
                 members.append(ClusterGroupMember(
                     session_id=s.id,
                     cluster_name=s.cluster_name or "",
+                    model_name=s.model_name or "",
                     serial_num=s.serial_num or "",
                     hostname=s.hostname or "",
                     partner_hostname=s.partner_hostname or "",
@@ -199,6 +221,7 @@ async def cluster_overview(cluster_id: str, db: AsyncSession = Depends(get_db)):
         return ClusterGroupMember(
             session_id=s.id,
             cluster_name=s.cluster_name or "",
+            model_name=s.model_name or "",
             serial_num=s.serial_num or "",
             hostname=s.hostname or "",
             partner_hostname=s.partner_hostname or "",
@@ -307,6 +330,7 @@ async def list_session_groups(
                     GroupMemberOut(
                         session_id=s.id,
                         hostname=s.hostname or "",
+                        model_name=s.model_name or "",
                         generated_on=s.generated_on,
                     )
                 )
@@ -346,6 +370,7 @@ async def get_session_group(group_id: str, db: AsyncSession = Depends(get_db)):
             members.append(ClusterGroupMember(
                 session_id=s.id,
                 cluster_name=s.cluster_name or "",
+                model_name=s.model_name or "",
                 serial_num=s.serial_num or "",
                 hostname=s.hostname or "",
                 partner_hostname=s.partner_hostname or "",

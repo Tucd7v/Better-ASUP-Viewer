@@ -18,6 +18,7 @@ HEADER_FIELDS = {
     "X-Netapp-asup-os-version": "os_version",
     "X-Netapp-asup-cluster-uuid": "cluster_uuid",
     "X-Netapp-asup-cluster-name": "cluster_name",
+    "X-Netapp-asup-model-name": "model_name",
     "X-Netapp-asup-generated-on": "generated_on",
     "X-Netapp-asup-serial-num": "serial_num",
 }
@@ -143,6 +144,7 @@ class ASUPParserService:
         serial_num = meta.get("serial_num", "")
         cluster_uuid = meta.get("cluster_uuid", "")
         cluster_name = meta.get("cluster_name", "")
+        model_name = meta.get("model_name", "")
         generated_on_raw = meta.get("generated_on", "")
         storage_failover_path = _find_storage_failover_file(self._files_dir)
         partner_hostname = (
@@ -192,6 +194,7 @@ class ASUPParserService:
         session_row.node_id = node_id
         session_row.cluster_id = cluster_id
         session_row.cluster_name = cluster_name
+        session_row.model_name = model_name
         session_row.hostname = hostname
         session_row.partner_hostname = partner_hostname
         session_row.serial_num = serial_num
