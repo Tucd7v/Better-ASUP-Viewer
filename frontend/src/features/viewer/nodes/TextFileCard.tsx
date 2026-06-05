@@ -153,7 +153,10 @@ export default function TextFileCard({ data }: NodeProps<TextFileNode>) {
                 onChange={(e) => setSearch(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && matchIndices.length > 0) {
-                    scrollToMatch(matchIndex)
+                    e.preventDefault()
+                    const next = (matchIndex + 1) % matchIndices.length
+                    setMatchIndex(next)
+                    scrollToMatch(next)
                   }
                 }}
                 style={{ ...inputStyle, flex: 1 }}
