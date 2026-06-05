@@ -287,38 +287,6 @@ export default function ManagerPage() {
 
           <div
             style={{
-              alignItems: 'center',
-              background: colors.accentLight,
-              border: `1px solid ${colors.blueBorder}`,
-              borderRadius: 12,
-              color: colors.textSecondary,
-              display: 'flex',
-              fontSize: 12,
-              gap: 8,
-              lineHeight: '16px',
-              marginBottom: 24,
-              padding: 12,
-            }}
-          >
-            <InfoIcon />
-            <span>Log directory:</span>
-            <code
-              style={{
-                background: colors.accentLight,
-                borderRadius: 4,
-                color: colors.accent,
-                fontFamily: '"SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace',
-                fontSize: 12,
-                padding: '2px 6px',
-              }}
-            >
-              portal/server/uploads/DM/
-            </code>
-            <span>— each subdirectory is an independent session</span>
-          </div>
-
-          <div
-            style={{
               ...glassStyle,
               border: `1px solid ${colors.border}`,
               borderRadius: 16,
