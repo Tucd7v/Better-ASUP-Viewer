@@ -8,7 +8,7 @@ interface FileTreeProps {
   onFocusFile: (fileId: string) => void
 }
 
-const FILE_TYPE_ORDER = ['txt', 'xml', 'ems', 'other']
+const FILE_TYPE_ORDER = ['txt', 'xml', 'ems']
 
 const FILE_TYPE_LABELS: Record<string, string> = {
   txt: 'TXT / TEXT',
