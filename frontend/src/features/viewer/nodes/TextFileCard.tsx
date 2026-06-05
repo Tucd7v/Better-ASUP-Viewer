@@ -151,6 +151,11 @@ export default function TextFileCard({ data }: NodeProps<TextFileNode>) {
                 placeholder="Search…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && matchIndices.length > 0) {
+                    scrollToMatch(matchIndex)
+                  }
+                }}
                 style={{ ...inputStyle, flex: 1 }}
                 className="nodrag"
               />
