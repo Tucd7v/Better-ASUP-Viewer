@@ -19,6 +19,7 @@ class SessionStatusResponse(BaseModel):
     partner_hostname: Optional[str] = None
     serial_num: Optional[str] = None
     cluster_id: Optional[str] = None
+    cluster_name: Optional[str] = None
     generated_on: Optional[datetime] = None
     file_count: int = 0
 
@@ -80,6 +81,7 @@ class NodeSummary(BaseModel):
 
 class ClusterOut(BaseModel):
     id: str
+    cluster_name: str = ""
     node_count: int
     last_seen: datetime
     nodes: list[NodeSummary]
@@ -120,6 +122,7 @@ class GroupMemberOut(BaseModel):
 class SessionGroupOut(BaseModel):
     id: str
     cluster_id: str
+    cluster_name: str = ""
     created_at: datetime
     members: list[GroupMemberOut]
 
@@ -130,6 +133,7 @@ class SessionGroupsResponse(BaseModel):
 
 class ClusterGroupMember(BaseModel):
     session_id: str
+    cluster_name: str = ""
     serial_num: str
     hostname: str
     partner_hostname: str = ""
@@ -148,6 +152,7 @@ class ClusterGroupSummary(BaseModel):
 
 class ClusterOverviewResponse(BaseModel):
     cluster_id: str
+    cluster_name: str = ""
     last_seen: datetime
     groups: list[ClusterGroupSummary]      # paired sessions (±20 min)
     singles: list[ClusterGroupMember]      # sessions without a pair

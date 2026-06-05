@@ -191,6 +191,7 @@ async def get_session_status(session_id: str, db: AsyncSession = Depends(get_db)
         partner_hostname=session_row.partner_hostname or None,
         serial_num=session_row.serial_num or None,
         cluster_id=session_row.cluster_id,
+        cluster_name=session_row.cluster_name or None,
         generated_on=session_row.generated_on,
         file_count=file_count,
     )

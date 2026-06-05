@@ -20,7 +20,6 @@ const FILE_TYPE_LABELS: Record<string, string> = {
 export default function FileTree({ sessions, clusterName, onFocusFile }: FileTreeProps) {
   const { state, dispatch } = useViewer()
   const [fileSearch, setFileSearch] = useState('')
-  const [expandedCluster, setExpandedCluster] = useState(true)
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set())
   const [expandedTypes, setExpandedTypes] = useState<Set<string>>(new Set())
   const [flashingSessionId, setFlashingSessionId] = useState<string | null>(null)
@@ -145,7 +144,6 @@ export default function FileTree({ sessions, clusterName, onFocusFile }: FileTre
     )
     if (matchedFiles.length === 0) return
 
-    setExpandedCluster(true)
     setExpandedNodes((prev) => {
       const next = new Set(prev)
       matchedFiles.forEach((file) => {
@@ -176,7 +174,6 @@ export default function FileTree({ sessions, clusterName, onFocusFile }: FileTre
       return
     }
 
-    setExpandedCluster(true)
     setExpandedNodes((prev) => {
       const next = new Set(prev)
       next.add(targetSession.sessionId)
@@ -234,15 +231,6 @@ export default function FileTree({ sessions, clusterName, onFocusFile }: FileTre
     <aside className="file-tree-shell">
       <div className="file-tree-header">
         <span>AiSUP Viewer</span>
-        <div className="file-tree-actions">
-          <button
-            type="button"
-            aria-label={expandedCluster ? '收起节点列表' : '展开节点列表'}
-            onClick={() => setExpandedCluster((value) => !value)}
-          >
-            {expandedCluster ? '−' : '+'}
-          </button>
-        </div>
       </div>
 
       <div className="file-search-panel">
@@ -258,19 +246,13 @@ export default function FileTree({ sessions, clusterName, onFocusFile }: FileTre
       </div>
 
       <div className="cluster-tree">
-        <button
-          className="cluster-row tree-button"
-          type="button"
-          onClick={() => setExpandedCluster((value) => !value)}
-        >
-          <span className="tree-caret">{expandedCluster ? '▾' : '▸'}</span>
+        <div className="cluster-row">
           <span className="cluster-dot" />
           <span className="cluster-title">Cluster:</span>
           <span className="cluster-name">{clusterName}</span>
-        </button>
+        </div>
 
-        {expandedCluster && (
-          <div className="node-list">
+        <div className="node-list">
             {sortedSessionRows.map((session, index) => {
               const nodeName = session.hostname || (index === 0 ? 'NodeA' : 'NodeB')
               const color = session.nodeColor
@@ -384,8 +366,7 @@ export default function FileTree({ sessions, clusterName, onFocusFile }: FileTre
                 </div>
               )
             })}
-          </div>
-        )}
+        </div>
       </div>
 
     </aside>

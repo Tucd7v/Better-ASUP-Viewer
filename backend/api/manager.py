@@ -4,7 +4,7 @@ import shutil
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import func, select, delete
+from sqlalchemy import func, or_, select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -28,6 +28,19 @@ from schemas.api import (
 router = APIRouter()
 
 
+async def _get_cluster_name(db: AsyncSession, cluster_id: str | None) -> str:
+    if not cluster_id:
+        return ""
+
+    result = await db.execute(
+        select(Session.cluster_name)
+        .where(Session.cluster_id == cluster_id, Session.cluster_name != "")
+        .order_by(Session.uploaded_at.desc())
+        .limit(1)
+    )
+    return result.scalar_one_or_none() or ""
+
+
 @router.get("/clusters", response_model=ClustersResponse)
 async def list_clusters(
     q: str | None = Query(default=None),
@@ -36,12 +49,16 @@ async def list_clusters(
     db: AsyncSession = Depends(get_db),
 ):
     stmt = select(Cluster).options(selectinload(Cluster.nodes))
+    count_stmt = select(func.count(Cluster.id))
 
     if q:
         pattern = f"%{q}%"
-        stmt = stmt.where(Cluster.id.ilike(pattern))
+        named_cluster_ids = select(Session.cluster_id).where(Session.cluster_name.ilike(pattern))
+        cluster_filter = or_(Cluster.id.ilike(pattern), Cluster.id.in_(named_cluster_ids))
+        stmt = stmt.where(cluster_filter)
+        count_stmt = count_stmt.where(cluster_filter)
 
-    count_result = await db.execute(select(func.count(Cluster.id)))
+    count_result = await db.execute(count_stmt)
     total = count_result.scalar_one()
 
     stmt = stmt.offset(offset).limit(limit)
@@ -62,6 +79,7 @@ async def list_clusters(
         out.append(
             ClusterOut(
                 id=c.id,
+                cluster_name=await _get_cluster_name(db, c.id),
                 node_count=c.node_count or 0,
                 last_seen=c.last_seen,
                 nodes=nodes,
@@ -139,6 +157,7 @@ async def cluster_groups(cluster_id: str, db: AsyncSession = Depends(get_db)):
                 )
                 members.append(ClusterGroupMember(
                     session_id=s.id,
+                    cluster_name=s.cluster_name or "",
                     serial_num=s.serial_num or "",
                     hostname=s.hostname or "",
                     partner_hostname=s.partner_hostname or "",
@@ -179,6 +198,7 @@ async def cluster_overview(cluster_id: str, db: AsyncSession = Depends(get_db)):
         )
         return ClusterGroupMember(
             session_id=s.id,
+            cluster_name=s.cluster_name or "",
             serial_num=s.serial_num or "",
             hostname=s.hostname or "",
             partner_hostname=s.partner_hostname or "",
@@ -216,6 +236,7 @@ async def cluster_overview(cluster_id: str, db: AsyncSession = Depends(get_db)):
 
     return ClusterOverviewResponse(
         cluster_id=cluster_id,
+        cluster_name=await _get_cluster_name(db, cluster_id),
         last_seen=cluster.last_seen,
         groups=group_summaries,
         singles=singles,
@@ -293,6 +314,7 @@ async def list_session_groups(
             SessionGroupOut(
                 id=g.id,
                 cluster_id=g.cluster_id,
+                cluster_name=await _get_cluster_name(db, g.cluster_id),
                 created_at=g.created_at,
                 members=members,
             )
@@ -323,6 +345,7 @@ async def get_session_group(group_id: str, db: AsyncSession = Depends(get_db)):
             )
             members.append(ClusterGroupMember(
                 session_id=s.id,
+                cluster_name=s.cluster_name or "",
                 serial_num=s.serial_num or "",
                 hostname=s.hostname or "",
                 partner_hostname=s.partner_hostname or "",

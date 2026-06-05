@@ -43,6 +43,7 @@ class Session(Base):
     id: Mapped[str] = mapped_column(String, primary_key=True)
     node_id: Mapped[str | None] = mapped_column(String, ForeignKey("nodes.id"), nullable=True)
     cluster_id: Mapped[str | None] = mapped_column(String, ForeignKey("clusters.id"), nullable=True)
+    cluster_name: Mapped[str] = mapped_column(String, default="")
     hostname: Mapped[str] = mapped_column(String, default="")
     partner_hostname: Mapped[str] = mapped_column(String, default="")
     serial_num: Mapped[str] = mapped_column(String, default="")

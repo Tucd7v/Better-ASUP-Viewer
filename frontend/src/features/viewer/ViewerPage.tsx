@@ -515,7 +515,10 @@ function ViewerInner() {
   const dragging = useRef(false)
   const fileMetaRef = useRef<Map<string, { sessionId: string; nodeColor: string; file: FileRecord }>>(new Map())
   const { fitView, getViewport } = useReactFlow()
-  const clusterName = sessions.find((s) => s.clusterId)?.clusterId || 'PROD-01'
+  const clusterName =
+    sessions.find((s) => s.clusterName)?.clusterName ||
+    sessions.find((s) => s.clusterId)?.clusterId ||
+    'PROD-01'
 
   const [groupSessions, setGroupSessions] = useState<{
     id: string
@@ -523,6 +526,7 @@ function ViewerInner() {
     hostname?: string
     partnerHostname?: string
     serialNum?: string
+    clusterName?: string
     generatedOn?: string
     status?: string
   }[]>([])
@@ -569,6 +573,7 @@ function ViewerInner() {
             hostname?: string
             partner_hostname?: string
             serial_num?: string
+            cluster_name?: string
             generated_on?: string
             status?: string
           }, i: number) => ({
@@ -577,6 +582,7 @@ function ViewerInner() {
             hostname: m.hostname,
             partnerHostname: m.partner_hostname,
             serialNum: m.serial_num,
+            clusterName: m.cluster_name,
             generatedOn: m.generated_on,
             status: m.status,
           }))
@@ -590,7 +596,7 @@ function ViewerInner() {
   }, [params.sessionId, params.groupId])
 
   useEffect(() => {
-    groupSessions.forEach(({ id, color, hostname, partnerHostname, serialNum, generatedOn, status }) => {
+    groupSessions.forEach(({ id, color, hostname, partnerHostname, serialNum, clusterName, generatedOn, status }) => {
       Promise.all([
         getSessionStatus(id).catch(() => null),
         getFiles(id),
@@ -609,6 +615,8 @@ function ViewerInner() {
           status: status ?? sessionData?.status ?? '',
           fileCount: sessionData?.file_count,
           clusterId: sessionData?.cluster_id,
+          clusterName: clusterName ?? sessionData?.cluster_name ?? '',
+          cluster_name: clusterName ?? sessionData?.cluster_name ?? '',
         }
 
         setSessions((prev) => {

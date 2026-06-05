@@ -32,6 +32,8 @@ async def create_all():
             names = {row[1] for row in columns}
             if "partner_hostname" not in names:
                 await conn.execute(text("ALTER TABLE sessions ADD COLUMN partner_hostname VARCHAR DEFAULT ''"))
+            if "cluster_name" not in names:
+                await conn.execute(text("ALTER TABLE sessions ADD COLUMN cluster_name VARCHAR DEFAULT ''"))
             template_columns = await conn.execute(text("PRAGMA table_info(canvas_templates)"))
             template_names = {row[1] for row in template_columns}
             if "split_mode" not in template_names:

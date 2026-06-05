@@ -7,6 +7,7 @@ interface NodeHUDProps {
 
 export default function NodeHUD({ sessions }: NodeHUDProps) {
   const [page, setPage] = useState(0)
+  const [showClusterUuid, setShowClusterUuid] = useState(false)
 
   const sorted = useMemo(() => {
     if (sessions.length === 0) return sessions
@@ -40,7 +41,11 @@ export default function NodeHUD({ sessions }: NodeHUDProps) {
       ]
 
   const primary = rows[0]
-  const clusterLabel = primary?.clusterId || 'PROD-01'
+  const clusterName = primary?.clusterName || primary?.cluster_name || ''
+  const clusterUuid = primary?.clusterId || ''
+  const clusterLabel = showClusterUuid
+    ? clusterUuid || clusterName || 'PROD-01'
+    : clusterName || clusterUuid || 'PROD-01'
   const asupTime = rows.find((s) => s.generatedOn)?.generatedOn ?? ''
   const multiNode = rows.length > 2
   const rowsPerCol = rows.length === 4 ? 2 : 3
@@ -61,6 +66,14 @@ export default function NodeHUD({ sessions }: NodeHUDProps) {
       <div className="hud-cluster">
         <span className="hud-label">Cluster:</span>
         <span className="hud-cluster-name">{clusterLabel}</span>
+        <button
+          type="button"
+          className="hud-cluster-toggle"
+          aria-label={showClusterUuid ? 'Show cluster name' : 'Show cluster UUID'}
+          onClick={() => setShowClusterUuid((value) => !value)}
+        >
+          🔄
+        </button>
       </div>
 
       {multiNode ? (

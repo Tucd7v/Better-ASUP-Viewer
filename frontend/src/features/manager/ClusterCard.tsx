@@ -154,6 +154,7 @@ export default function ClusterCard({ cluster, autoExpand = false, onDeleted }: 
   const refresh = () => setLoadKey((k) => k + 1)
 
   const lastSeen = fmt(cluster.last_seen)
+  const clusterTitle = cluster.cluster_name || cluster.id.slice(0, 8)
 
   return (
     <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 8, overflow: 'hidden', marginBottom: 12 }}>
@@ -164,8 +165,11 @@ export default function ClusterCard({ cluster, autoExpand = false, onDeleted }: 
       >
         <span style={{ color: '#94a3b8', fontSize: 12 }}>{expanded ? '▼' : '▶'}</span>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontFamily: 'ui-monospace, Consolas, monospace', fontSize: 13, color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {cluster.id}
+          <div style={{ fontSize: 15, color: '#1e293b', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {clusterTitle}
+          </div>
+          <div style={{ fontFamily: 'ui-monospace, Consolas, monospace', fontSize: 11, color: '#94a3b8', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            UUID: {cluster.id}
           </div>
           <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 1 }}>
             Last upload: {lastSeen}
