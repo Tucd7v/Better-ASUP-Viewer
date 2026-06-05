@@ -46,6 +46,7 @@ const actionStyle: CSSProperties = {
 
 interface ClusterCardProps {
   cluster: Cluster
+  autoExpand?: boolean
   onDeleted?: () => void
 }
 
@@ -288,10 +289,17 @@ function GroupRow({ group, onDeleted }: { group: ClusterGroup; onDeleted?: () =>
   )
 }
 
-export default function ClusterCard({ cluster, onDeleted }: ClusterCardProps) {
-  const [expanded, setExpanded] = useState(true)
+export default function ClusterCard({ cluster, autoExpand = false, onDeleted }: ClusterCardProps) {
+  const [expanded, setExpanded] = useState(false)
   const [overview, setOverview] = useState<ClusterOverview | null>(null)
   const [loadKey, setLoadKey] = useState(0)
+
+  useEffect(() => {
+    if (!autoExpand) return
+
+    const timer = window.setTimeout(() => setExpanded(true), 0)
+    return () => window.clearTimeout(timer)
+  }, [autoExpand])
 
   useEffect(() => {
     if (!expanded) return
@@ -373,36 +381,6 @@ export default function ClusterCard({ cluster, onDeleted }: ClusterCardProps) {
             padding: '16px 20px',
           }}
         >
-          {cluster.nodes.length > 0 && (
-            <div style={{ marginBottom: 18, overflowX: 'auto' }}>
-              <table
-                style={{
-                  borderCollapse: 'collapse',
-                  width: '100%',
-                }}
-              >
-                <thead>
-                  <tr>
-                    <th style={nodeHeaderStyle}>Hostname</th>
-                    <th style={nodeHeaderStyle}>Model</th>
-                    <th style={nodeHeaderStyle}>Serial</th>
-                    <th style={nodeHeaderStyle}>Sessions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {cluster.nodes.map((node) => (
-                    <tr key={node.id}>
-                      <td style={nodeCellPrimaryStyle}>{node.hostname || '—'}</td>
-                      <td style={nodeCellStyle}>{node.model_name || '—'}</td>
-                      <td style={{ ...nodeCellStyle, fontFamily: monoFont }}>{node.serial_num || '—'}</td>
-                      <td style={nodeCellStyle}>{node.session_count}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
           <div>
             <div
               style={{
@@ -457,34 +435,4 @@ export default function ClusterCard({ cluster, onDeleted }: ClusterCardProps) {
       )}
     </div>
   )
-}
-
-const nodeHeaderStyle: CSSProperties = {
-  borderBottom: `1px solid ${colors.border}`,
-  color: colors.textTertiary,
-  fontSize: 12,
-  fontWeight: 500,
-  lineHeight: '16px',
-  padding: '0 12px 10px 0',
-  textAlign: 'left',
-  textTransform: 'uppercase',
-  whiteSpace: 'nowrap',
-}
-
-const nodeCellStyle: CSSProperties = {
-  borderBottom: `1px solid ${colors.border}`,
-  color: colors.textSecondary,
-  fontSize: 14,
-  lineHeight: '20px',
-  maxWidth: 220,
-  overflow: 'hidden',
-  padding: '10px 12px 10px 0',
-  textOverflow: 'ellipsis',
-  whiteSpace: 'nowrap',
-}
-
-const nodeCellPrimaryStyle: CSSProperties = {
-  ...nodeCellStyle,
-  color: colors.textPrimary,
-  fontWeight: 500,
 }

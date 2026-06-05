@@ -117,27 +117,6 @@ function DatabaseIcon() {
   )
 }
 
-function InfoIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      fill="none"
-      height="16"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-      width="16"
-      style={{ color: colors.accent, flex: '0 0 auto' }}
-    >
-      <path
-        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="1.5"
-      />
-    </svg>
-  )
-}
-
 export default function ManagerPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [clusters, setClusters] = useState<Cluster[]>([])
@@ -159,6 +138,23 @@ export default function ManagerPage() {
       .catch(() => setClusters([]))
       .finally(() => setLoading(false))
   }, [refreshKey])
+
+  const matchedClusterIds = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    if (!q) return new Set<string>()
+
+    return new Set(
+      clusters
+        .filter((cluster) =>
+          cluster.nodes.some((node) =>
+            node.hostname.toLowerCase().includes(q) ||
+            node.serial_num.toLowerCase().includes(q) ||
+            (node.model_name || '').toLowerCase().includes(q)
+          )
+        )
+        .map((cluster) => cluster.id)
+    )
+  }, [clusters, search])
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -409,6 +405,7 @@ export default function ManagerPage() {
                 <ClusterCard
                   key={cluster.id}
                   cluster={cluster}
+                  autoExpand={matchedClusterIds.has(cluster.id)}
                   onDeleted={refreshClusters}
                 />
               ))}
