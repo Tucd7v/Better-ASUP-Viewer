@@ -70,11 +70,11 @@ function ColSwapMenu({
       >
         <div style={{ padding: '4px 6px', borderBottom: '1px solid #e2e8f0', flexShrink: 0 }}>
           <input
-            type=\"text\"
-            placeholder=\"Filter…\"
+            type="text"
+            placeholder="Filter…"
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            className=\"nodrag\"
+            className="nodrag"
             autoFocus
             style={{
               width: '100%',
