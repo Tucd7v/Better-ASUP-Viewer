@@ -394,7 +394,7 @@ export default function ClusterCard({ cluster, autoExpand = false, onDeleted }: 
                 textTransform: 'uppercase',
               }}
             >
-              Nodes
+              Sessions
             </div>
 
             {!overview ? (
