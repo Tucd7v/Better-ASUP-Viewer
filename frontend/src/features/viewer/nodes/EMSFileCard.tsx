@@ -14,6 +14,7 @@ export interface EMSFileCardData extends Record<string, unknown> {
   splitMode?: boolean
   onCollapse: () => void
   onHide: () => void
+  onDuplicate: () => void
 }
 
 export type EMSFileNode = Node<EMSFileCardData, 'emsFile'>
@@ -49,7 +50,7 @@ function highlight(text: string, query: string): React.ReactNode {
 }
 
 export default function EMSFileCard({ data }: NodeProps<EMSFileNode>) {
-  const { fileId, sessionId, filename, nodeColor, collapsed, splitMode, onCollapse, onHide } = data
+  const { fileId, sessionId, filename, nodeColor, collapsed, splitMode, onCollapse, onHide, onDuplicate } = data
   const { width, height, onResizeX, onResizeY } = useResizable(800, 400)
 
   const [events, setEvents] = useState<EMSEvent[]>([])
@@ -168,10 +169,19 @@ export default function EMSFileCard({ data }: NodeProps<EMSFileNode>) {
               </>
             )}
           </div>
-          <button onClick={onCollapse} style={btnStyle} title={collapsed ? 'Expand' : 'Collapse'}>
+          <button
+            type="button"
+            className="nodrag"
+            onClick={(e) => { e.stopPropagation(); onDuplicate() }}
+            style={btnStyle}
+            title="Duplicate"
+          >
+            [⧉] Duplicate
+          </button>
+          <button type="button" className="nodrag" onClick={onCollapse} style={btnStyle} title={collapsed ? 'Expand' : 'Collapse'}>
             {collapsed ? '[+]' : '[−]'}
           </button>
-          <button onClick={onHide} style={btnStyle} title="Hide">
+          <button type="button" className="nodrag" onClick={onHide} style={btnStyle} title="Hide">
             [×]
           </button>
         </div>

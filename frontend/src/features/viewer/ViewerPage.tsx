@@ -76,8 +76,18 @@ function buildNode(
       collapsed: false,
       onCollapse: () => dispatch({ type: 'TOGGLE_COLLAPSE', fileId: file.id }),
       onHide: () => dispatch({ type: 'HIDE_FILE', fileId: file.id }),
+      onDuplicate: () => {},
     },
   }
+}
+
+function dedupeNodesById(nodes: Node[]): Node[] {
+  const seen = new Set<string>()
+  return nodes.filter((node) => {
+    if (seen.has(node.id)) return false
+    seen.add(node.id)
+    return true
+  })
 }
 
 const CARD_W = 340
@@ -444,7 +454,7 @@ function ViewerInner() {
 
   const onNodesChange = useCallback((changes: NodeChange<Node>[]) => {
     setTabs(prev => prev.map(t => t.id === activeTabId
-      ? { ...t, nodes: applyNodeChanges(changes, t.nodes) }
+      ? { ...t, nodes: dedupeNodesById(applyNodeChanges(changes, t.nodes)) }
       : t
     ))
   }, [activeTabId])
@@ -514,7 +524,7 @@ function ViewerInner() {
   const [sidebarWidth, setSidebarWidth] = useState(245)
   const dragging = useRef(false)
   const fileMetaRef = useRef<Map<string, { sessionId: string; nodeColor: string; file: FileRecord }>>(new Map())
-  const { fitView, getViewport } = useReactFlow()
+  const { fitView, getViewport, addNodes } = useReactFlow()
   const clusterName =
     sessions.find((s) => s.clusterName)?.clusterName ||
     sessions.find((s) => s.clusterId)?.clusterId ||
@@ -718,6 +728,62 @@ function ViewerInner() {
     [fitView, getViewport, sidebarWidth, dispatch, splitMode, state.hiddenFileIds, setNodesForTab]
   )
 
+  const handleDuplicateCard = useCallback((node: Node) => {
+    const nodeId = crypto.randomUUID()
+    const sourceData = node.data as Record<string, unknown> & {
+      filename?: string
+      collapsed?: boolean
+    }
+    const filename = typeof sourceData.filename === 'string' ? sourceData.filename : node.id
+
+    const newNode: Node = {
+      ...node,
+      id: nodeId,
+      hidden: false,
+      selected: false,
+      dragging: false,
+      position: {
+        x: node.position.x + 30,
+        y: node.position.y + 30,
+      },
+      data: {
+        ...sourceData,
+        filename: `[Duplicate] ${filename}`,
+        collapsed: Boolean(sourceData.collapsed),
+        __duplicate: true,
+        onCollapse: () => {
+          setNodesForTab(activeTabIdRef.current, (prev) =>
+            prev.map((current) =>
+              current.id === nodeId
+                ? {
+                    ...current,
+                    data: {
+                      ...current.data,
+                      collapsed: !(current.data as { collapsed?: boolean }).collapsed,
+                    },
+                  }
+                : current
+            )
+          )
+        },
+        onHide: () => {
+          setNodesForTab(activeTabIdRef.current, (prev) =>
+            prev.map((current) => current.id === nodeId ? { ...current, hidden: true } : current)
+          )
+        },
+        onDuplicate: () => {},
+      },
+    }
+
+    addNodes(newNode)
+
+    if (splitMode) {
+      setNodesForTab(activeTabIdRef.current, (prev) =>
+        prev.some((current) => current.id === nodeId) ? prev : [...prev, newNode]
+      )
+    }
+  }, [addNodes, setNodesForTab, splitMode])
+
   const onEdgeDoubleClick = useCallback((event: React.MouseEvent, edge: Edge) => {
     event.stopPropagation()
     setEditingEdgeId(edge.id)
@@ -910,17 +976,58 @@ function ViewerInner() {
   const visibleNodes = useMemo(
     () =>
       nodes.map((n) => {
-        const fileId = (n.data as { fileId: string }).fileId
-        const hidden = state.hiddenFileIds.has(fileId)
-        const collapsed = state.collapsedFileIds.has(fileId)
-        return { ...n, hidden, data: { ...n.data, collapsed } }
+        const data = n.data as {
+          fileId: string
+          collapsed?: boolean
+          __duplicate?: boolean
+          onCollapse?: () => void
+          onHide?: () => void
+        }
+        const fileId = data.fileId
+        const isDuplicate = data.__duplicate === true
+        const hidden = isDuplicate ? Boolean(n.hidden) : state.hiddenFileIds.has(fileId)
+        const collapsed = isDuplicate ? Boolean(data.collapsed) : state.collapsedFileIds.has(fileId)
+        const nodeWithState = { ...n, hidden, data: { ...n.data, collapsed } }
+
+        return {
+          ...nodeWithState,
+          data: {
+            ...nodeWithState.data,
+            onCollapse: isDuplicate
+              ? () => {
+                  setNodesForTab(activeTabIdRef.current, (prev) =>
+                    prev.map((current) =>
+                      current.id === n.id
+                        ? {
+                            ...current,
+                            data: {
+                              ...current.data,
+                              collapsed: !(current.data as { collapsed?: boolean }).collapsed,
+                            },
+                          }
+                        : current
+                    )
+                  )
+                }
+              : data.onCollapse,
+            onHide: isDuplicate
+              ? () => {
+                  setNodesForTab(activeTabIdRef.current, (prev) =>
+                    prev.map((current) => current.id === n.id ? { ...current, hidden: true } : current)
+                  )
+                }
+              : data.onHide,
+            onDuplicate: () => handleDuplicateCard(nodeWithState),
+          },
+        }
       }),
-    [nodes, state.hiddenFileIds, state.collapsedFileIds]
+    [nodes, state.hiddenFileIds, state.collapsedFileIds, handleDuplicateCard, setNodesForTab]
   )
 
   const tabFileIds = useMemo(
     () =>
       nodes
+        .filter((n) => (n.data as { __duplicate?: boolean }).__duplicate !== true)
         .map((n) => (n.data as { fileId?: string }).fileId)
         .filter((fileId): fileId is string => typeof fileId === 'string' && !state.hiddenFileIds.has(fileId)),
     [nodes, state.hiddenFileIds]

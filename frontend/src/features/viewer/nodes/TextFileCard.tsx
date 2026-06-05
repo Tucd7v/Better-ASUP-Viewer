@@ -13,6 +13,7 @@ export interface TextFileCardData extends Record<string, unknown> {
   splitMode?: boolean
   onCollapse: () => void
   onHide: () => void
+  onDuplicate: () => void
 }
 
 export type TextFileNode = Node<TextFileCardData, 'textFile'>
@@ -33,7 +34,7 @@ function highlight(line: string, term: string): React.ReactNode {
 }
 
 export default function TextFileCard({ data }: NodeProps<TextFileNode>) {
-  const { fileId, sessionId, filename, nodeColor, collapsed, splitMode, onCollapse, onHide } = data
+  const { fileId, sessionId, filename, nodeColor, collapsed, splitMode, onCollapse, onHide, onDuplicate } = data
   const { width, height, onResizeX, onResizeY } = useResizable(900, 340)
 
   const [lines, setLines] = useState<string[]>([])
@@ -137,10 +138,19 @@ export default function TextFileCard({ data }: NodeProps<TextFileNode>) {
               </>
             )}
           </div>
-          <button onClick={onCollapse} style={btnStyle} title={collapsed ? 'Expand' : 'Collapse'}>
+          <button
+            type="button"
+            className="nodrag"
+            onClick={(e) => { e.stopPropagation(); onDuplicate() }}
+            style={btnStyle}
+            title="Duplicate"
+          >
+            [⧉] Duplicate
+          </button>
+          <button type="button" className="nodrag" onClick={onCollapse} style={btnStyle} title={collapsed ? 'Expand' : 'Collapse'}>
             {collapsed ? '[+]' : '[−]'}
           </button>
-          <button onClick={onHide} style={btnStyle} title="Hide">[×]</button>
+          <button type="button" className="nodrag" onClick={onHide} style={btnStyle} title="Hide">[×]</button>
         </div>
 
         {!collapsed && (

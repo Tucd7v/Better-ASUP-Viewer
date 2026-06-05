@@ -13,6 +13,7 @@ export interface XMLFileCardData extends Record<string, unknown> {
   splitMode?: boolean
   onCollapse: () => void
   onHide: () => void
+  onDuplicate: () => void
 }
 
 export type XMLFileNode = Node<XMLFileCardData, 'xmlFile'>
@@ -113,7 +114,7 @@ function ColSwapMenu({
 }
 
 export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
-  const { fileId, sessionId, filename, nodeColor, collapsed, splitMode, onCollapse, onHide } = data
+  const { fileId, sessionId, filename, nodeColor, collapsed, splitMode, onCollapse, onHide, onDuplicate } = data
   const { width, height, setWidth, onResizeX, onResizeY } = useResizable(320, 360)
 
   const [rows, setRows] = useState<TableRow[]>([])
@@ -396,10 +397,19 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
               </>
             )}
           </div>
-          <button onClick={onCollapse} style={btnStyle} title={collapsed ? 'Expand' : 'Collapse'}>
+          <button
+            type="button"
+            className="nodrag"
+            onClick={(e) => { e.stopPropagation(); onDuplicate() }}
+            style={btnStyle}
+            title="Duplicate"
+          >
+            [⧉] Duplicate
+          </button>
+          <button type="button" className="nodrag" onClick={onCollapse} style={btnStyle} title={collapsed ? 'Expand' : 'Collapse'}>
             {collapsed ? '[+]' : '[−]'}
           </button>
-          <button onClick={onHide} style={btnStyle} title="Hide">[×]</button>
+          <button type="button" className="nodrag" onClick={onHide} style={btnStyle} title="Hide">[×]</button>
         </div>
 
         {!collapsed && (
