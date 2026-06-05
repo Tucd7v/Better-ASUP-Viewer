@@ -97,10 +97,13 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(false)
   const [pinnedCols, setPinnedCols] = useState<Set<string>>(new Set())
+  const [columnWidths, setColumnWidths] = useState<Record<string, number>>({})
 
   const dragCol = useRef<string | null>(null)
   const dragOverCol = useRef<string | null>(null)
+  const resizeCol = useRef<{ col: string; startX: number; startWidth: number } | null>(null)
   const [dragTarget, setDragTarget] = useState<string | null>(null)
+  const [resizingCol, setResizingCol] = useState<string | null>(null)
   const [swapMenuCol, setSwapMenuCol] = useState<string | null>(null)
   const [swapMenuPos, setSwapMenuPos] = useState<{ left: number; top: number }>({ left: 0, top: 0 })
   const [swapMenuCardWidth, setSwapMenuCardWidth] = useState(width)
@@ -112,6 +115,34 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
   const [highlightRow, setHighlightRow] = useState<number | null>(null)
   const { state, dispatch: viewDispatch } = useViewer()
   const hostname = state.sessions.find((session) => session.sessionId === sessionId)?.hostname?.trim() ?? ''
+  const getColumnWidth = (col: string) => Math.max(100, col.length * 9)
+
+  useEffect(() => {
+    const onMouseMove = (e: MouseEvent) => {
+      const current = resizeCol.current
+      if (!current) return
+
+      const nextWidth = Math.max(50, current.startWidth + (e.clientX - current.startX))
+      setColumnWidths((prev) => ({ ...prev, [current.col]: nextWidth }))
+    }
+
+    const onMouseUp = () => {
+      if (!resizeCol.current) return
+      resizeCol.current = null
+      setResizingCol(null)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+
+    document.addEventListener('mousemove', onMouseMove)
+    document.addEventListener('mouseup', onMouseUp)
+    return () => {
+      document.removeEventListener('mousemove', onMouseMove)
+      document.removeEventListener('mouseup', onMouseUp)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+  }, [])
 
   useEffect(() => {
     if (collapsed) return
@@ -275,13 +306,24 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
     })
   }
 
-  const getColumnWidth = (col: string) => Math.max(100, col.length * 9)
+  const startColumnResize = (col: string, e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    resizeCol.current = {
+      col,
+      startX: e.clientX,
+      startWidth: columnWidths[col] || getColumnWidth(col),
+    }
+    setResizingCol(col)
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+  }
 
   const getPinnedLeft = (col: string) => {
     let left = 0
     for (const current of columns) {
       if (current === col) return left
-      if (pinnedCols.has(current)) left += getColumnWidth(current)
+      if (pinnedCols.has(current)) left += columnWidths[current] || getColumnWidth(current)
     }
     return left
   }
@@ -379,7 +421,7 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
                       {columns.map((col) => {
                         const isPinned = pinnedCols.has(col)
                         const pinnedLeft = getPinnedLeft(col)
-                        const columnWidth = getColumnWidth(col)
+                        const columnWidth = columnWidths[col] || getColumnWidth(col)
 
                         return (
                           <th
@@ -400,7 +442,7 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
                               background: dragTarget === col ? '#dbeafe' : '#f1f5f9',
                               borderBottom: '2px solid #e2e8f0',
                               borderRight: '1px solid #e2e8f0',
-                              cursor: 'pointer',
+                              cursor: resizingCol === col ? 'col-resize' : 'pointer',
                               whiteSpace: 'nowrap',
                               color: sortCol === col ? '#2563eb' : '#475569',
                               userSelect: 'none',
@@ -412,6 +454,20 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
                             }}
                           >
                             {col}{sortIndicator(col)}
+                            <div
+                              className="nodrag"
+                              onMouseDown={(e) => startColumnResize(col, e)}
+                              onClick={(e) => e.stopPropagation()}
+                              style={{
+                                position: 'absolute',
+                                top: 0,
+                                right: -2,
+                                width: 4,
+                                height: '100%',
+                                cursor: 'col-resize',
+                                zIndex: 4,
+                              }}
+                            />
                             <button
                               onClick={(e) => openSwapMenu(col, e)}
                               title="Switch column"
@@ -476,7 +532,7 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
                         {columns.map((col) => {
                           const isPinned = pinnedCols.has(col)
                           const pinnedLeft = getPinnedLeft(col)
-                          const columnWidth = getColumnWidth(col)
+                          const columnWidth = columnWidths[col] || getColumnWidth(col)
 
                           return (
                             <td
@@ -489,7 +545,7 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
                                 borderBottom: '1px solid #f1f5f9',
                                 borderRight: '1px solid #f1f5f9',
                                 whiteSpace: 'nowrap',
-                                maxWidth: 200,
+                                maxWidth: columnWidth,
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
                                 color: '#334155',
