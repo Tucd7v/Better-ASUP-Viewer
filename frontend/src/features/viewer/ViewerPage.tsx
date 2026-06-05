@@ -108,7 +108,7 @@ const TIPS = [
   '🪄 分析模式下 AI 会根据你打开的日志和需求进行针对性分析',
   '🚀 自主模式下 AI 会主动打开日志开始分析，不用你动手',
   '⧉ 点击标题栏 [⧉] 按钮可复制卡片，复制窗口不会被 AI 读取',
-  '🐑 beep beep i\\'m a sheep 🐑',
+  '🐑 beep beep im a sheep 🐑',
 ]
 
 function TipsTicker() {
