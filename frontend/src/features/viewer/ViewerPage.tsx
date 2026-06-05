@@ -30,6 +30,17 @@ import { getTemplates, getTemplate, createTemplate, deleteTemplate } from '../..
 import type { FileRecord, SessionMeta, TemplateListItem, TemplateCard, TemplateEdge } from '../../types'
 
 export type ChatMode = 'analysis' | 'autonomous'
+type NodeViewportReadySize = { width?: number; height?: number }
+export type NodeViewportReadyHandler = (nodeId: string, size?: NodeViewportReadySize) => void
+
+type NodeDimensions = { width: number; height: number }
+type SpawnCenterRequest = {
+  tabId: string
+  center: { x: number; y: number }
+  ready: boolean
+  readyWidth?: number
+  positioned: boolean
+}
 
 export interface Tab {
   id: string
@@ -62,7 +73,8 @@ function buildNode(
   position: { x: number; y: number },
   sessionId: string,
   nodeColor: string,
-  dispatch: React.Dispatch<Action>
+  dispatch: React.Dispatch<Action>,
+  onReadyForViewport?: NodeViewportReadyHandler
 ): Node {
   return {
     id: file.id,
@@ -77,6 +89,7 @@ function buildNode(
       onCollapse: () => dispatch({ type: 'TOGGLE_COLLAPSE', fileId: file.id }),
       onHide: () => dispatch({ type: 'HIDE_FILE', fileId: file.id }),
       onDuplicate: () => {},
+      onReadyForViewport,
     },
   }
 }
@@ -90,8 +103,20 @@ function dedupeNodesById(nodes: Node[]): Node[] {
   })
 }
 
-const CARD_W = 340
-const CARD_H = 60
+const INITIAL_CARD_SIZES: Record<string, { width: number; height: number }> = {
+  textFile: { width: 900, height: 340 },
+  emsFile: { width: 800, height: 400 },
+  xmlFile: { width: 320, height: 360 },
+}
+
+function initialCardSizeFor(file: FileRecord): { width: number; height: number } {
+  return INITIAL_CARD_SIZES[fileTypeToNodeType(file.file_type)] ?? { width: 320, height: 380 }
+}
+
+function dimensionsMatchReadySize(dimensions: NodeDimensions, readyWidth?: number) {
+  return readyWidth === undefined || Math.abs(dimensions.width - readyWidth) <= 1
+}
+
 const SPLIT_GRID_MAX_CARDS = 8
 let _spawnOffset = 0
 
@@ -450,15 +475,150 @@ function ViewerInner() {
     ))
   }, [])
 
+  const { fitView, getViewport, addNodes, getNode } = useReactFlow()
+  const nodeDimensionsRef = useRef<Map<string, NodeDimensions>>(new Map())
+  const spawnCenterRequestsRef = useRef<Map<string, SpawnCenterRequest>>(new Map())
+  const pendingViewportFocusRef = useRef<{ nodeId: string; tabId: string } | null>(null)
+  const viewportFocusFrameRef = useRef<number | null>(null)
+
+  const getCurrentNodeDimensions = useCallback((nodeId: string): NodeDimensions | null => {
+    const tracked = nodeDimensionsRef.current.get(nodeId)
+    if (tracked) return tracked
+
+    const measured = getNode(nodeId)?.measured
+    if (measured?.width && measured.height) {
+      return { width: measured.width, height: measured.height }
+    }
+
+    return null
+  }, [getNode])
+
+  const positionSpawnNodeIfReady = useCallback((nodeId: string) => {
+    const request = spawnCenterRequestsRef.current.get(nodeId)
+    if (!request) return true
+    if (request.positioned) return true
+    if (!request.ready) return false
+
+    const dimensions = getCurrentNodeDimensions(nodeId)
+    if (!dimensions || !dimensionsMatchReadySize(dimensions, request.readyWidth)) return false
+
+    request.positioned = true
+    const position = {
+      x: request.center.x - dimensions.width / 2,
+      y: request.center.y - dimensions.height / 2,
+    }
+
+    setNodesForTab(request.tabId, (prev) =>
+      prev.map((node) => (node.id === nodeId ? { ...node, position } : node))
+    )
+
+    return true
+  }, [getCurrentNodeDimensions, setNodesForTab])
+
+  const runPendingViewportFocus = useCallback(() => {
+    viewportFocusFrameRef.current = null
+
+    const focus = pendingViewportFocusRef.current
+    if (!focus) return
+
+    const request = spawnCenterRequestsRef.current.get(focus.nodeId)
+    const wasPositioned = request?.positioned ?? true
+    if (!positionSpawnNodeIfReady(focus.nodeId)) return
+
+    if (!wasPositioned) {
+      viewportFocusFrameRef.current = window.requestAnimationFrame(runPendingViewportFocus)
+      return
+    }
+
+    const dimensions = getCurrentNodeDimensions(focus.nodeId)
+    if (!dimensions || activeTabIdRef.current !== focus.tabId) {
+      pendingViewportFocusRef.current = null
+      if (request) spawnCenterRequestsRef.current.delete(focus.nodeId)
+      return
+    }
+
+    pendingViewportFocusRef.current = null
+    if (request) spawnCenterRequestsRef.current.delete(focus.nodeId)
+    fitView({ nodes: [{ id: focus.nodeId }], padding: 0.3, duration: 400 })
+  }, [fitView, getCurrentNodeDimensions, positionSpawnNodeIfReady])
+
+  const scheduleViewportFocus = useCallback(() => {
+    if (viewportFocusFrameRef.current !== null) return
+    viewportFocusFrameRef.current = window.requestAnimationFrame(runPendingViewportFocus)
+  }, [runPendingViewportFocus])
+
+  const requestViewportFocus = useCallback((nodeId: string, tabId: string) => {
+    pendingViewportFocusRef.current = { nodeId, tabId }
+    scheduleViewportFocus()
+  }, [scheduleViewportFocus])
+
+  const requestSpawnCenter = useCallback((nodeId: string, tabId: string, center: { x: number; y: number }) => {
+    spawnCenterRequestsRef.current.set(nodeId, {
+      tabId,
+      center,
+      ready: false,
+      positioned: false,
+    })
+    requestViewportFocus(nodeId, tabId)
+  }, [requestViewportFocus])
+
+  const handleNodeReadyForViewport = useCallback<NodeViewportReadyHandler>((nodeId, size) => {
+    const request = spawnCenterRequestsRef.current.get(nodeId)
+    if (!request) return
+
+    request.ready = true
+    request.readyWidth = size?.width
+    const positioned = positionSpawnNodeIfReady(nodeId)
+    if (positioned && pendingViewportFocusRef.current?.nodeId === nodeId) {
+      scheduleViewportFocus()
+    } else if (positioned) {
+      spawnCenterRequestsRef.current.delete(nodeId)
+    }
+  }, [positionSpawnNodeIfReady, scheduleViewportFocus])
+
+  useEffect(() => {
+    return () => {
+      if (viewportFocusFrameRef.current !== null) {
+        window.cancelAnimationFrame(viewportFocusFrameRef.current)
+      }
+    }
+  }, [])
+
   const nodes = activeTab.nodes
   const edges = activeTab.edges
 
   const onNodesChange = useCallback((changes: NodeChange<Node>[]) => {
+    let shouldScheduleFocus = false
+
+    for (const change of changes) {
+      if (change.type === 'dimensions' && change.dimensions) {
+        nodeDimensionsRef.current.set(change.id, change.dimensions)
+        if (spawnCenterRequestsRef.current.has(change.id)) {
+          const positioned = positionSpawnNodeIfReady(change.id)
+          if (positioned && pendingViewportFocusRef.current?.nodeId === change.id) {
+            shouldScheduleFocus = true
+          } else if (positioned) {
+            spawnCenterRequestsRef.current.delete(change.id)
+          }
+        } else if (pendingViewportFocusRef.current?.nodeId === change.id) {
+          shouldScheduleFocus = true
+        }
+      } else if (change.type === 'remove') {
+        nodeDimensionsRef.current.delete(change.id)
+        spawnCenterRequestsRef.current.delete(change.id)
+        if (pendingViewportFocusRef.current?.nodeId === change.id) {
+          pendingViewportFocusRef.current = null
+        }
+      }
+    }
+
     setTabs(prev => prev.map(t => t.id === activeTabId
       ? { ...t, nodes: dedupeNodesById(applyNodeChanges(changes, t.nodes)) }
       : t
     ))
-  }, [activeTabId])
+
+    if (shouldScheduleFocus) scheduleViewportFocus()
+  }, [activeTabId, positionSpawnNodeIfReady, scheduleViewportFocus])
 
   const onEdgesChange = useCallback((changes: EdgeChange<Edge>[]) => {
     setTabs(prev => prev.map(t => t.id === activeTabId
@@ -525,7 +685,6 @@ function ViewerInner() {
   const [sidebarWidth, setSidebarWidth] = useState(245)
   const dragging = useRef(false)
   const fileMetaRef = useRef<Map<string, { sessionId: string; nodeColor: string; file: FileRecord }>>(new Map())
-  const { fitView, getViewport, addNodes } = useReactFlow()
   const clusterName =
     sessions.find((s) => s.clusterName)?.clusterName ||
     sessions.find((s) => s.clusterId)?.clusterId ||
@@ -680,7 +839,7 @@ function ViewerInner() {
         const existing = prev.find((n) => n.id === fileId)
         if (existing) {
           if (!splitMode) {
-            setTimeout(() => fitView({ nodes: [existing], padding: 0.3, duration: 400 }), 50)
+            requestViewportFocus(existing.id, targetTabId)
           }
           return prev
         }
@@ -717,16 +876,28 @@ function ViewerInner() {
         const offset = (_spawnOffset % 6) * 30
         _spawnOffset++
 
-        const position = { x: cx - CARD_W / 2 + offset, y: cy - CARD_H / 2 + offset }
-        const newNode = buildNode(meta.file, position, meta.sessionId, meta.nodeColor, dispatch)
-
-        if (!splitMode) {
-          setTimeout(() => fitView({ nodes: [newNode], padding: 0.3, duration: 400 }), 50)
+        const center = { x: cx + offset, y: cy + offset }
+        const initialSize = initialCardSizeFor(meta.file)
+        const position = {
+          x: center.x - initialSize.width / 2,
+          y: center.y - initialSize.height / 2,
         }
+        const newNode = buildNode(meta.file, position, meta.sessionId, meta.nodeColor, dispatch, handleNodeReadyForViewport)
+        requestSpawnCenter(newNode.id, targetTabId, center)
         return [...prev, newNode]
       })
     },
-    [fitView, getViewport, sidebarWidth, dispatch, splitMode, state.hiddenFileIds, setNodesForTab]
+    [
+      getViewport,
+      sidebarWidth,
+      dispatch,
+      splitMode,
+      state.hiddenFileIds,
+      setNodesForTab,
+      handleNodeReadyForViewport,
+      requestSpawnCenter,
+      requestViewportFocus,
+    ]
   )
 
   const handleDuplicateCard = useCallback((node: Node) => {

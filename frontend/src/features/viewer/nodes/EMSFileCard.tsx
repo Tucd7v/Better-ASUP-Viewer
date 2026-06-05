@@ -15,6 +15,7 @@ export interface EMSFileCardData extends Record<string, unknown> {
   onCollapse: () => void
   onHide: () => void
   onDuplicate: () => void
+  onReadyForViewport?: (nodeId: string, size?: { width?: number; height?: number }) => void
 }
 
 export type EMSFileNode = Node<EMSFileCardData, 'emsFile'>
@@ -50,20 +51,26 @@ function highlight(text: string, query: string): React.ReactNode {
 }
 
 export default function EMSFileCard({ data }: NodeProps<EMSFileNode>) {
-  const { fileId, sessionId, filename, nodeColor, collapsed, splitMode, onCollapse, onHide, onDuplicate } = data
+  const { fileId, sessionId, filename, nodeColor, collapsed, splitMode, onCollapse, onHide, onDuplicate, onReadyForViewport } = data
   const { width, height, onResizeX, onResizeY } = useResizable(800, 400)
 
   const [events, setEvents] = useState<EMSEvent[]>([])
   const [levelFilter, setLevelFilter] = useState<string>('all')
   const [search, setSearch] = useState<string>('')
   const [loading, setLoading] = useState(false)
+  const [contentReady, setContentReady] = useState(false)
   const [highlightLine, setHighlightLine] = useState<number | null>(null)
   const eventRefs = useRef<(HTMLDivElement | null)[]>([])
+  const viewportReadyReported = useRef(false)
   const { state, dispatch: viewDispatch } = useViewer()
   const hostname = state.sessions.find((session) => session.sessionId === sessionId)?.hostname?.trim() ?? ''
 
   useEffect(() => {
-    if (collapsed) return
+    if (collapsed) {
+      setContentReady(true)
+      return
+    }
+    setContentReady(false)
     setLoading(true)
     getFileContent(sessionId, fileId)
       .then((res) => {
@@ -84,8 +91,21 @@ export default function EMSFileCard({ data }: NodeProps<EMSFileNode>) {
         }
       })
       .catch(() => setEvents([]))
-      .finally(() => setLoading(false))
+      .finally(() => {
+        setLoading(false)
+        setContentReady(true)
+      })
   }, [fileId, sessionId, collapsed])
+
+  useEffect(() => {
+    viewportReadyReported.current = false
+  }, [fileId])
+
+  useEffect(() => {
+    if (splitMode || !contentReady || viewportReadyReported.current) return
+    viewportReadyReported.current = true
+    onReadyForViewport?.(fileId, { width })
+  }, [contentReady, fileId, onReadyForViewport, splitMode, width])
 
   // Respond to global search
   useEffect(() => {

@@ -14,6 +14,7 @@ export interface TextFileCardData extends Record<string, unknown> {
   onCollapse: () => void
   onHide: () => void
   onDuplicate: () => void
+  onReadyForViewport?: (nodeId: string, size?: { width?: number; height?: number }) => void
 }
 
 export type TextFileNode = Node<TextFileCardData, 'textFile'>
@@ -34,7 +35,7 @@ function highlight(line: string, term: string): React.ReactNode {
 }
 
 export default function TextFileCard({ data }: NodeProps<TextFileNode>) {
-  const { fileId, sessionId, filename, nodeColor, collapsed, splitMode, onCollapse, onHide, onDuplicate } = data
+  const { fileId, sessionId, filename, nodeColor, collapsed, splitMode, onCollapse, onHide, onDuplicate, onReadyForViewport } = data
   const { width, height, onResizeX, onResizeY } = useResizable(900, 340)
 
   const [lines, setLines] = useState<string[]>([])
@@ -42,14 +43,20 @@ export default function TextFileCard({ data }: NodeProps<TextFileNode>) {
   const [search, setSearch] = useState('')
   const [matchIndex, setMatchIndex] = useState(0)
   const [loading, setLoading] = useState(false)
+  const [contentReady, setContentReady] = useState(false)
   const LIMIT = 5000
   const listRef = useRef<HTMLDivElement>(null)
   const matchRefs = useRef<(HTMLDivElement | null)[]>([])
+  const viewportReadyReported = useRef(false)
   const { state, dispatch: viewDispatch } = useViewer()
   const hostname = state.sessions.find((session) => session.sessionId === sessionId)?.hostname?.trim() ?? ''
 
   useEffect(() => {
-    if (collapsed) return
+    if (collapsed) {
+      setContentReady(true)
+      return
+    }
+    setContentReady(false)
     setLoading(true)
     getFileContent(sessionId, fileId, page * LIMIT, LIMIT)
       .then((res) => {
@@ -59,8 +66,21 @@ export default function TextFileCard({ data }: NodeProps<TextFileNode>) {
         }
       })
       .catch(() => setLines([]))
-      .finally(() => setLoading(false))
+      .finally(() => {
+        setLoading(false)
+        setContentReady(true)
+      })
   }, [fileId, sessionId, page, collapsed])
+
+  useEffect(() => {
+    viewportReadyReported.current = false
+  }, [fileId])
+
+  useEffect(() => {
+    if (splitMode || !contentReady || viewportReadyReported.current) return
+    viewportReadyReported.current = true
+    onReadyForViewport?.(fileId, { width })
+  }, [contentReady, fileId, onReadyForViewport, splitMode, width])
 
   // Respond to global search
   useEffect(() => {

@@ -14,6 +14,7 @@ export interface XMLFileCardData extends Record<string, unknown> {
   onCollapse: () => void
   onHide: () => void
   onDuplicate: () => void
+  onReadyForViewport?: (nodeId: string, size?: { width?: number; height?: number }) => void
 }
 
 export type XMLFileNode = Node<XMLFileCardData, 'xmlFile'>
@@ -114,7 +115,7 @@ function ColSwapMenu({
 }
 
 export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
-  const { fileId, sessionId, filename, nodeColor, collapsed, splitMode, onCollapse, onHide, onDuplicate } = data
+  const { fileId, sessionId, filename, nodeColor, collapsed, splitMode, onCollapse, onHide, onDuplicate, onReadyForViewport } = data
   const { width, height, setWidth, onResizeX, onResizeY } = useResizable(320, 360)
 
   const [rows, setRows] = useState<TableRow[]>([])
@@ -124,6 +125,7 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
   const [sortDir, setSortDir] = useState<SortDir>(null)
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(false)
+  const [contentReady, setContentReady] = useState(false)
   const [pinnedCols, setPinnedCols] = useState<Set<string>>(new Set())
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>({})
 
@@ -138,6 +140,7 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
   const wrapperRef = useRef<HTMLDivElement>(null)
   const thRefs = useRef<Map<string, HTMLTableCellElement>>(new Map())
   const swapMenuFrame = useRef<number | null>(null)
+  const viewportReadyReported = useRef(false)
 
   const rowRefs = useRef<(HTMLTableRowElement | null)[]>([])
   const [highlightRow, setHighlightRow] = useState<number | null>(null)
@@ -173,7 +176,11 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
   }, [])
 
   useEffect(() => {
-    if (collapsed) return
+    if (collapsed) {
+      setContentReady(true)
+      return
+    }
+    setContentReady(false)
     setLoading(true)
     getFileContent(sessionId, fileId)
       .then((res) => {
@@ -202,8 +209,21 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
         }
       })
       .catch(() => setRows([]))
-      .finally(() => setLoading(false))
+      .finally(() => {
+        setLoading(false)
+        setContentReady(true)
+      })
   }, [fileId, sessionId, collapsed])
+
+  useEffect(() => {
+    viewportReadyReported.current = false
+  }, [fileId])
+
+  useEffect(() => {
+    if (splitMode || !contentReady || viewportReadyReported.current) return
+    viewportReadyReported.current = true
+    onReadyForViewport?.(fileId, { width })
+  }, [contentReady, fileId, onReadyForViewport, splitMode, width])
 
   useEffect(() => {
     return () => {
