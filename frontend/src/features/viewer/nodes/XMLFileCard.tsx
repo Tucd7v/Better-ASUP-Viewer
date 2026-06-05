@@ -697,8 +697,8 @@ const filenameStyle: React.CSSProperties = {
   minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#334155', flexShrink: 1, lineHeight: '16px',
 }
 const headerDividerStyle: React.CSSProperties = {
-  width: 1, height: 12, background: '#e2e8f0', flexShrink: 0, marginTop: 2,
+  width: 1, height: 12, background: '#e2e8f0', flexShrink: 0,
 }
 const hostnameStyle: React.CSSProperties = {
-  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#94a3b8', fontSize: 11, flexShrink: 1, lineHeight: '16px', marginTop: 2, background: 'none', border: 0, padding: 0, cursor: 'pointer', fontFamily: 'ui-monospace, Consolas, monospace',
+  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#94a3b8', fontSize: 11, flexShrink: 1, lineHeight: '16px', background: 'none', border: 0, padding: 0, cursor: 'pointer', fontFamily: 'ui-monospace, Consolas, monospace',
 }
