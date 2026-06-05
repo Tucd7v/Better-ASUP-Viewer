@@ -85,6 +85,37 @@ const CARD_H = 60
 const SPLIT_GRID_MAX_CARDS = 8
 let _spawnOffset = 0
 
+const TIPS = [
+  '📌 点击卡片标题中的主机名，左侧文件树会自动定位到对应节点',
+  '🔍 搜索栏支持按集群 ID、主机名和序列号进行查找',
+  '🗂️ 点击 ⊞ Grid 按钮可切换到网格模式，最多展示 8 张卡片',
+  '📐 拖拽 XML 列表头右侧边缘可自由调整列宽',
+  '⇄ 点击列头 ⇄ 按钮可替换当前列为其他可用列，顶部支持搜索',
+  '🔒 点击列头 🔒 按钮可锁定列，横向滚动时始终可见',
+  '💾 模板会记住当前模式——网格模式下保存，加载时自动切回网格',
+  '🎯 Grid模式下拖拽文件到卡片位置即可替换，连线都省了 ✨',
+  '🤖 点击 AI 按钮召唤助手，它能直接读懂你的日志 🧠',
+  '🪄 分析模式下 AI 会根据你打开的日志和需求进行针对性分析',
+  '🚀 自主模式下 AI 会主动打开日志开始分析，不用你动手 ⚡',
+  '🐑 beep beep i\'m a sheep 🐑',
+]
+
+function TipsTicker() {
+  const [idx, setIdx] = useState(0)
+  useEffect(() => {
+    const t = setInterval(() => setIdx((i) => (i + 1) % TIPS.length), 6000)
+    return () => clearInterval(t)
+  }, [])
+  return (
+    <span style={{
+      fontSize: 11, color: '#94a3b8', overflow: 'hidden',
+      whiteSpace: 'nowrap', maxWidth: 420,
+    }}>
+      💡 {TIPS[idx]}
+    </span>
+  )
+}
+
 function SplitDivider({ direction, onMouseDown }: { direction: 'h' | 'v'; onMouseDown: (e: React.MouseEvent) => void }) {
   return (
     <div
@@ -1225,12 +1256,13 @@ function ViewerInner() {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, minWidth: 0 }}>
+            <span>{activeTab.name}</span>
             <span>Cards: {nodes.length}</span>
             <span>Total: {totalCards}</span>
             <span>Memory: {memoryLabel}</span>
             <span style={{ color: splitMode ? '#3b82f6' : undefined }}>Grid</span>
           </div>
-          <div style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{activeTab.name}</div>
+          <TipsTicker />
         </div>
       </main>
     </div>
