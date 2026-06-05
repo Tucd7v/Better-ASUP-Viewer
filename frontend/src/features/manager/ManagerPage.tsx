@@ -6,6 +6,46 @@ import ClusterCard from './ClusterCard'
 import UploadDialog from './UploadDialog'
 
 const MS_PER_DAY = 86400000
+const colors = {
+  textPrimary: '#1e293b',
+  textSecondary: '#64748b',
+  textTertiary: '#94a3b8',
+  accent: '#3b82f6',
+  accentLight: '#eff6ff',
+  bgCard: '#ffffff',
+  bgTertiary: '#f8fafc',
+  border: 'rgba(0,0,0,0.05)',
+}
+
+const cardStyle = {
+  background: colors.bgCard,
+  border: `1px solid ${colors.border}`,
+  borderRadius: 16,
+  boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+}
+
+const buttonBaseStyle = {
+  borderRadius: 10,
+  cursor: 'pointer',
+  fontSize: 14,
+  fontWeight: 650,
+  height: 40,
+  padding: '0 16px',
+  whiteSpace: 'nowrap' as const,
+  fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+}
+
+const fieldStyle = {
+  background: colors.bgCard,
+  border: `1px solid ${colors.border}`,
+  borderRadius: 10,
+  color: colors.textPrimary,
+  fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+  fontSize: 14,
+  height: 40,
+  outline: 'none',
+  padding: '0 12px',
+}
 
 function parseUtc8(iso: string): number {
   const trimmed = iso.trim()
@@ -107,70 +147,96 @@ export default function ManagerPage() {
       style={{
         height: '100vh',
         overflowY: 'auto',
-        background: '#f1f5f9',
-        color: '#1e293b',
-        fontFamily: 'system-ui, -apple-system, sans-serif',
+        background: colors.bgTertiary,
+        color: colors.textPrimary,
+        fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
       }}
     >
-      <header
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '16px 24px',
-          borderBottom: '1px solid #e2e8f0',
-          background: '#ffffff',
-        }}
-      >
-        <h1
+      <div style={{ maxWidth: 1080, margin: '0 auto', padding: '32px 24px 48px' }}>
+        <section
           style={{
-            margin: 0,
-            fontSize: 20,
-            fontWeight: 700,
-            color: '#1e293b',
-            letterSpacing: '-0.3px',
+            ...cardStyle,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 20,
+            marginBottom: 16,
+            padding: '24px 28px',
+            flexWrap: 'wrap',
           }}
         >
-          AiSUP
-        </h1>
-        <button
-          onClick={() => setShowUpload(true)}
-          style={{
-            background: '#3b82f6',
-            border: 'none',
-            borderRadius: 6,
-            color: '#fff',
-            cursor: 'pointer',
-            fontSize: 14,
-            fontWeight: 600,
-            padding: '8px 18px',
-          }}
-        >
-          Upload File
-        </button>
-      </header>
+          <div style={{ minWidth: 240 }}>
+            <h1
+              style={{
+                margin: 0,
+                color: colors.textPrimary,
+                fontSize: 30,
+                fontWeight: 700,
+                lineHeight: 1.2,
+              }}
+            >
+              AiSUP Manager
+            </h1>
+            <p
+              style={{
+                margin: '8px 0 0',
+                color: colors.textSecondary,
+                fontSize: 15,
+                lineHeight: 1.45,
+              }}
+            >
+              浏览、搜索和管理存储日志
+            </p>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <button
+              onClick={() => setShowUpload(true)}
+              style={{
+                ...buttonBaseStyle,
+                background: colors.accent,
+                border: `1px solid ${colors.accent}`,
+                color: '#ffffff',
+              }}
+            >
+              Upload
+            </button>
+            <button
+              onClick={() => refreshClusters()}
+              style={{
+                ...buttonBaseStyle,
+                background: colors.accentLight,
+                border: `1px solid rgba(59,130,246,0.16)`,
+                color: colors.accent,
+              }}
+            >
+              Storage management
+            </button>
+          </div>
+        </section>
 
-      <div style={{ maxWidth: 900, margin: '0 auto', padding: '24px 20px' }}>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 20, flexWrap: 'wrap' }}>
+        <div
+          style={{
+            ...cardStyle,
+            display: 'flex',
+            gap: 12,
+            alignItems: 'center',
+            marginBottom: 16,
+            padding: 14,
+            flexWrap: 'wrap',
+          }}
+        >
           <input
             type="text"
             placeholder="Search cluster, hostname, SN…"
             value={search}
             onChange={(e) => { setSearch(e.target.value); setSearchParams(e.target.value ? { q: e.target.value } : {}) }}
             style={{
+              ...fieldStyle,
               flex: '1 1 200px',
               minWidth: 0,
-              background: '#ffffff',
-              border: '1px solid #e2e8f0',
-              borderRadius: 6,
-              color: '#1e293b',
-              padding: '10px 14px',
-              fontSize: 14,
-              outline: 'none',
-              boxSizing: 'border-box',
             }}
           />
-          <label style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#64748b', fontSize: 13 }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, color: colors.textSecondary, fontSize: 13, fontWeight: 600 }}>
             From
             <input
               type="date"
@@ -180,17 +246,12 @@ export default function ManagerPage() {
                 setOnlyToday(false)
               }}
               style={{
-                background: '#ffffff',
-                border: '1px solid #e2e8f0',
-                borderRadius: 6,
-                color: '#1e293b',
-                fontSize: 14,
-                outline: 'none',
-                padding: '9px 10px',
+                ...fieldStyle,
+                width: 152,
               }}
             />
           </label>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#64748b', fontSize: 13 }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, color: colors.textSecondary, fontSize: 13, fontWeight: 600 }}>
             To
             <input
               type="date"
@@ -200,13 +261,8 @@ export default function ManagerPage() {
                 setOnlyToday(false)
               }}
               style={{
-                background: '#ffffff',
-                border: '1px solid #e2e8f0',
-                borderRadius: 6,
-                color: '#1e293b',
-                fontSize: 14,
-                outline: 'none',
-                padding: '9px 10px',
+                ...fieldStyle,
+                width: 152,
               }}
             />
           </label>
@@ -222,15 +278,10 @@ export default function ManagerPage() {
             }}
             aria-pressed={onlyToday}
             style={{
-              background: onlyToday ? '#1d4ed8' : '#ffffff',
-              border: onlyToday ? '1px solid #1d4ed8' : '1px solid #e2e8f0',
-              borderRadius: 6,
+              ...buttonBaseStyle,
+              background: onlyToday ? colors.accent : colors.bgCard,
+              border: onlyToday ? `1px solid ${colors.accent}` : `1px solid ${colors.border}`,
               color: onlyToday ? '#ffffff' : '#1e293b',
-              cursor: 'pointer',
-              fontSize: 14,
-              fontWeight: 600,
-              padding: '10px 14px',
-              whiteSpace: 'nowrap',
             }}
           >
             Show Today Upload
@@ -238,7 +289,7 @@ export default function ManagerPage() {
         </div>
 
         {loading && (
-          <div style={{ color: '#94a3b8', fontSize: 14, textAlign: 'center', padding: '20px 0' }}>
+          <div style={{ ...cardStyle, color: colors.textTertiary, fontSize: 14, textAlign: 'center', padding: '28px 0' }}>
             Loading…
           </div>
         )}
@@ -246,13 +297,14 @@ export default function ManagerPage() {
         {!loading && filtered.length === 0 && (
           <div
             style={{
+              ...cardStyle,
               textAlign: 'center',
-              padding: '60px 20px',
-              color: '#94a3b8',
+              padding: '56px 20px',
+              color: colors.textTertiary,
             }}
           >
-            <div style={{ fontSize: 48, marginBottom: 16 }}>📂</div>
-            <div style={{ fontSize: 16, color: '#64748b', marginBottom: 8 }}>
+            <div style={{ fontSize: 40, marginBottom: 14 }}>📂</div>
+            <div style={{ fontSize: 16, color: colors.textSecondary, marginBottom: 8, fontWeight: 650 }}>
               No ASUP logs yet.
             </div>
             <div style={{ fontSize: 14 }}>Click Upload to get started.</div>
@@ -260,14 +312,18 @@ export default function ManagerPage() {
         )}
 
         {!loading &&
-          filtered.map((cluster) => (
-            <ClusterCard
-              key={cluster.id}
-              cluster={cluster}
-              autoExpand={matchedClusterIds.has(cluster.id)}
-              onDeleted={refreshClusters}
-            />
-          ))}
+          filtered.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {filtered.map((cluster) => (
+                <ClusterCard
+                  key={cluster.id}
+                  cluster={cluster}
+                  autoExpand={matchedClusterIds.has(cluster.id)}
+                  onDeleted={refreshClusters}
+                />
+              ))}
+            </div>
+          )}
       </div>
 
       {showUpload && (
