@@ -328,11 +328,6 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
     return left
   }
 
-  const sortIndicator = (col: string) => {
-    if (sortCol !== col || !sortDir) return ''
-    return sortDir === 'asc' ? ' ↑' : ' ↓'
-  }
-
   return (
     <div ref={wrapperRef} style={{ position: 'relative', width: splitMode ? '100%' : width, height: splitMode ? '100%' : undefined }}>
       <div
@@ -432,7 +427,6 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
                             onDragEnter={() => onDragEnter(col)}
                             onDragOver={(e) => e.preventDefault()}
                             onDragEnd={onDragEnd}
-                            onClick={() => handleSort(col)}
                             style={{
                               padding: '5px 46px 5px 10px',
                               boxSizing: 'border-box',
@@ -453,7 +447,7 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
                               zIndex: isPinned ? 2 : undefined,
                             }}
                           >
-                            {col}{sortIndicator(col)}
+                            {col}
                             <div
                               className="nodrag"
                               onMouseDown={(e) => startColumnResize(col, e)}
@@ -468,6 +462,27 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
                                 zIndex: 4,
                               }}
                             />
+                            <button
+                              type="button"
+                              className="nodrag"
+                              onClick={(e) => { e.stopPropagation(); handleSort(col) }}
+                              title="Sort column"
+                              style={{
+                                position: 'absolute',
+                                right: 48,
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                background: 'none',
+                                border: 0,
+                                color: sortCol === col ? '#2563eb' : '#94a3b8',
+                                cursor: 'pointer',
+                                fontSize: 10,
+                                padding: '0 2px',
+                                lineHeight: 1,
+                              }}
+                            >
+                              {sortCol === col && sortDir === 'asc' ? '▲' : '▼'}
+                            </button>
                             <button
                               onClick={(e) => openSwapMenu(col, e)}
                               title="Switch column"
