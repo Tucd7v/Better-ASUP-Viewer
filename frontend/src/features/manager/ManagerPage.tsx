@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { getClusters } from '../../services/api'
 import type { Cluster } from '../../types'
 import ClusterCard from './ClusterCard'
@@ -40,8 +41,9 @@ function inDateRange(iso: string, fromDate: string, toDate: string): boolean {
 }
 
 export default function ManagerPage() {
+  const [searchParams, setSearchParams] = useSearchParams()
   const [clusters, setClusters] = useState<Cluster[]>([])
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useState(searchParams.get('q') || '')
   const [fromDate, setFromDate] = useState('')
   const [toDate, setToDate] = useState('')
   const [onlyToday, setOnlyToday] = useState(false)
@@ -152,7 +154,7 @@ export default function ManagerPage() {
             type="text"
             placeholder="Search cluster, hostname, SN…"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setSearchParams(e.target.value ? { q: e.target.value } : {}) }}
             style={{
               flex: '1 1 200px',
               minWidth: 0,
