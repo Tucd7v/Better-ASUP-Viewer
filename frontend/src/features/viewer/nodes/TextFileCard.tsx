@@ -138,6 +138,7 @@ export default function TextFileCard({ data }: NodeProps<TextFileNode>) {
               </>
             )}
           </div>
+          {(data as any).__duplicate ? null : (
           <button
             type="button"
             className="nodrag"
@@ -147,6 +148,7 @@ export default function TextFileCard({ data }: NodeProps<TextFileNode>) {
           >
             [⧉]
           </button>
+          )}
           <button type="button" className="nodrag" onClick={onCollapse} style={btnStyle} title={collapsed ? 'Expand' : 'Collapse'}>
             {collapsed ? '[+]' : '[−]'}
           </button>

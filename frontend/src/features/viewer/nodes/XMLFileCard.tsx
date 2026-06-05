@@ -397,6 +397,7 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
               </>
             )}
           </div>
+          {(data as any).__duplicate ? null : (
           <button
             type="button"
             className="nodrag"
@@ -406,6 +407,7 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
           >
             [⧉]
           </button>
+          )}
           <button type="button" className="nodrag" onClick={onCollapse} style={btnStyle} title={collapsed ? 'Expand' : 'Collapse'}>
             {collapsed ? '[+]' : '[−]'}
           </button>

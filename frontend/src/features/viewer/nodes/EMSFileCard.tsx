@@ -169,6 +169,7 @@ export default function EMSFileCard({ data }: NodeProps<EMSFileNode>) {
               </>
             )}
           </div>
+          {(data as any).__duplicate ? null : (
           <button
             type="button"
             className="nodrag"
@@ -178,6 +179,7 @@ export default function EMSFileCard({ data }: NodeProps<EMSFileNode>) {
           >
             [⧉]
           </button>
+          )}
           <button type="button" className="nodrag" onClick={onCollapse} style={btnStyle} title={collapsed ? 'Expand' : 'Collapse'}>
             {collapsed ? '[+]' : '[−]'}
           </button>
