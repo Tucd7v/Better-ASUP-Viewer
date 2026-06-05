@@ -404,7 +404,7 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
             style={btnStyle}
             title="Duplicate"
           >
-            [⧉] Duplicate
+            [⧉]
           </button>
           <button type="button" className="nodrag" onClick={onCollapse} style={btnStyle} title={collapsed ? 'Expand' : 'Collapse'}>
             {collapsed ? '[+]' : '[−]'}

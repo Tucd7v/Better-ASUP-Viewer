@@ -176,7 +176,7 @@ export default function EMSFileCard({ data }: NodeProps<EMSFileNode>) {
             style={btnStyle}
             title="Duplicate"
           >
-            [⧉] Duplicate
+            [⧉]
           </button>
           <button type="button" className="nodrag" onClick={onCollapse} style={btnStyle} title={collapsed ? 'Expand' : 'Collapse'}>
             {collapsed ? '[+]' : '[−]'}

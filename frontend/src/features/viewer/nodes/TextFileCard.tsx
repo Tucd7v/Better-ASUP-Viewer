@@ -145,7 +145,7 @@ export default function TextFileCard({ data }: NodeProps<TextFileNode>) {
             style={btnStyle}
             title="Duplicate"
           >
-            [⧉] Duplicate
+            [⧉]
           </button>
           <button type="button" className="nodrag" onClick={onCollapse} style={btnStyle} title={collapsed ? 'Expand' : 'Collapse'}>
             {collapsed ? '[+]' : '[−]'}
