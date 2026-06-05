@@ -730,7 +730,9 @@ function ViewerInner() {
   )
 
   const handleDuplicateCard = useCallback((node: Node) => {
-    const nodeId = crypto.randomUUID()
+    const nodeId = typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : 'dup-' + Math.random().toString(36).slice(2) + Date.now().toString(36)
     const sourceData = node.data as Record<string, unknown> & {
       filename?: string
       collapsed?: boolean
