@@ -140,6 +140,9 @@ function SplitGrid({ nodes, nodeTypes, onDropFile }: {
   const cardCount = gridNodes.length
   const [dragOverZone, setDragOverZone] = useState<number | null>(null)
   const [hRatio, setHRatio] = useState(50)
+  const [vRatio, setVRatio] = useState(50)
+  const [col3Ratios, setCol3Ratios] = useState([33.33, 33.34, 33.33])
+  const [gridRowRatios, setGridRowRatios] = useState<number[]>([])
   const containerRef = useRef<HTMLDivElement>(null)
 
   if (cardCount === 0) {
@@ -183,13 +186,127 @@ function SplitGrid({ nodes, nodeTypes, onDropFile }: {
     window.addEventListener('mouseup', onUp)
   }
 
+  const startVDrag = (e: React.MouseEvent) => {
+    e.preventDefault()
+    const container = containerRef.current
+    if (!container) return
+    const startY = e.clientY
+    const startRatio = vRatio
+    const totalH = container.clientHeight
+    const onMove = (ev: MouseEvent) => {
+      const delta = ev.clientY - startY
+      const pctDelta = (delta / totalH) * 100
+      setVRatio(clamp(startRatio + pctDelta, 20, 80))
+    }
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  }
+
+  const startCol3Drag = (dividerIdx: number, e: React.MouseEvent) => {
+    e.preventDefault()
+    const container = containerRef.current
+    if (!container) return
+    const startX = e.clientX
+    const startRatios = [...col3Ratios]
+    const totalW = container.clientWidth
+    const onMove = (ev: MouseEvent) => {
+      const delta = ev.clientX - startX
+      const pctDelta = (delta / totalW) * 100
+      const newRatios = [...startRatios]
+      if (dividerIdx === 0) {
+        newRatios[0] = clamp(startRatios[0] + pctDelta, 20, 80 - newRatios[2])
+        newRatios[1] = 100 - newRatios[0] - newRatios[2]
+      } else {
+        newRatios[1] = clamp(startRatios[1] + pctDelta, 20, 80 - newRatios[0])
+        newRatios[2] = 100 - newRatios[0] - newRatios[1]
+      }
+      if (newRatios[1] >= 20) setCol3Ratios(newRatios)
+    }
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  }
+
+  const startGridRowDrag = (dividerIdx: number, rowRatios: number[], e: React.MouseEvent) => {
+    e.preventDefault()
+    const container = containerRef.current
+    if (!container) return
+    const startY = e.clientY
+    const startRatios = [...rowRatios]
+    const totalH = container.clientHeight
+    const onMove = (ev: MouseEvent) => {
+      const delta = ev.clientY - startY
+      const pctDelta = (delta / totalH) * 100
+      const newRatios = [...startRatios]
+      const pairTotal = startRatios[dividerIdx] + startRatios[dividerIdx + 1]
+      const minRatio = Math.min(20, pairTotal / 2)
+      newRatios[dividerIdx] = clamp(startRatios[dividerIdx] + pctDelta, minRatio, pairTotal - minRatio)
+      newRatios[dividerIdx + 1] = pairTotal - newRatios[dividerIdx]
+      setGridRowRatios(newRatios)
+    }
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  }
+
   const cardProps = (node: Node, idx: number) => ({
     node, nodeTypes, idx, dragOverZone, setDragOverZone, handleDrop,
   })
 
+  if (cardCount === 1) {
+    return (
+      <div ref={containerRef} style={{ width: '100%', height: '100%', padding: 8, background: '#f7f9fc' }}>
+        <SplitCard {...cardProps(gridNodes[0], 0)} style={{ width: '100%', height: '100%' }} />
+      </div>
+    )
+  }
+
+  if (cardCount === 2) {
+    return (
+      <div ref={containerRef} style={{ display: 'flex', width: '100%', height: '100%', padding: 8, gap: 0, background: '#f7f9fc' }}>
+        <SplitCard {...cardProps(gridNodes[0], 0)} style={{ width: `calc(${hRatio}% - 2px)`, height: '100%' }} />
+        <SplitDivider direction="v" onMouseDown={startHDrag} />
+        <SplitCard {...cardProps(gridNodes[1], 1)} style={{ width: `calc(${100 - hRatio}% - 2px)`, height: '100%' }} />
+      </div>
+    )
+  }
+
+  if (cardCount === 3) {
+    return (
+      <div ref={containerRef} style={{ display: 'flex', width: '100%', height: '100%', padding: 8, gap: 0, background: '#f7f9fc' }}>
+        <SplitCard {...cardProps(gridNodes[0], 0)} style={{ width: `calc(${col3Ratios[0]}% - 3px)`, height: '100%' }} />
+        <SplitDivider direction="v" onMouseDown={(e) => startCol3Drag(0, e)} />
+        <SplitCard {...cardProps(gridNodes[1], 1)} style={{ width: `calc(${col3Ratios[1]}% - 3px)`, height: '100%' }} />
+        <SplitDivider direction="v" onMouseDown={(e) => startCol3Drag(1, e)} />
+        <SplitCard {...cardProps(gridNodes[2], 2)} style={{ width: `calc(${col3Ratios[2]}% - 2px)`, height: '100%' }} />
+      </div>
+    )
+  }
+
   const gridTemplateColumns = hRatio === 50
     ? 'repeat(2, 1fr)'
     : `minmax(0, ${hRatio}fr) minmax(0, ${100 - hRatio}fr)`
+  const rowCount = Math.ceil(cardCount / 2)
+  const rowRatios = rowCount === 2
+    ? [vRatio, 100 - vRatio]
+    : gridRowRatios.length === rowCount
+      ? gridRowRatios
+      : Array.from({ length: rowCount }, () => 100 / rowCount)
+  const gridTemplateRows = rowRatios.map((ratio) => `minmax(0, ${ratio}fr)`).join(' ')
+  const rowDividerPositions = rowRatios.slice(0, -1).reduce<number[]>((positions, ratio, idx) => {
+    positions.push((positions[idx - 1] ?? 0) + ratio)
+    return positions
+  }, [])
 
   return (
     <div
@@ -197,8 +314,8 @@ function SplitGrid({ nodes, nodeTypes, onDropFile }: {
       style={{
         position: 'relative',
         display: 'grid',
-        gridTemplateColumns: cardCount === 1 ? '1fr' : gridTemplateColumns,
-        gridAutoRows: '1fr',
+        gridTemplateColumns,
+        gridTemplateRows,
         width: '100%',
         height: '100%',
         padding: 8,
@@ -213,24 +330,39 @@ function SplitGrid({ nodes, nodeTypes, onDropFile }: {
           style={{
             width: '100%',
             height: '100%',
-            gridColumn: cardCount === 1 ? '1 / -1' : undefined,
           }}
         />
       ))}
-      {cardCount > 1 && (
+      <div
+        style={{
+          position: 'absolute',
+          top: 8,
+          bottom: 8,
+          left: `calc(${hRatio}% + ${6 - hRatio * 0.16}px)`,
+          width: 4,
+          zIndex: 5,
+        }}
+      >
+        <SplitDivider direction="v" onMouseDown={startHDrag} />
+      </div>
+      {rowDividerPositions.map((position, idx) => (
         <div
+          key={idx}
           style={{
             position: 'absolute',
-            top: 8,
-            bottom: 8,
-            left: `calc(${hRatio}% + ${6 - hRatio * 0.16}px)`,
-            width: 4,
+            left: 8,
+            right: 8,
+            top: `calc(${position}% + ${6 - position * 0.16}px)`,
+            height: 4,
             zIndex: 5,
           }}
         >
-          <SplitDivider direction="v" onMouseDown={startHDrag} />
+          <SplitDivider
+            direction="h"
+            onMouseDown={rowCount === 2 ? startVDrag : (e) => startGridRowDrag(idx, rowRatios, e)}
+          />
         </div>
-      )}
+      ))}
     </div>
   )
 }
