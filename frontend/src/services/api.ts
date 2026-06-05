@@ -72,8 +72,19 @@ export const createTemplate = (data: {
   name: string
   session_id?: string
   group_id?: string
-  cards: { file_id: string; session_id: string; pos_x: number; pos_y: number; collapsed: boolean }[]
-  edges: { edge_id: string; source_file_id: string; target_file_id: string }[]
+  split_mode?: boolean
+  cards: {
+    file_id: string
+    session_id: string
+    filename: string
+    node_index: number
+    pos_x: number
+    pos_y: number
+    collapsed: boolean
+    splitMode?: boolean
+    split_mode?: boolean
+  }[]
+  edges: { edge_id: string; source_file_id: string; target_file_id: string; label?: string | null }[]
 }) => api.post('/api/v1/templates', data)
 
 export const deleteTemplate = (id: string) =>

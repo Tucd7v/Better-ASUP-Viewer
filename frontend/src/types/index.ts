@@ -80,6 +80,8 @@ export interface TemplateCard {
   pos_x: number
   pos_y: number
   collapsed: boolean
+  splitMode?: boolean
+  split_mode?: boolean
 }
 
 export interface TemplateEdge {
@@ -94,6 +96,8 @@ export interface CanvasTemplate {
   name: string
   session_id?: string
   group_id?: string
+  splitMode?: boolean
+  split_mode?: boolean
   created_at: string
   updated_at: string
   cards: TemplateCard[]

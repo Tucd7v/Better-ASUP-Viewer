@@ -64,6 +64,7 @@ async def get_template(template_id: str):
             name=template.name,
             session_id=template.session_id,
             group_id=template.group_id,
+            split_mode=template.split_mode,
             created_at=template.created_at,
             updated_at=template.updated_at,
             cards=[
@@ -75,6 +76,7 @@ async def get_template(template_id: str):
                     pos_x=c.pos_x,
                     pos_y=c.pos_y,
                     collapsed=c.collapsed,
+                    split_mode=template.split_mode,
                 )
                 for c in template.cards
             ],
@@ -98,6 +100,7 @@ async def create_template(body: CreateTemplateRequest):
         name=body.name,
         session_id=body.session_id,
         group_id=body.group_id,
+        split_mode=bool(body.split_mode),
         created_at=now,
         updated_at=now,
     )

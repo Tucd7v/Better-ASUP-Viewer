@@ -165,6 +165,7 @@ class TemplateCardOut(BaseModel):
     pos_x: int
     pos_y: int
     collapsed: bool = False
+    split_mode: Optional[bool] = False
 
 
 class TemplateEdgeOut(BaseModel):
@@ -179,6 +180,7 @@ class CanvasTemplateOut(BaseModel):
     name: str
     session_id: Optional[str] = None
     group_id: Optional[str] = None
+    split_mode: Optional[bool] = False
     created_at: datetime
     updated_at: datetime
     cards: list[TemplateCardOut]
@@ -191,6 +193,7 @@ class CreateTemplateRequest(BaseModel):
     name: str
     session_id: Optional[str] = None
     group_id: Optional[str] = None
+    split_mode: Optional[bool] = False
     cards: list[TemplateCardOut]
     edges: list[TemplateEdgeOut] = []
 

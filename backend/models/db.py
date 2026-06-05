@@ -104,6 +104,7 @@ class CanvasTemplate(Base):
     name: Mapped[str] = mapped_column(String)
     session_id: Mapped[str | None] = mapped_column(String, nullable=True)
     group_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    split_mode: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime)
     updated_at: Mapped[datetime] = mapped_column(DateTime)
     cards: Mapped[list[TemplateCard]] = relationship("TemplateCard", back_populates="template", lazy="selectin", cascade="all, delete-orphan")

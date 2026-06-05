@@ -690,6 +690,8 @@ function ViewerInner() {
       pos_x: Math.round(n.position.x),
       pos_y: Math.round(n.position.y),
       collapsed: state.collapsedFileIds.has((n.data as { fileId: string }).fileId),
+      splitMode,
+      split_mode: splitMode,
     }))
     if (cards.length === 0) {
       setTemplateMsg('No cards on canvas to save')
@@ -707,6 +709,7 @@ function ViewerInner() {
         name: templateName.trim(),
         session_id: params.sessionId,
         group_id: params.groupId,
+        split_mode: splitMode,
         cards,
         edges: edgesData,
       })
@@ -729,6 +732,10 @@ function ViewerInner() {
     try {
       const res = await getTemplate(templateId)
       const { cards, edges } = res.data
+      const templateSplitMode = Boolean(
+        res.data.split_mode ?? res.data.splitMode ?? cards.some((card: TemplateCard) => card.splitMode || card.split_mode)
+      )
+      setSplitMode(templateSplitMode)
 
       // Helper: find file metadata by (node_index, filename)
       const findByNodeAndFilename = (nodeIdx: number, filename: string) => {
