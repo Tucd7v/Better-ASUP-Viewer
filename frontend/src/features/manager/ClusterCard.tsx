@@ -1,7 +1,8 @@
+import type { CSSProperties } from 'react'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { Cluster, ClusterGroup, ClusterGroupMember, ClusterOverview } from '../../types'
-import { getClusterOverview, deleteSession } from '../../services/api'
+import { deleteSession, getClusterOverview } from '../../services/api'
 
 const colors = {
   textPrimary: '#1e293b',
@@ -9,40 +10,42 @@ const colors = {
   textTertiary: '#94a3b8',
   accent: '#3b82f6',
   accentLight: '#eff6ff',
-  bgCard: '#ffffff',
-  bgTertiary: '#f8fafc',
+  bgPrimary: '#f8fafc',
   border: 'rgba(0,0,0,0.05)',
+  glass: 'rgba(255,255,255,0.8)',
+  blueBorder: 'rgba(191,219,254,0.5)',
   error: '#ef4444',
 }
 
-const systemFont = 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
-const monoFont = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace'
+const systemFont = '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif'
+const monoFont = '"SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace'
 
-const cardStyle = {
-  background: colors.bgCard,
+const glassCardStyle: CSSProperties = {
+  background: colors.glass,
+  backdropFilter: 'blur(12px)',
+  WebkitBackdropFilter: 'blur(12px)',
   border: `1px solid ${colors.border}`,
   borderRadius: 16,
-  boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+  overflow: 'hidden',
 }
 
-const actionLinkStyle = {
+const actionStyle: CSSProperties = {
   alignItems: 'center',
-  background: colors.accentLight,
-  border: '1px solid rgba(59,130,246,0.16)',
   borderRadius: 8,
-  color: colors.accent,
   display: 'inline-flex',
+  fontFamily: systemFont,
   fontSize: 12,
-  fontWeight: 650,
+  fontWeight: 500,
   height: 30,
+  justifyContent: 'center',
+  lineHeight: '16px',
   padding: '0 10px',
   textDecoration: 'none',
-  whiteSpace: 'nowrap' as const,
+  whiteSpace: 'nowrap',
 }
 
 interface ClusterCardProps {
   cluster: Cluster
-  autoExpand?: boolean
   onDeleted?: () => void
 }
 
@@ -82,7 +85,6 @@ function fmtPlain(iso: string | null): string {
   } catch { return '' }
 }
 
-// A single session row (used inside groups and singles)
 function SessionRow({ m, onDeleted }: { m: ClusterGroupMember; onDeleted?: () => void }) {
   const [deleting, setDeleting] = useState(false)
   const nodeLabel = m.hostname || m.serial_num || '—'
@@ -103,20 +105,18 @@ function SessionRow({ m, onDeleted }: { m: ClusterGroupMember; onDeleted?: () =>
   return (
     <div
       style={{
-        display: 'grid',
-        gridTemplateColumns: 'minmax(0, 1fr) auto auto',
         alignItems: 'center',
+        borderTop: `1px solid ${colors.border}`,
+        display: 'grid',
         gap: 12,
-        padding: '10px 12px',
-        background: colors.bgCard,
-        border: `1px solid ${colors.border}`,
-        borderRadius: 10,
+        gridTemplateColumns: 'minmax(0, 1fr) auto auto',
+        padding: '14px 0',
       }}
     >
       <div style={{ minWidth: 0 }}>
         <div
           style={{
-            alignItems: 'baseline',
+            alignItems: 'center',
             display: 'flex',
             gap: 8,
             minWidth: 0,
@@ -125,8 +125,9 @@ function SessionRow({ m, onDeleted }: { m: ClusterGroupMember; onDeleted?: () =>
           <span
             style={{
               color: colors.textPrimary,
-              fontSize: 13,
-              fontWeight: 650,
+              fontSize: 14,
+              fontWeight: 500,
+              lineHeight: '20px',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
@@ -134,11 +135,28 @@ function SessionRow({ m, onDeleted }: { m: ClusterGroupMember; onDeleted?: () =>
           >
             {m.original_filename}
           </span>
-          <span style={{ color: colors.textTertiary, flex: '0 0 auto', fontSize: 12 }}>
+          <span
+            style={{
+              color: colors.textTertiary,
+              flex: '0 0 auto',
+              fontSize: 12,
+              lineHeight: '16px',
+            }}
+          >
             {m.file_count} files
           </span>
         </div>
-        <div style={{ color: colors.textSecondary, fontSize: 12, marginTop: 4 }}>
+        <div
+          style={{
+            color: colors.textSecondary,
+            fontSize: 12,
+            lineHeight: '16px',
+            marginTop: 4,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
           {nodeLabel}
           {m.model_name ? ` · ${m.model_name}` : ''}
           {m.serial_num && m.hostname ? ` · ${m.serial_num}` : ''}
@@ -148,22 +166,24 @@ function SessionRow({ m, onDeleted }: { m: ClusterGroupMember; onDeleted?: () =>
             color: colors.textTertiary,
             display: 'flex',
             flexWrap: 'wrap',
-            fontSize: 11,
+            fontSize: 12,
             gap: '4px 12px',
+            lineHeight: '16px',
             marginTop: 4,
           }}
         >
-          <div>
-            Capture: {captureTime}
-          </div>
-          <div>
-            Uploaded: {uploadTime}
-          </div>
+          <span>Capture: {captureTime}</span>
+          <span>Uploaded: {uploadTime}</span>
         </div>
       </div>
       <Link
         to={`/viewer/${m.session_id}`}
-        style={actionLinkStyle}
+        style={{
+          ...actionStyle,
+          background: colors.accentLight,
+          border: `1px solid ${colors.blueBorder}`,
+          color: colors.accent,
+        }}
       >
         Open
       </Link>
@@ -172,16 +192,11 @@ function SessionRow({ m, onDeleted }: { m: ClusterGroupMember; onDeleted?: () =>
         disabled={deleting}
         title="Delete session"
         style={{
-          background: colors.bgCard,
+          ...actionStyle,
+          background: '#ffffff',
           border: `1px solid ${colors.border}`,
-          borderRadius: 8,
           color: deleting ? colors.textTertiary : colors.error,
           cursor: deleting ? 'wait' : 'pointer',
-          fontFamily: systemFont,
-          fontSize: 12,
-          fontWeight: 650,
-          height: 30,
-          padding: '0 10px',
         }}
       >
         {deleting ? 'Deleting' : 'Delete'}
@@ -190,7 +205,6 @@ function SessionRow({ m, onDeleted }: { m: ClusterGroupMember; onDeleted?: () =>
   )
 }
 
-// A paired group row with its own expand/collapse
 function GroupRow({ group, onDeleted }: { group: ClusterGroup; onDeleted?: () => void }) {
   const [expanded, setExpanded] = useState(false)
   const times = group.members
@@ -199,28 +213,72 @@ function GroupRow({ group, onDeleted }: { group: ClusterGroup; onDeleted?: () =>
     .sort()
   const title = times.length === 0 ? '—' : times.length === 1
     ? fmtNode(times[0])
-    : `${fmtPlain(times[0])} – ${fmtNode(times[times.length - 1])}`
+    : `${fmtPlain(times[0])} - ${fmtNode(times[times.length - 1])}`
 
   return (
-    <div style={{ border: '1px solid rgba(59,130,246,0.16)', borderRadius: 12, overflow: 'hidden', background: colors.accentLight }}>
+    <div
+      style={{
+        borderTop: `1px solid ${colors.border}`,
+        padding: '14px 0',
+      }}
+    >
       <div
-        onClick={() => setExpanded((v) => !v)}
-        style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', cursor: 'pointer', userSelect: 'none' }}
+        onClick={() => setExpanded((value) => !value)}
+        style={{
+          alignItems: 'center',
+          cursor: 'pointer',
+          display: 'grid',
+          gap: 12,
+          gridTemplateColumns: 'minmax(0, 1fr) auto',
+          userSelect: 'none',
+        }}
       >
-        <span style={{ color: colors.accent, fontSize: 11, width: 14 }}>{expanded ? '▼' : '▶'}</span>
-        <span style={{ flex: 1, minWidth: 0, fontSize: 12, color: colors.textPrimary, fontFamily: monoFont, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {title}
-        </span>
+        <div style={{ minWidth: 0 }}>
+          <div
+            style={{
+              color: colors.textPrimary,
+              fontFamily: monoFont,
+              fontSize: 13,
+              fontWeight: 500,
+              lineHeight: '20px',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {title}
+          </div>
+          <div
+            style={{
+              color: colors.textTertiary,
+              fontSize: 12,
+              lineHeight: '16px',
+              marginTop: 4,
+            }}
+          >
+            {group.members.length} grouped sessions
+          </div>
+        </div>
         <Link
           to={`/viewer/group/${group.id}`}
-          onClick={(e) => e.stopPropagation()}
-          style={{ ...actionLinkStyle, height: 28 }}
+          onClick={(event) => event.stopPropagation()}
+          style={{
+            ...actionStyle,
+            background: colors.accentLight,
+            border: `1px solid ${colors.blueBorder}`,
+            color: colors.accent,
+          }}
         >
           Group View
         </Link>
       </div>
       {expanded && (
-        <div style={{ borderTop: '1px solid rgba(59,130,246,0.16)', padding: 10, display: 'flex', flexDirection: 'column', gap: 6, background: colors.bgCard }}>
+        <div
+          style={{
+            marginTop: 10,
+            paddingLeft: 12,
+          }}
+        >
           {group.members.map((m) => (
             <SessionRow key={m.session_id} m={m} onDeleted={onDeleted} />
           ))}
@@ -230,17 +288,10 @@ function GroupRow({ group, onDeleted }: { group: ClusterGroup; onDeleted?: () =>
   )
 }
 
-export default function ClusterCard({ cluster, autoExpand = false, onDeleted }: ClusterCardProps) {
-  const [expanded, setExpanded] = useState(false)
+export default function ClusterCard({ cluster, onDeleted }: ClusterCardProps) {
+  const [expanded, setExpanded] = useState(true)
   const [overview, setOverview] = useState<ClusterOverview | null>(null)
   const [loadKey, setLoadKey] = useState(0)
-
-  useEffect(() => {
-    if (!autoExpand) return
-    const timeoutId = window.setTimeout(() => setExpanded(true), 0)
-
-    return () => window.clearTimeout(timeoutId)
-  }, [autoExpand])
 
   useEffect(() => {
     if (!expanded) return
@@ -249,94 +300,191 @@ export default function ClusterCard({ cluster, autoExpand = false, onDeleted }: 
       .catch(() => setOverview(null))
   }, [expanded, cluster.id, loadKey])
 
-  const refresh = () => setLoadKey((k) => k + 1)
-
-  const lastSeen = fmt(cluster.last_seen)
-  const clusterTitle = cluster.cluster_name || cluster.id.slice(0, 8)
+  const refresh = () => setLoadKey((key) => key + 1)
+  const clusterTitle = cluster.cluster_name || cluster.id
 
   return (
-    <div style={{ ...cardStyle, overflow: 'hidden' }}>
+    <div style={glassCardStyle}>
       <div
-        onClick={() => setExpanded((v) => !v)}
-        style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '18px 20px', cursor: 'pointer', userSelect: 'none' }}
+        onClick={() => setExpanded((value) => !value)}
+        style={{
+          alignItems: 'center',
+          borderBottom: `1px solid ${colors.border}`,
+          cursor: 'pointer',
+          display: 'flex',
+          gap: 12,
+          justifyContent: 'space-between',
+          padding: '16px 20px',
+          userSelect: 'none',
+        }}
       >
-        <span style={{ color: colors.textTertiary, fontSize: 13, width: 16 }}>{expanded ? '▼' : '▶'}</span>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 18, color: colors.textPrimary, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <div style={{ minWidth: 0 }}>
+          <div
+            style={{
+              color: colors.textPrimary,
+              fontSize: 14,
+              fontWeight: 600,
+              lineHeight: '20px',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
             {clusterTitle}
           </div>
-          <div style={{ fontFamily: monoFont, fontSize: 11, color: colors.textTertiary, marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            UUID: {cluster.id}
-          </div>
-          <div style={{ fontSize: 12, color: colors.textSecondary, marginTop: 6 }}>
-            Last upload: {lastSeen}
+          <div
+            style={{
+              color: colors.textTertiary,
+              fontFamily: monoFont,
+              fontSize: 12,
+              lineHeight: '16px',
+              marginTop: 4,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            UUID: {cluster.id} · Last upload: {fmt(cluster.last_seen)}
           </div>
         </div>
-        <span style={{ fontSize: 12, color: colors.textSecondary, background: colors.bgTertiary, border: `1px solid ${colors.border}`, borderRadius: 8, padding: '5px 10px', whiteSpace: 'nowrap' }}>
+        <span
+          style={{
+            alignItems: 'center',
+            background: colors.accentLight,
+            border: `1px solid ${colors.blueBorder}`,
+            borderRadius: 999,
+            color: colors.accent,
+            display: 'inline-flex',
+            flex: '0 0 auto',
+            fontSize: 12,
+            fontWeight: 500,
+            lineHeight: '16px',
+            padding: '4px 10px',
+            whiteSpace: 'nowrap',
+          }}
+        >
           {cluster.node_count} node{cluster.node_count !== 1 ? 's' : ''}
         </span>
       </div>
 
       {expanded && (
-        <div style={{ borderTop: `1px solid ${colors.border}`, padding: '14px 20px 18px', display: 'flex', flexDirection: 'column', gap: 10, background: colors.bgTertiary }}>
+        <div
+          style={{
+            padding: '16px 20px',
+          }}
+        >
           {cluster.nodes.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {cluster.nodes.map((node) => (
-                <div
-                  key={node.id}
-                  style={{
-                    alignItems: 'center',
-                    background: colors.bgCard,
-                    border: `1px solid ${colors.border}`,
-                    borderRadius: 10,
-                    display: 'grid',
-                    gap: 10,
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-                    padding: '9px 12px',
-                  }}
-                >
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ color: colors.textTertiary, fontSize: 11 }}>Hostname</div>
-                    <div style={{ color: colors.textPrimary, fontSize: 13, fontWeight: 650, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {node.hostname || '—'}
-                    </div>
-                  </div>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ color: colors.textTertiary, fontSize: 11 }}>Model</div>
-                    <div style={{ color: colors.textSecondary, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {node.model_name || '—'}
-                    </div>
-                  </div>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ color: colors.textTertiary, fontSize: 11 }}>Serial</div>
-                    <div style={{ color: colors.textSecondary, fontFamily: monoFont, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {node.serial_num || '—'}
-                    </div>
-                  </div>
-                </div>
-              ))}
+            <div style={{ marginBottom: 18, overflowX: 'auto' }}>
+              <table
+                style={{
+                  borderCollapse: 'collapse',
+                  width: '100%',
+                }}
+              >
+                <thead>
+                  <tr>
+                    <th style={nodeHeaderStyle}>Hostname</th>
+                    <th style={nodeHeaderStyle}>Model</th>
+                    <th style={nodeHeaderStyle}>Serial</th>
+                    <th style={nodeHeaderStyle}>Sessions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {cluster.nodes.map((node) => (
+                    <tr key={node.id}>
+                      <td style={nodeCellPrimaryStyle}>{node.hostname || '—'}</td>
+                      <td style={nodeCellStyle}>{node.model_name || '—'}</td>
+                      <td style={{ ...nodeCellStyle, fontFamily: monoFont }}>{node.serial_num || '—'}</td>
+                      <td style={nodeCellStyle}>{node.session_count}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
 
-          {!overview ? (
-            <div style={{ color: colors.textTertiary, fontSize: 12, padding: '4px 0' }}>Loading…</div>
-          ) : (
-            <>
-              {overview.groups.map((g) => (
-                <GroupRow key={g.id} group={g} onDeleted={() => { refresh(); onDeleted?.() }} />
-              ))}
+          <div>
+            <div
+              style={{
+                color: colors.textTertiary,
+                fontSize: 12,
+                fontWeight: 500,
+                lineHeight: '16px',
+                marginBottom: 2,
+                textTransform: 'uppercase',
+              }}
+            >
+              Sessions
+            </div>
 
-              {overview.singles.map((m) => (
-                <SessionRow key={m.session_id} m={m} onDeleted={() => { refresh(); onDeleted?.() }} />
-              ))}
+            {!overview ? (
+              <div style={{ color: colors.textTertiary, fontSize: 12, lineHeight: '16px', padding: '14px 0' }}>
+                Loading…
+              </div>
+            ) : (
+              <>
+                {overview.groups.map((group) => (
+                  <GroupRow
+                    key={group.id}
+                    group={group}
+                    onDeleted={() => {
+                      refresh()
+                      onDeleted?.()
+                    }}
+                  />
+                ))}
 
-              {overview.groups.length === 0 && overview.singles.length === 0 && (
-                <div style={{ color: colors.textTertiary, fontSize: 12, padding: '4px 0' }}>No sessions</div>
-              )}
-            </>
-          )}
+                {overview.singles.map((member) => (
+                  <SessionRow
+                    key={member.session_id}
+                    m={member}
+                    onDeleted={() => {
+                      refresh()
+                      onDeleted?.()
+                    }}
+                  />
+                ))}
+
+                {overview.groups.length === 0 && overview.singles.length === 0 && (
+                  <div style={{ color: colors.textTertiary, fontSize: 12, lineHeight: '16px', padding: '14px 0' }}>
+                    No sessions
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </div>
       )}
     </div>
   )
+}
+
+const nodeHeaderStyle: CSSProperties = {
+  borderBottom: `1px solid ${colors.border}`,
+  color: colors.textTertiary,
+  fontSize: 12,
+  fontWeight: 500,
+  lineHeight: '16px',
+  padding: '0 12px 10px 0',
+  textAlign: 'left',
+  textTransform: 'uppercase',
+  whiteSpace: 'nowrap',
+}
+
+const nodeCellStyle: CSSProperties = {
+  borderBottom: `1px solid ${colors.border}`,
+  color: colors.textSecondary,
+  fontSize: 14,
+  lineHeight: '20px',
+  maxWidth: 220,
+  overflow: 'hidden',
+  padding: '10px 12px 10px 0',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+}
+
+const nodeCellPrimaryStyle: CSSProperties = {
+  ...nodeCellStyle,
+  color: colors.textPrimary,
+  fontWeight: 500,
 }

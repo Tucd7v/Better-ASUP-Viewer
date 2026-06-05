@@ -1,50 +1,66 @@
+import type { CSSProperties } from 'react'
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { getClusters } from '../../services/api'
 import type { Cluster } from '../../types'
 import ClusterCard from './ClusterCard'
-import UploadDialog from './UploadDialog'
 
 const MS_PER_DAY = 86400000
+
 const colors = {
   textPrimary: '#1e293b',
   textSecondary: '#64748b',
   textTertiary: '#94a3b8',
   accent: '#3b82f6',
   accentLight: '#eff6ff',
-  bgCard: '#ffffff',
-  bgTertiary: '#f8fafc',
+  bgPrimary: '#f8fafc',
   border: 'rgba(0,0,0,0.05)',
+  glass: 'rgba(255,255,255,0.8)',
+  blueBorder: 'rgba(191,219,254,0.5)',
 }
 
-const cardStyle = {
-  background: colors.bgCard,
-  border: `1px solid ${colors.border}`,
-  borderRadius: 16,
-  boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+const systemFont = '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif'
+
+const glassStyle: CSSProperties = {
+  background: colors.glass,
+  backdropFilter: 'blur(12px)',
+  WebkitBackdropFilter: 'blur(12px)',
 }
 
-const buttonBaseStyle = {
-  borderRadius: 10,
-  cursor: 'pointer',
-  fontSize: 14,
-  fontWeight: 650,
-  height: 40,
-  padding: '0 16px',
-  whiteSpace: 'nowrap' as const,
-  fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-}
-
-const fieldStyle = {
-  background: colors.bgCard,
+const fieldStyle: CSSProperties = {
+  background: '#ffffff',
   border: `1px solid ${colors.border}`,
   borderRadius: 10,
   color: colors.textPrimary,
-  fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+  fontFamily: systemFont,
   fontSize: 14,
   height: 40,
+  lineHeight: '20px',
   outline: 'none',
   padding: '0 12px',
+}
+
+const labelStyle: CSSProperties = {
+  alignItems: 'center',
+  color: colors.textSecondary,
+  display: 'flex',
+  fontSize: 12,
+  fontWeight: 500,
+  gap: 8,
+  lineHeight: '16px',
+  whiteSpace: 'nowrap',
+}
+
+const buttonStyle: CSSProperties = {
+  borderRadius: 10,
+  cursor: 'pointer',
+  fontFamily: systemFont,
+  fontSize: 14,
+  fontWeight: 600,
+  height: 40,
+  lineHeight: '20px',
+  padding: '0 16px',
+  whiteSpace: 'nowrap',
 }
 
 function parseUtc8(iso: string): number {
@@ -80,6 +96,48 @@ function inDateRange(iso: string, fromDate: string, toDate: string): boolean {
   )
 }
 
+function DatabaseIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      fill="none"
+      height="20"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+      width="20"
+      style={{ color: colors.accent, flex: '0 0 auto' }}
+    >
+      <path
+        d="M4 7c0 1.657 3.582 3 8 3s8-1.343 8-3M4 7c0-1.657 3.582-3 8-3s8 1.343 8 3M4 7v10c0 1.657 3.582 3 8 3s8-1.343 8-3V7M4 12c0 1.657 3.582 3 8 3s8-1.343 8-3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.5"
+      />
+    </svg>
+  )
+}
+
+function InfoIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      fill="none"
+      height="16"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+      width="16"
+      style={{ color: colors.accent, flex: '0 0 auto' }}
+    >
+      <path
+        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.5"
+      />
+    </svg>
+  )
+}
+
 export default function ManagerPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [clusters, setClusters] = useState<Cluster[]>([])
@@ -88,7 +146,6 @@ export default function ManagerPage() {
   const [toDate, setToDate] = useState('')
   const [onlyToday, setOnlyToday] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [showUpload, setShowUpload] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
 
   const refreshClusters = () => {
@@ -103,23 +160,6 @@ export default function ManagerPage() {
       .finally(() => setLoading(false))
   }, [refreshKey])
 
-  const matchedClusterIds = useMemo(() => {
-    const q = search.trim().toLowerCase()
-    if (!q) return new Set<string>()
-
-    return new Set(
-      clusters
-        .filter((cluster) =>
-          cluster.nodes.some((node) =>
-            node.hostname.toLowerCase().includes(q) ||
-            node.serial_num.toLowerCase().includes(q) ||
-            (node.model_name || '').toLowerCase().includes(q)
-          )
-        )
-        .map((cluster) => cluster.id)
-    )
-  }, [clusters, search])
-
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
 
@@ -127,6 +167,7 @@ export default function ManagerPage() {
       const matchesSearch =
         !q ||
         cluster.id.toLowerCase().includes(q) ||
+        (cluster.cluster_name || '').toLowerCase().includes(q) ||
         cluster.nodes.some((node) =>
           node.hostname.toLowerCase().includes(q) ||
           node.serial_num.toLowerCase().includes(q) ||
@@ -145,193 +186,268 @@ export default function ManagerPage() {
   return (
     <div
       style={{
-        height: '100vh',
-        overflowY: 'auto',
-        background: colors.bgTertiary,
+        background: colors.bgPrimary,
         color: colors.textPrimary,
-        fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+        display: 'flex',
+        flexDirection: 'column',
+        fontFamily: systemFont,
+        height: '100vh',
+        letterSpacing: 0,
+        overflow: 'hidden',
       }}
     >
-      <div style={{ maxWidth: 1080, margin: '0 auto', padding: '32px 24px 48px' }}>
-        <section
+      <header
+        style={{
+          ...glassStyle,
+          borderBottom: `1px solid ${colors.border}`,
+          flexShrink: 0,
+          left: 0,
+          position: 'fixed',
+          right: 0,
+          top: 0,
+          zIndex: 20,
+        }}
+      >
+        <div
           style={{
-            ...cardStyle,
-            display: 'flex',
             alignItems: 'center',
+            display: 'flex',
             justifyContent: 'space-between',
-            gap: 20,
-            marginBottom: 16,
-            padding: '24px 28px',
-            flexWrap: 'wrap',
+            padding: '12px 20px',
           }}
         >
-          <div style={{ minWidth: 240 }}>
-            <h1
+          <div style={{ alignItems: 'center', display: 'flex', gap: 12 }}>
+            <div style={{ alignItems: 'center', display: 'flex', gap: 8 }}>
+              <DatabaseIcon />
+              <span
+                style={{
+                  color: colors.textPrimary,
+                  fontSize: 16,
+                  fontWeight: 600,
+                  lineHeight: '24px',
+                  letterSpacing: 0,
+                }}
+              >
+                AiSUP Manager
+              </span>
+            </div>
+          </div>
+          <div
+            style={{
+              color: colors.textTertiary,
+              fontSize: 12,
+              lineHeight: '16px',
+            }}
+          >
+            DM ASUP Analysis Tool
+          </div>
+        </div>
+      </header>
+
+      <main
+        style={{
+          flex: 1,
+          overflow: 'hidden',
+          paddingTop: 49,
+        }}
+      >
+        <div
+          style={{
+            height: '100%',
+            margin: '0 auto',
+            maxWidth: 1200,
+            overflowY: 'auto',
+            padding: '24px 24px 32px',
+          }}
+        >
+          <div style={{ marginBottom: 32 }}>
+            <h2
               style={{
-                margin: 0,
                 color: colors.textPrimary,
                 fontSize: 30,
                 fontWeight: 700,
-                lineHeight: 1.2,
+                letterSpacing: 0,
+                lineHeight: '36px',
+                margin: '0 0 4px',
               }}
             >
               AiSUP Manager
-            </h1>
+            </h2>
             <p
               style={{
-                margin: '8px 0 0',
                 color: colors.textSecondary,
-                fontSize: 15,
-                lineHeight: 1.45,
+                fontSize: 16,
+                lineHeight: '24px',
+                margin: 0,
               }}
             >
-              浏览、搜索和管理存储日志
+              浏览、搜索和管理 NetApp DM ASUP 存储日志
             </p>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <button
-              onClick={() => setShowUpload(true)}
-              style={{
-                ...buttonBaseStyle,
-                background: colors.accent,
-                border: `1px solid ${colors.accent}`,
-                color: '#ffffff',
-              }}
-            >
-              Upload
-            </button>
-            <button
-              onClick={() => refreshClusters()}
-              style={{
-                ...buttonBaseStyle,
-                background: colors.accentLight,
-                border: `1px solid rgba(59,130,246,0.16)`,
-                color: colors.accent,
-              }}
-            >
-              Storage management
-            </button>
-          </div>
-        </section>
 
-        <div
-          style={{
-            ...cardStyle,
-            display: 'flex',
-            gap: 12,
-            alignItems: 'center',
-            marginBottom: 16,
-            padding: 14,
-            flexWrap: 'wrap',
-          }}
-        >
-          <input
-            type="text"
-            placeholder="Search cluster, hostname, SN…"
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setSearchParams(e.target.value ? { q: e.target.value } : {}) }}
-            style={{
-              ...fieldStyle,
-              flex: '1 1 200px',
-              minWidth: 0,
-            }}
-          />
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, color: colors.textSecondary, fontSize: 13, fontWeight: 600 }}>
-            From
-            <input
-              type="date"
-              value={fromDate}
-              onChange={(e) => {
-                setFromDate(e.target.value)
-                setOnlyToday(false)
-              }}
-              style={{
-                ...fieldStyle,
-                width: 152,
-              }}
-            />
-          </label>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, color: colors.textSecondary, fontSize: 13, fontWeight: 600 }}>
-            To
-            <input
-              type="date"
-              value={toDate}
-              onChange={(e) => {
-                setToDate(e.target.value)
-                setOnlyToday(false)
-              }}
-              style={{
-                ...fieldStyle,
-                width: 152,
-              }}
-            />
-          </label>
-          <button
-            onClick={() => {
-              if (onlyToday) {
-                setOnlyToday(false)
-              } else {
-                setFromDate('')
-                setToDate('')
-                setOnlyToday(true)
-              }
-            }}
-            aria-pressed={onlyToday}
-            style={{
-              ...buttonBaseStyle,
-              background: onlyToday ? colors.accent : colors.bgCard,
-              border: onlyToday ? `1px solid ${colors.accent}` : `1px solid ${colors.border}`,
-              color: onlyToday ? '#ffffff' : '#1e293b',
-            }}
-          >
-            Show Today Upload
-          </button>
-        </div>
-
-        {loading && (
-          <div style={{ ...cardStyle, color: colors.textTertiary, fontSize: 14, textAlign: 'center', padding: '28px 0' }}>
-            Loading…
-          </div>
-        )}
-
-        {!loading && filtered.length === 0 && (
           <div
             style={{
-              ...cardStyle,
-              textAlign: 'center',
-              padding: '56px 20px',
-              color: colors.textTertiary,
+              alignItems: 'center',
+              background: colors.accentLight,
+              border: `1px solid ${colors.blueBorder}`,
+              borderRadius: 12,
+              color: colors.textSecondary,
+              display: 'flex',
+              fontSize: 12,
+              gap: 8,
+              lineHeight: '16px',
+              marginBottom: 24,
+              padding: 12,
             }}
           >
-            <div style={{ fontSize: 40, marginBottom: 14 }}>📂</div>
-            <div style={{ fontSize: 16, color: colors.textSecondary, marginBottom: 8, fontWeight: 650 }}>
-              No ASUP logs yet.
-            </div>
-            <div style={{ fontSize: 14 }}>Click Upload to get started.</div>
+            <InfoIcon />
+            <span>Log directory:</span>
+            <code
+              style={{
+                background: colors.accentLight,
+                borderRadius: 4,
+                color: colors.accent,
+                fontFamily: '"SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace',
+                fontSize: 12,
+                padding: '2px 6px',
+              }}
+            >
+              portal/server/uploads/DM/
+            </code>
+            <span>— each subdirectory is an independent session</span>
           </div>
-        )}
 
-        {!loading &&
-          filtered.length > 0 && (
+          <div
+            style={{
+              ...glassStyle,
+              border: `1px solid ${colors.border}`,
+              borderRadius: 16,
+              marginBottom: 24,
+              overflow: 'hidden',
+            }}
+          >
+            <div
+              style={{
+                alignItems: 'center',
+                borderTop: `1px solid ${colors.border}`,
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 12,
+                padding: '16px 20px',
+              }}
+            >
+              <input
+                type="text"
+                placeholder="Search cluster, hostname, SN…"
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value)
+                  setSearchParams(e.target.value ? { q: e.target.value } : {})
+                }}
+                style={{
+                  ...fieldStyle,
+                  flex: '1 1 260px',
+                  minWidth: 0,
+                }}
+              />
+              <label style={labelStyle}>
+                From
+                <input
+                  type="date"
+                  value={fromDate}
+                  onChange={(e) => {
+                    setFromDate(e.target.value)
+                    setOnlyToday(false)
+                  }}
+                  style={{
+                    ...fieldStyle,
+                    width: 152,
+                  }}
+                />
+              </label>
+              <label style={labelStyle}>
+                To
+                <input
+                  type="date"
+                  value={toDate}
+                  onChange={(e) => {
+                    setToDate(e.target.value)
+                    setOnlyToday(false)
+                  }}
+                  style={{
+                    ...fieldStyle,
+                    width: 152,
+                  }}
+                />
+              </label>
+              <button
+                onClick={() => {
+                  if (onlyToday) {
+                    setOnlyToday(false)
+                  } else {
+                    setFromDate('')
+                    setToDate('')
+                    setOnlyToday(true)
+                  }
+                }}
+                aria-pressed={onlyToday}
+                style={{
+                  ...buttonStyle,
+                  background: onlyToday ? colors.accent : '#ffffff',
+                  border: onlyToday ? `1px solid ${colors.accent}` : `1px solid ${colors.border}`,
+                  color: onlyToday ? '#ffffff' : colors.textPrimary,
+                }}
+              >
+                Show Today Upload
+              </button>
+            </div>
+          </div>
+
+          {loading && (
+            <div
+              style={{
+                ...glassStyle,
+                border: `1px solid ${colors.border}`,
+                borderRadius: 16,
+                color: colors.textTertiary,
+                fontSize: 14,
+                padding: '28px 0',
+                textAlign: 'center',
+              }}
+            >
+              Loading…
+            </div>
+          )}
+
+          {!loading && filtered.length === 0 && (
+            <div
+              style={{
+                ...glassStyle,
+                border: `1px solid ${colors.border}`,
+                borderRadius: 16,
+                color: colors.textTertiary,
+                fontSize: 14,
+                padding: '56px 20px',
+                textAlign: 'center',
+              }}
+            >
+              No ASUP logs.
+            </div>
+          )}
+
+          {!loading && filtered.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {filtered.map((cluster) => (
                 <ClusterCard
                   key={cluster.id}
                   cluster={cluster}
-                  autoExpand={matchedClusterIds.has(cluster.id)}
                   onDeleted={refreshClusters}
                 />
               ))}
             </div>
           )}
-      </div>
-
-      {showUpload && (
-        <UploadDialog
-          onClose={() => setShowUpload(false)}
-          onDone={refreshClusters}
-        />
-      )}
+        </div>
+      </main>
     </div>
   )
 }
