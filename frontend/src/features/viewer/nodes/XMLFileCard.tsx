@@ -428,7 +428,7 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
                             onDragOver={(e) => e.preventDefault()}
                             onDragEnd={onDragEnd}
                             style={{
-                              padding: '5px 46px 5px 10px',
+                              padding: '5px 72px 5px 10px',
                               boxSizing: 'border-box',
                               minWidth: columnWidth,
                               width: columnWidth,
@@ -447,7 +447,17 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
                               zIndex: isPinned ? 2 : undefined,
                             }}
                           >
-                            {col}
+                            <span
+                              style={{
+                                display: 'block',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                              }}
+                              title={col}
+                            >
+                              {col}
+                            </span>
                             <div
                               className="nodrag"
                               onMouseDown={(e) => startColumnResize(col, e)}
@@ -469,16 +479,19 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
                               title="Sort column"
                               style={{
                                 position: 'absolute',
-                                right: 48,
+                                right: 44,
                                 top: '50%',
                                 transform: 'translateY(-50%)',
+                                width: 16,
+                                boxSizing: 'border-box',
                                 background: 'none',
                                 border: 0,
                                 color: sortCol === col ? '#2563eb' : '#94a3b8',
                                 cursor: 'pointer',
                                 fontSize: 10,
-                                padding: '0 2px',
+                                padding: '1px 2px',
                                 lineHeight: 1,
+                                textAlign: 'center',
                               }}
                             >
                               {sortCol === col && sortDir === 'asc' ? '▲' : '▼'}
@@ -491,14 +504,17 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
                                 right: 24,
                                 top: '50%',
                                 transform: 'translateY(-50%)',
+                                width: 16,
+                                boxSizing: 'border-box',
                                 background: swapMenuCol === col ? '#e0e7ff' : 'none',
                                 border: 'none',
                                 borderRadius: 3,
                                 color: swapMenuCol === col ? '#4f46e5' : '#94a3b8',
                                 cursor: 'pointer',
                                 fontSize: 10,
-                                padding: '1px 3px',
+                                padding: '1px 2px',
                                 lineHeight: 1,
+                                textAlign: 'center',
                               }}
                             >
                               ⇄
@@ -511,14 +527,17 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
                                 right: 4,
                                 top: '50%',
                                 transform: 'translateY(-50%)',
+                                width: 16,
+                                boxSizing: 'border-box',
                                 background: isPinned ? '#e0e7ff' : 'none',
                                 border: 'none',
                                 borderRadius: 3,
                                 color: isPinned ? '#4f46e5' : '#94a3b8',
                                 cursor: 'pointer',
                                 fontSize: 10,
-                                padding: '1px 3px',
+                                padding: '1px 2px',
                                 lineHeight: 1,
+                                textAlign: 'center',
                               }}
                             >
                               🔒
