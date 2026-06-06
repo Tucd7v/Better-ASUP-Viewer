@@ -206,7 +206,6 @@ function SplitGrid({ nodes, nodeTypes, onDropFile }: {
   const gridNodes = nodes.slice(0, SPLIT_GRID_MAX_CARDS)
   const cardCount = gridNodes.length
   const allXML = gridNodes.every((node) => node.type === 'xmlFile')
-  const isSingleColumnXMLGrid = allXML && cardCount >= 4
   const [dragOverZone, setDragOverZone] = useState<number | null>(null)
   const [hRatio, setHRatio] = useState(50)
   const [vRatio, setVRatio] = useState(50)
@@ -345,7 +344,7 @@ function SplitGrid({ nodes, nodeTypes, onDropFile }: {
     )
   }
 
-  if (cardCount === 2) {
+  if (cardCount === 2 && !allXML) {
     return (
       <div ref={containerRef} style={{ display: 'flex', width: '100%', height: '100%', padding: 8, gap: 0, background: '#f7f9fc' }}>
         <SplitCard {...cardProps(gridNodes[0], 0)} style={{ width: `calc(${hRatio}% - 2px)`, height: '100%' }} />
@@ -355,7 +354,7 @@ function SplitGrid({ nodes, nodeTypes, onDropFile }: {
     )
   }
 
-  if (cardCount === 3) {
+  if (cardCount === 3 && !allXML) {
     return (
       <div ref={containerRef} style={{ display: 'flex', width: '100%', height: '100%', padding: 8, gap: 0, background: '#f7f9fc' }}>
         <SplitCard {...cardProps(gridNodes[0], 0)} style={{ width: `calc(${col3Ratios[0]}% - 3px)`, height: '100%' }} />
