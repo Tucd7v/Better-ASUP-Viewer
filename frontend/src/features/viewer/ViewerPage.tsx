@@ -205,12 +205,19 @@ function SplitGrid({ nodes, nodeTypes, onDropFile }: {
 }) {
   const gridNodes = nodes.slice(0, SPLIT_GRID_MAX_CARDS)
   const cardCount = gridNodes.length
+  const allXML = gridNodes.every((node) => node.type === 'xmlFile')
+  const isSingleColumnXMLGrid = allXML && cardCount >= 4
   const [dragOverZone, setDragOverZone] = useState<number | null>(null)
   const [hRatio, setHRatio] = useState(50)
   const [vRatio, setVRatio] = useState(50)
   const [col3Ratios, setCol3Ratios] = useState([33.33, 33.34, 33.33])
-  const [gridRowRatios, setGridRowRatios] = useState<number[]>([])
   const containerRef = useRef<HTMLDivElement>(null)
+  const gridRowRatioKey = isSingleColumnXMLGrid ? `xml:${cardCount}` : `grid:${Math.ceil(cardCount / 2)}`
+  const [gridRowRatioState, setGridRowRatioState] = useState<{ key: string; ratios: number[] }>({
+    key: gridRowRatioKey,
+    ratios: [],
+  })
+  const storedGridRowRatios = gridRowRatioState.key === gridRowRatioKey ? gridRowRatioState.ratios : []
 
   if (cardCount === 0) {
     return (
@@ -316,7 +323,7 @@ function SplitGrid({ nodes, nodeTypes, onDropFile }: {
       const minRatio = Math.min(20, pairTotal / 2)
       newRatios[dividerIdx] = clamp(startRatios[dividerIdx] + pctDelta, minRatio, pairTotal - minRatio)
       newRatios[dividerIdx + 1] = pairTotal - newRatios[dividerIdx]
-      setGridRowRatios(newRatios)
+      setGridRowRatioState({ key: gridRowRatioKey, ratios: newRatios })
     }
     const onUp = () => {
       window.removeEventListener('mousemove', onMove)
@@ -360,14 +367,16 @@ function SplitGrid({ nodes, nodeTypes, onDropFile }: {
     )
   }
 
-  const gridTemplateColumns = hRatio === 50
+  const gridTemplateColumns = isSingleColumnXMLGrid
+    ? 'minmax(0, 1fr)'
+    : hRatio === 50
     ? 'repeat(2, 1fr)'
     : `minmax(0, ${hRatio}fr) minmax(0, ${100 - hRatio}fr)`
-  const rowCount = Math.ceil(cardCount / 2)
-  const rowRatios = rowCount === 2
+  const rowCount = isSingleColumnXMLGrid ? cardCount : Math.ceil(cardCount / 2)
+  const rowRatios = !isSingleColumnXMLGrid && rowCount === 2
     ? [vRatio, 100 - vRatio]
-    : gridRowRatios.length === rowCount
-      ? gridRowRatios
+    : storedGridRowRatios.length === rowCount
+      ? storedGridRowRatios
       : Array.from({ length: rowCount }, () => 100 / rowCount)
   const gridTemplateRows = rowRatios.map((ratio) => `minmax(0, ${ratio}fr)`).join(' ')
   const rowDividerPositions = rowRatios.slice(0, -1).reduce<number[]>((positions, ratio, idx) => {
@@ -400,18 +409,20 @@ function SplitGrid({ nodes, nodeTypes, onDropFile }: {
           }}
         />
       ))}
-      <div
-        style={{
-          position: 'absolute',
-          top: 8,
-          bottom: 8,
-          left: `calc(${hRatio}% + ${6 - hRatio * 0.16}px)`,
-          width: 4,
-          zIndex: 5,
-        }}
-      >
-        <SplitDivider direction="v" onMouseDown={startHDrag} />
-      </div>
+      {!isSingleColumnXMLGrid && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 8,
+            bottom: 8,
+            left: `calc(${hRatio}% + ${6 - hRatio * 0.16}px)`,
+            width: 4,
+            zIndex: 5,
+          }}
+        >
+          <SplitDivider direction="v" onMouseDown={startHDrag} />
+        </div>
+      )}
       {rowDividerPositions.map((position, idx) => (
         <div
           key={idx}
