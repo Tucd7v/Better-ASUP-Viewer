@@ -67,6 +67,7 @@ export default function EMSFileCard({ data }: NodeProps<EMSFileNode>) {
   const sessionMeta = state.sessions.find((session) => session.sessionId === sessionId)
   const hostname = sessionMeta?.hostname?.trim() ?? ''
   const aiSummary = (dataAiSummary || sessionMeta?.aiSummary || sessionMeta?.ai_summary || '').trim()
+  const fontSize = state.fontSize || 13
 
   useEffect(() => {
     if (collapsed) {
@@ -276,6 +277,7 @@ export default function EMSFileCard({ data }: NodeProps<EMSFileNode>) {
                       padding: '6px 10px',
                       borderBottom: '1px solid #f1f5f9',
                       background: isHighlight ? 'rgba(251,191,36,0.2)' : 'transparent',
+                      fontSize,
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>

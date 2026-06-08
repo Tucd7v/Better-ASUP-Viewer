@@ -850,6 +850,10 @@ function ViewerInner() {
       : 'Open AI summaries'
   const showAI = activeSidePanel === 'ai'
   const isAISummaryOpen = activeSidePanel === 'summary'
+  const fontSize = state.fontSize || 13
+  const setFontSize = useCallback((nextSize: number) => {
+    dispatch({ type: 'SET_FONT_SIZE', fontSize: Math.max(10, Math.min(18, nextSize)) })
+  }, [dispatch])
 
   useEffect(() => {
     async function load() {
@@ -1499,6 +1503,29 @@ function ViewerInner() {
           >
             ⊞ Grid
           </button>
+          <div style={{ width: 1, height: 16, background: '#e2e8f0' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ color: '#64748b', fontSize: 11, fontFamily: 'ui-monospace, Consolas, monospace' }}>Font Size:</span>
+            <button
+              type="button"
+              onClick={() => setFontSize(fontSize - 1)}
+              title="Decrease font size"
+              style={toolbarBtnStyle}
+            >
+              -
+            </button>
+            <span style={{ minWidth: 18, textAlign: 'center', color: '#64748b', fontSize: 11, fontFamily: 'ui-monospace, Consolas, monospace' }}>
+              {fontSize}
+            </span>
+            <button
+              type="button"
+              onClick={() => setFontSize(fontSize + 1)}
+              title="Increase font size"
+              style={toolbarBtnStyle}
+            >
+              +
+            </button>
+          </div>
           <div style={{ flex: 1 }} />
           <input
             type="text"
@@ -1792,6 +1819,17 @@ const templateBtnStyle: React.CSSProperties = {
   color: '#fff', cursor: 'pointer', padding: '3px 10px',
   fontSize: 11, fontFamily: 'ui-monospace, Consolas, monospace',
   fontWeight: 500,
+}
+
+const toolbarBtnStyle: React.CSSProperties = {
+  background: 'none',
+  border: '1px solid #e2e8f0',
+  borderRadius: 4,
+  color: '#94a3b8',
+  cursor: 'pointer',
+  padding: '3px 8px',
+  fontSize: 11,
+  fontFamily: 'ui-monospace, Consolas, monospace',
 }
 
 export default function ViewerPage() {

@@ -53,6 +53,7 @@ export default function TextFileCard({ data }: NodeProps<TextFileNode>) {
   const sessionMeta = state.sessions.find((session) => session.sessionId === sessionId)
   const hostname = sessionMeta?.hostname?.trim() ?? ''
   const aiSummary = (dataAiSummary || sessionMeta?.aiSummary || sessionMeta?.ai_summary || '').trim()
+  const fontSize = state.fontSize || 13
 
   useEffect(() => {
     if (collapsed) {
@@ -232,11 +233,13 @@ export default function TextFileCard({ data }: NodeProps<TextFileNode>) {
                     <div
                       key={i}
                       ref={(el) => { matchRefs.current[i] = el }}
+                      className="txt-log-line"
                       style={{
                         display: 'flex',
                         gap: 8,
                         padding: '1px 10px',
                         background: isCurrent ? 'rgba(251,191,36,0.2)' : isMatch ? 'rgba(251,191,36,0.08)' : 'transparent',
+                        fontSize,
                       }}
                     >
                       <span style={{ color: '#cbd5e1', minWidth: 36, textAlign: 'right', userSelect: 'none' }}>

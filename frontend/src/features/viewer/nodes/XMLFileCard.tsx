@@ -149,6 +149,7 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
   const sessionMeta = state.sessions.find((session) => session.sessionId === sessionId)
   const hostname = sessionMeta?.hostname?.trim() ?? ''
   const aiSummary = (dataAiSummary || sessionMeta?.aiSummary || sessionMeta?.ai_summary || '').trim()
+  const fontSize = state.fontSize || 13
   const getColumnWidth = (col: string) => Math.max(100, col.length * 9)
 
   useEffect(() => {
@@ -650,6 +651,7 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
                                 color: '#334155',
+                                fontSize,
                                 position: isPinned ? 'sticky' : undefined,
                                 left: isPinned ? `${pinnedLeft}px` : undefined,
                                 zIndex: isPinned ? 1 : undefined,

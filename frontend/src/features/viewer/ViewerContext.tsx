@@ -13,6 +13,7 @@ export type Action =
   | { type: 'CLEAR_GLOBAL_SEARCH' }
   | { type: 'FOCUS_NODE'; hostname: string }
   | { type: 'CLEAR_FOCUS_NODE' }
+  | { type: 'SET_FONT_SIZE'; fontSize: number }
 
 interface ViewerState {
   sessions: SessionMeta[]
@@ -22,6 +23,7 @@ interface ViewerState {
   nodePositions: Map<string, { x: number; y: number }>
   globalSearch: { fileId: string; query: string; line?: number } | null
   focusNode: string | null
+  fontSize: number
 }
 
 const initialState: ViewerState = {
@@ -32,6 +34,7 @@ const initialState: ViewerState = {
   nodePositions: new Map(),
   globalSearch: null,
   focusNode: null,
+  fontSize: 13,
 }
 
 function reducer(state: ViewerState, action: Action): ViewerState {
@@ -115,6 +118,8 @@ function reducer(state: ViewerState, action: Action): ViewerState {
       return { ...state, focusNode: action.hostname }
     case 'CLEAR_FOCUS_NODE':
       return { ...state, focusNode: null }
+    case 'SET_FONT_SIZE':
+      return { ...state, fontSize: action.fontSize }
     default:
       return state
   }
