@@ -174,7 +174,7 @@ function SplitDivider({ direction, onMouseDown }: { direction: 'h' | 'v'; onMous
   )
 }
 
-function AISummaryDialog({
+function AISummaryPanel({
   sections,
   onClose,
 }: {
@@ -182,6 +182,14 @@ function AISummaryDialog({
   onClose: () => void
 }) {
   const [openSections, setOpenSections] = useState(() => new Set(sections.map((section) => section.label)))
+
+  useEffect(() => {
+    setOpenSections((prev) => {
+      const next = new Set(prev)
+      sections.forEach((section) => next.add(section.label))
+      return next
+    })
+  }, [sections])
 
   const toggleSection = (label: string) => {
     setOpenSections((prev) => {
@@ -193,56 +201,48 @@ function AISummaryDialog({
   }
 
   return (
-    <div className="ai-summary-backdrop" onClick={onClose} role="presentation">
-      <div
-        className="ai-summary-dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="ai-summary-title"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="ai-summary-dialog-header">
-          <div>
-            <div id="ai-summary-title" className="ai-summary-dialog-title">AI Summary</div>
-            <div className="ai-summary-dialog-subtitle">
-              {sections.length} node{sections.length === 1 ? '' : 's'}
-            </div>
+    <div className="ai-summary-panel" role="complementary" aria-labelledby="ai-summary-title">
+      <div className="ai-summary-panel-header">
+        <div>
+          <div id="ai-summary-title" className="ai-summary-panel-title">AI Summary</div>
+          <div className="ai-summary-panel-subtitle">
+            {sections.length} node{sections.length === 1 ? '' : 's'}
           </div>
-          <button type="button" className="ai-summary-close" aria-label="Close AI summary" onClick={onClose}>
-            ×
-          </button>
         </div>
+        <button type="button" className="ai-summary-close" aria-label="Close AI summary" onClick={onClose}>
+          ×
+        </button>
+      </div>
 
-        <div className="ai-summary-dialog-body">
-          {sections.map((section) => {
-            const isOpen = openSections.has(section.label)
-            return (
-              <section className="ai-summary-section" key={section.label}>
-                <button
-                  type="button"
-                  className="ai-summary-section-header"
-                  aria-expanded={isOpen}
-                  onClick={() => toggleSection(section.label)}
-                >
-                  <span className="ai-summary-section-chevron">{isOpen ? '▾' : '▸'}</span>
-                  <span className="ai-summary-section-name">{section.label}</span>
-                  {section.summaries.length > 1 && (
-                    <span className="ai-summary-section-count">{section.summaries.length}</span>
-                  )}
-                </button>
-                {isOpen && (
-                  <div className="ai-summary-section-content">
-                    {section.summaries.map((summary, index) => (
-                      <div className="ai-summary-markdown markdown-body" key={`${section.label}-${index}`}>
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{summary}</ReactMarkdown>
-                      </div>
-                    ))}
-                  </div>
+      <div className="ai-summary-panel-body">
+        {sections.map((section) => {
+          const isOpen = openSections.has(section.label)
+          return (
+            <section className="ai-summary-section" key={section.label}>
+              <button
+                type="button"
+                className="ai-summary-section-header"
+                aria-expanded={isOpen}
+                onClick={() => toggleSection(section.label)}
+              >
+                <span className="ai-summary-section-chevron">{isOpen ? '▾' : '▸'}</span>
+                <span className="ai-summary-section-name">{section.label}</span>
+                {section.summaries.length > 1 && (
+                  <span className="ai-summary-section-count">{section.summaries.length}</span>
                 )}
-              </section>
-            )
-          })}
-        </div>
+              </button>
+              {isOpen && (
+                <div className="ai-summary-section-content">
+                  {section.summaries.map((summary, index) => (
+                    <div className="ai-summary-markdown markdown-body" key={`${section.label}-${index}`}>
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{summary}</ReactMarkdown>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          )
+        })}
       </div>
     </div>
   )
@@ -799,8 +799,7 @@ function ViewerInner() {
   const [templateMsgType, setTemplateMsgType] = useState<'success' | 'error' | 'info'>('info')
   const [editingEdgeId, setEditingEdgeId] = useState<string | null>(null)
   const [editingLabel, setEditingLabel] = useState('')
-  const [showAI, setShowAI] = useState(false)
-  const [showAISummary, setShowAISummary] = useState(false)
+  const [activeSidePanel, setActiveSidePanel] = useState<'ai' | 'summary' | null>(null)
   const [aiAutoAnalysisEnabled, setAiAutoAnalysisEnabled] = useState<boolean | null>(null)
   const [aiPanelWidth, setAiPanelWidth] = useState(450)
   const [splitMode, setSplitMode] = useState(false)
@@ -849,6 +848,8 @@ function ViewerInner() {
     : aiSummaries.length === 0
       ? 'AI summary is not ready'
       : 'Open AI summaries'
+  const showAI = activeSidePanel === 'ai'
+  const isAISummaryOpen = activeSidePanel === 'summary'
 
   useEffect(() => {
     async function load() {
@@ -1572,35 +1573,8 @@ function ViewerInner() {
           <div style={{ width: 1, height: 16, background: '#e2e8f0' }} />
           <button
             type="button"
-            title={aiSummaryButtonTitle}
-            disabled={aiSummaryDisabled}
-            onClick={() => {
-              if (!aiSummaryDisabled) setShowAISummary(true)
-            }}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 4,
-              color: aiSummaryDisabled ? '#94a3b8' : '#0f766e',
-              background: aiSummaryDisabled ? '#f1f5f9' : '#ccfbf1',
-              border: `1px solid ${aiSummaryDisabled ? '#e2e8f0' : '#99f6e4'}`,
-              borderRadius: 4,
-              padding: '3px 8px',
-              fontSize: 11,
-              fontWeight: 600,
-              fontFamily: 'system-ui, -apple-system, sans-serif',
-              cursor: aiSummaryDisabled ? 'not-allowed' : 'pointer',
-              maxWidth: 220,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            💡 AI Summary {aiSummaries.length}
-          </button>
-          <div style={{ width: 1, height: 16, background: '#e2e8f0' }} />
-          <button
-            onClick={() => setShowAI(!showAI)}
+            aria-pressed={showAI}
+            onClick={() => setActiveSidePanel((panel) => panel === 'ai' ? null : 'ai')}
             style={{
               background: showAI ? '#eff6ff' : chatMode === 'autonomous' ? '#eff6ff' : '#fff',
               border: `1px solid ${showAI ? '#3b82f6' : chatMode === 'autonomous' ? '#3b82f6' : '#e2e8f0'}`,
@@ -1614,6 +1588,37 @@ function ViewerInner() {
             }}
           >
             {chatMode === 'analysis' ? '🔍 AI Analysis' : '🤖 AI Auto'}
+          </button>
+          <button
+            type="button"
+            aria-pressed={isAISummaryOpen}
+            title={aiSummaryButtonTitle}
+            disabled={aiSummaryDisabled}
+            onClick={() => {
+              if (!aiSummaryDisabled) {
+                setActiveSidePanel((panel) => panel === 'summary' ? null : 'summary')
+              }
+            }}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              color: aiSummaryDisabled ? '#94a3b8' : isAISummaryOpen ? '#1d4ed8' : '#0f766e',
+              background: aiSummaryDisabled ? '#f1f5f9' : isAISummaryOpen ? '#eff6ff' : '#ccfbf1',
+              border: `1px solid ${aiSummaryDisabled ? '#e2e8f0' : isAISummaryOpen ? '#3b82f6' : '#99f6e4'}`,
+              borderRadius: 4,
+              padding: '3px 8px',
+              fontSize: 11,
+              fontWeight: 600,
+              fontFamily: 'system-ui, -apple-system, sans-serif',
+              cursor: aiSummaryDisabled ? 'not-allowed' : 'pointer',
+              maxWidth: 220,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            💡 AI Summary {aiSummaries.length}
           </button>
         </div>
 
@@ -1655,8 +1660,8 @@ function ViewerInner() {
             {splitMode && <SplitGrid nodes={visibleNodes.filter(n => !n.hidden)} nodeTypes={nodeTypes} onDropFile={handleFocusFile} />}
           </div>
 
-          {/* AI Chat Panel */}
-          {showAI && (
+          {/* AI Side Panel */}
+          {activeSidePanel && (
             <>
               <div
                 onMouseDown={startAIDrag}
@@ -1671,16 +1676,23 @@ function ViewerInner() {
                 onMouseLeave={(e) => (e.currentTarget.style.background = '#e2e8f0')}
               />
               <div style={{ width: aiPanelWidth, flexShrink: 0 }}>
-                <AIChatPanel
-                  sessionIds={groupSessions.map(s => s.id)}
-                  mode={chatMode}
-                  onModeChange={handleChatModeChange}
-                  onFocusFile={handleFocusFile}
-                  tabFileIds={tabFileIds}
-                  onClose={() => setShowAI(false)}
-                  messages={activeChatMessages}
-                  onMessagesChange={setActiveChatMessages}
-                />
+                {showAI ? (
+                  <AIChatPanel
+                    sessionIds={groupSessions.map(s => s.id)}
+                    mode={chatMode}
+                    onModeChange={handleChatModeChange}
+                    onFocusFile={handleFocusFile}
+                    tabFileIds={tabFileIds}
+                    onClose={() => setActiveSidePanel(null)}
+                    messages={activeChatMessages}
+                    onMessagesChange={setActiveChatMessages}
+                  />
+                ) : (
+                  <AISummaryPanel
+                    sections={aiSummarySections}
+                    onClose={() => setActiveSidePanel(null)}
+                  />
+                )}
               </div>
             </>
           )}
@@ -1743,13 +1755,6 @@ function ViewerInner() {
               </div>
             </div>
           </div>
-        )}
-
-        {showAISummary && (
-          <AISummaryDialog
-            sections={aiSummarySections}
-            onClose={() => setShowAISummary(false)}
-          />
         )}
 
         <div
