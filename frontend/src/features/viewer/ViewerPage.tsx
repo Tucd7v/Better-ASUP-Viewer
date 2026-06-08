@@ -25,7 +25,7 @@ import XMLFileCard from './nodes/XMLFileCard'
 import EMSFileCard from './nodes/EMSFileCard'
 import AIChatPanel, { type Message } from './AIChatPanel'
 import TabBar from './TabBar'
-import { getFiles, getSessionGroup, getSessionStatus } from '../../services/api'
+import { getAiSummary, getFiles, getSessionGroup, getSessionStatus } from '../../services/api'
 import { getTemplates, getTemplate, createTemplate, deleteTemplate } from '../../services/api'
 import type { FileRecord, SessionMeta, TemplateListItem, TemplateCard, TemplateEdge } from '../../types'
 
@@ -84,6 +84,7 @@ function buildNode(
       fileId: file.id,
       sessionId,
       filename: file.filename,
+      aiSummary: '',
       nodeColor,
       collapsed: false,
       onCollapse: () => dispatch({ type: 'TOGGLE_COLLAPSE', fileId: file.id }),
@@ -710,6 +711,7 @@ function ViewerInner() {
     clusterName?: string
     generatedOn?: string
     status?: string
+    aiSummary?: string
   }[]>([])
 
   const [templates, setTemplates] = useState<TemplateListItem[]>([])
@@ -740,6 +742,13 @@ function ViewerInner() {
 
   const totalCards = tabs.reduce((sum, t) => sum + t.nodes.length, 0)
   const memoryLabel = memoryUsed == null ? '—' : `${(memoryUsed / (1024 * 1024)).toFixed(1)} MB`
+  const aiSummaries = sessions
+    .map((s) => ({
+      label: s.hostname || s.serialNum || s.sessionId,
+      summary: (s.aiSummary || s.ai_summary || '').trim(),
+    }))
+    .filter((s) => s.summary)
+  const aiSummaryTooltip = aiSummaries.map((s) => `${s.label}\n${s.summary}`).join('\n\n')
 
   useEffect(() => {
     async function load() {
@@ -758,6 +767,7 @@ function ViewerInner() {
             cluster_name?: string
             generated_on?: string
             status?: string
+            ai_summary?: string
           }, i: number) => ({
             id: m.session_id,
             color: nodeColorFor(i),
@@ -768,6 +778,7 @@ function ViewerInner() {
             clusterName: m.cluster_name,
             generatedOn: m.generated_on,
             status: m.status,
+            aiSummary: m.ai_summary,
           }))
           setGroupSessions(entries)
         } catch (err) {
@@ -779,7 +790,7 @@ function ViewerInner() {
   }, [params.sessionId, params.groupId])
 
   useEffect(() => {
-    groupSessions.forEach(({ id, color, hostname, partnerHostname, serialNum, modelName, clusterName, generatedOn, status }) => {
+    groupSessions.forEach(({ id, color, hostname, partnerHostname, serialNum, modelName, clusterName, generatedOn, status, aiSummary }) => {
       Promise.all([
         getSessionStatus(id).catch(() => null),
         getFiles(id),
@@ -787,6 +798,7 @@ function ViewerInner() {
         const sessionData = statusRes?.data
         const files: FileRecord[] = filesRes.data?.files ?? filesRes.data ?? []
         const nonEmpty = files.filter((f) => !f.is_empty)
+        const summary = aiSummary ?? sessionData?.ai_summary ?? ''
 
         const meta: SessionMeta = {
           sessionId: id,
@@ -802,11 +814,15 @@ function ViewerInner() {
           clusterId: sessionData?.cluster_id,
           clusterName: clusterName ?? sessionData?.cluster_name ?? '',
           cluster_name: clusterName ?? sessionData?.cluster_name ?? '',
+          aiSummary: summary,
+          ai_summary: summary,
         }
 
         setSessions((prev) => {
-          const exists = prev.find((s) => s.sessionId === id)
-          if (exists) return prev
+          const exists = prev.some((s) => s.sessionId === id)
+          if (exists) {
+            return prev.map((s) => s.sessionId === id ? { ...s, ...meta } : s)
+          }
           return [...prev, meta]
         })
         dispatch({ type: 'UPSERT_SESSION', session: meta })
@@ -819,6 +835,56 @@ function ViewerInner() {
         dispatch({ type: 'SET_FILES', files: nonEmpty, sessionId: id, nodeColor: color })
       }).catch(console.error)
     })
+  }, [groupSessions, dispatch])
+
+  useEffect(() => {
+    if (groupSessions.length === 0) return
+
+    let stopped = false
+    let timer: number | undefined
+    let attempts = 0
+    const pending = new Set(groupSessions.map((s) => s.id))
+
+    const applySummary = (sessionId: string, aiSummary: string) => {
+      setSessions((prev) =>
+        prev.map((s) =>
+          s.sessionId === sessionId
+            ? { ...s, aiSummary, ai_summary: aiSummary }
+            : s
+        )
+      )
+      dispatch({ type: 'UPDATE_SESSION_AI_SUMMARY', sessionId, aiSummary })
+    }
+
+    const poll = async () => {
+      attempts += 1
+      await Promise.all(
+        Array.from(pending).map(async (sessionId) => {
+          try {
+            const res = await getAiSummary(sessionId)
+            const summary = (res.data?.ai_summary ?? '').trim()
+            if (summary) {
+              applySummary(sessionId, summary)
+              pending.delete(sessionId)
+            } else if (attempts >= 12) {
+              pending.delete(sessionId)
+            }
+          } catch {
+            if (attempts >= 12) pending.delete(sessionId)
+          }
+        })
+      )
+
+      if (!stopped && pending.size > 0 && attempts < 12) {
+        timer = window.setTimeout(poll, 5000)
+      }
+    }
+
+    poll()
+    return () => {
+      stopped = true
+      if (timer !== undefined) window.clearTimeout(timer)
+    }
   }, [groupSessions, dispatch])
 
   useEffect(() => {
@@ -1166,12 +1232,19 @@ function ViewerInner() {
           __duplicate?: boolean
           onCollapse?: () => void
           onHide?: () => void
+          sessionId?: string
         }
         const fileId = data.fileId
+        const sessionId = data.sessionId
+        const aiSummary = sessionId
+          ? (state.sessions.find((s) => s.sessionId === sessionId)?.aiSummary ||
+            state.sessions.find((s) => s.sessionId === sessionId)?.ai_summary ||
+            '')
+          : ''
         const isDuplicate = data.__duplicate === true
         const hidden = isDuplicate ? Boolean(n.hidden) : state.hiddenFileIds.has(fileId)
         const collapsed = isDuplicate ? Boolean(data.collapsed) : state.collapsedFileIds.has(fileId)
-        const nodeWithState = { ...n, hidden, data: { ...n.data, collapsed } }
+        const nodeWithState = { ...n, hidden, data: { ...n.data, collapsed, aiSummary } }
 
         return {
           ...nodeWithState,
@@ -1205,7 +1278,7 @@ function ViewerInner() {
           },
         }
       }),
-    [nodes, state.hiddenFileIds, state.collapsedFileIds, handleDuplicateCard, setNodesForTab]
+    [nodes, state.hiddenFileIds, state.collapsedFileIds, state.sessions, handleDuplicateCard, setNodesForTab]
   )
 
   const tabFileIds = useMemo(
@@ -1397,6 +1470,33 @@ function ViewerInner() {
             </>
           )}
           <div style={{ width: 1, height: 16, background: '#e2e8f0' }} />
+          {aiSummaries.length > 0 && (
+            <>
+              <span
+                title={aiSummaryTooltip}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  color: '#0f766e',
+                  background: '#ccfbf1',
+                  border: '1px solid #99f6e4',
+                  borderRadius: 4,
+                  padding: '3px 8px',
+                  fontSize: 11,
+                  fontWeight: 600,
+                  fontFamily: 'system-ui, -apple-system, sans-serif',
+                  maxWidth: 220,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                💡 AI Summary {aiSummaries.length}
+              </span>
+              <div style={{ width: 1, height: 16, background: '#e2e8f0' }} />
+            </>
+          )}
           <button
             onClick={() => setShowAI(!showAI)}
             style={{

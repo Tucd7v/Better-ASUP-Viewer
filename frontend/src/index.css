@@ -491,6 +491,14 @@ body {
 
 .hud-node-name {
   font-weight: 400;
+  gap: 4px;
+}
+
+.hud-ai-summary {
+  flex: 0 0 auto;
+  cursor: help;
+  font-size: 13px;
+  line-height: 1;
 }
 
 .hud-node {

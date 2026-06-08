@@ -18,7 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.config import UPLOAD_DIR
 from core.database import get_db
 from models.db import FileRecord, Session
-from schemas.api import SessionStatusResponse, UploadResponse
+from schemas.api import SessionAISummaryResponse, SessionStatusResponse, UploadResponse
 from services.asup_parser import ASUPParserService
 from services.clustering import ClusteringService
 from services.extract import ExtractService
@@ -27,6 +27,61 @@ router = APIRouter()
 
 # Thread-safe queues shared between worker threads and SSE consumers
 _progress_queues: dict[str, queue.Queue] = {}
+
+
+async def _run_ai_analysis(session_id: str):
+    from core.config import settings, BASE_DIR
+    from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+
+    db_url = settings.database_url
+    if db_url.startswith("sqlite+aiosqlite:///./"):
+        db_url = f"sqlite+aiosqlite:///{BASE_DIR / db_url[len('sqlite+aiosqlite:///./') :]}"
+    analysis_engine = create_async_engine(db_url, echo=False, connect_args={"check_same_thread": False})
+    AnalysisSession = async_sessionmaker(analysis_engine, class_=AsyncSession, expire_on_commit=False)
+
+    summary = ""
+    try:
+        from api.chat import _build_context
+        from services.llm import LLMService, POST_UPLOAD_SYSTEM_PROMPT
+
+        _, execute_tool, _, _ = await _build_context([session_id])
+        llm = LLMService(system_prompt=POST_UPLOAD_SYSTEM_PROMPT)
+        summary = await llm.run_with_tools(
+            "请分析此 ASUP 日志的健康状况",
+            execute_tool,
+            max_turns=15,
+            max_tool_calls=15,
+        )
+    except BaseException:
+        print(f"[AI-SUMMARY] failed session={session_id}: {traceback.format_exc()}", flush=True)
+        summary = ""
+
+    try:
+        async with AnalysisSession() as db:
+            session_row = await db.get(Session, session_id)
+            if session_row is not None:
+                session_row.ai_summary = summary or ""
+                await db.commit()
+                print(f"[AI-SUMMARY] stored session={session_id} bytes={len(session_row.ai_summary)}", flush=True)
+    except BaseException:
+        print(f"[AI-SUMMARY] store failed session={session_id}: {traceback.format_exc()}", flush=True)
+    finally:
+        await analysis_engine.dispose()
+
+
+def _run_ai_analysis_in_thread(session_id: str):
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        loop.run_until_complete(_run_ai_analysis(session_id))
+    finally:
+        loop.close()
+
+
+def _start_ai_analysis(session_id: str):
+    t = threading.Thread(target=_run_ai_analysis_in_thread, args=(session_id,), daemon=True)
+    t.start()
+    print(f"[AI-SUMMARY] thread started for session={session_id}", flush=True)
 
 
 async def _process_session(session_id: str, archive_path: Path, files_dir: Path, q: queue.Queue):
@@ -93,6 +148,7 @@ async def _process_session(session_id: str, archive_path: Path, files_dir: Path,
                 session_row.status = "done"
                 await db.commit()
                 await ClusteringService.try_group(session_row, db)
+                _start_ai_analysis(session_id)
                 print(f"[PROCESS] DONE", flush=True)
 
             except BaseException as exc:
@@ -195,7 +251,16 @@ async def get_session_status(session_id: str, db: AsyncSession = Depends(get_db)
         model_name=session_row.model_name or None,
         generated_on=session_row.generated_on,
         file_count=file_count,
+        ai_summary=session_row.ai_summary or "",
     )
+
+
+@router.get("/sessions/{session_id}/ai_summary", response_model=SessionAISummaryResponse)
+async def get_session_ai_summary(session_id: str, db: AsyncSession = Depends(get_db)):
+    session_row = await db.get(Session, session_id)
+    if session_row is None:
+        raise HTTPException(status_code=404, detail="Session not found")
+    return SessionAISummaryResponse(session_id=session_id, ai_summary=session_row.ai_summary or "")
 
 
 @router.get("/sessions/{session_id}/progress")

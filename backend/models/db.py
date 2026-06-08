@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, PrimaryKeyConstraint
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, PrimaryKeyConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from core.database import Base
@@ -53,6 +53,7 @@ class Session(Base):
     uploaded_at: Mapped[datetime] = mapped_column(DateTime)
     status: Mapped[str] = mapped_column(String, default="pending")
     error_message: Mapped[str | None] = mapped_column(String, nullable=True)
+    ai_summary: Mapped[str] = mapped_column(Text, default="")
     original_filename: Mapped[str] = mapped_column(String, default="")
     storage_path: Mapped[str | None] = mapped_column(String, nullable=True)
 

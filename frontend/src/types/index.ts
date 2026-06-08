@@ -31,6 +31,8 @@ export interface SessionMeta {
   cluster_name?: string
   modelName?: string
   model_name?: string
+  aiSummary?: string
+  ai_summary?: string
 }
 
 export interface Cluster {

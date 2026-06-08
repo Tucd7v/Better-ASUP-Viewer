@@ -9,6 +9,7 @@ export interface EMSFileCardData extends Record<string, unknown> {
   fileId: string
   sessionId: string
   filename: string
+  aiSummary?: string
   nodeColor: string
   collapsed: boolean
   splitMode?: boolean
@@ -51,7 +52,7 @@ function highlight(text: string, query: string): React.ReactNode {
 }
 
 export default function EMSFileCard({ data }: NodeProps<EMSFileNode>) {
-  const { fileId, sessionId, filename, nodeColor, collapsed, splitMode, onCollapse, onHide, onDuplicate, onReadyForViewport } = data
+  const { fileId, sessionId, filename, aiSummary: dataAiSummary, nodeColor, collapsed, splitMode, onCollapse, onHide, onDuplicate, onReadyForViewport } = data
   const { width, height, onResizeX, onResizeY } = useResizable(800, 400)
 
   const [events, setEvents] = useState<EMSEvent[]>([])
@@ -63,7 +64,9 @@ export default function EMSFileCard({ data }: NodeProps<EMSFileNode>) {
   const eventRefs = useRef<(HTMLDivElement | null)[]>([])
   const viewportReadyReported = useRef(false)
   const { state, dispatch: viewDispatch } = useViewer()
-  const hostname = state.sessions.find((session) => session.sessionId === sessionId)?.hostname?.trim() ?? ''
+  const sessionMeta = state.sessions.find((session) => session.sessionId === sessionId)
+  const hostname = sessionMeta?.hostname?.trim() ?? ''
+  const aiSummary = (dataAiSummary || sessionMeta?.aiSummary || sessionMeta?.ai_summary || '').trim()
 
   useEffect(() => {
     if (collapsed) {
@@ -171,6 +174,11 @@ export default function EMSFileCard({ data }: NodeProps<EMSFileNode>) {
             <span style={filenameStyle} title={filename}>
               {filename}
             </span>
+            {aiSummary && (
+              <span style={aiSummaryBadgeStyle} title={aiSummary} aria-label="AI health summary">
+                💡
+              </span>
+            )}
             {hostname && (
               <>
                 <span aria-hidden="true" style={headerDividerStyle} />
@@ -353,6 +361,13 @@ const filenameStyle: React.CSSProperties = {
   color: '#334155',
   flexShrink: 1,
 };
+
+const aiSummaryBadgeStyle: React.CSSProperties = {
+  flexShrink: 0,
+  cursor: 'help',
+  fontSize: 13,
+  lineHeight: '16px',
+}
 
 const headerDividerStyle: React.CSSProperties = {
   width: 1,

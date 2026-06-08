@@ -7,6 +7,7 @@ export type Action =
   | { type: 'TOGGLE_COLLAPSE'; fileId: string }
   | { type: 'SET_FILES'; files: FileRecord[]; sessionId: string; nodeColor: string }
   | { type: 'UPSERT_SESSION'; session: SessionMeta }
+  | { type: 'UPDATE_SESSION_AI_SUMMARY'; sessionId: string; aiSummary: string }
   | { type: 'UPDATE_NODE_POSITION'; nodeId: string; position: { x: number; y: number } }
   | { type: 'SET_GLOBAL_SEARCH'; fileId: string; query: string; line?: number }
   | { type: 'CLEAR_GLOBAL_SEARCH' }
@@ -73,6 +74,15 @@ function reducer(state: ViewerState, action: Action): ViewerState {
           : [...state.sessions, action.session],
       }
     }
+    case 'UPDATE_SESSION_AI_SUMMARY':
+      return {
+        ...state,
+        sessions: state.sessions.map((s) =>
+          s.sessionId === action.sessionId
+            ? { ...s, aiSummary: action.aiSummary, ai_summary: action.aiSummary }
+            : s
+        ),
+      }
     case 'HIDE_FILE': {
       const next = new Set(state.hiddenFileIds)
       next.add(action.fileId)

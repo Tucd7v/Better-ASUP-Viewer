@@ -23,6 +23,12 @@ class SessionStatusResponse(BaseModel):
     model_name: Optional[str] = None
     generated_on: Optional[datetime] = None
     file_count: int = 0
+    ai_summary: str = ""
+
+
+class SessionAISummaryResponse(BaseModel):
+    session_id: str
+    ai_summary: str = ""
 
 
 class FileRecordOut(BaseModel):

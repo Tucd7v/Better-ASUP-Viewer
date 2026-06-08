@@ -29,6 +29,9 @@ export const uploadFile = (file: File) => {
 export const getSessionStatus = (sessionId: string) =>
   api.get(`/api/v1/sessions/${sessionId}/status`)
 
+export const getAiSummary = (sessionId: string) =>
+  api.get(`/api/v1/sessions/${sessionId}/ai_summary`)
+
 export const getFiles = (sessionId: string) =>
   api.get(`/api/v1/sessions/${sessionId}/files`)
 

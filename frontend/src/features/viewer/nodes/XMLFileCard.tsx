@@ -8,6 +8,7 @@ export interface XMLFileCardData extends Record<string, unknown> {
   fileId: string
   sessionId: string
   filename: string
+  aiSummary?: string
   nodeColor: string
   collapsed: boolean
   splitMode?: boolean
@@ -115,7 +116,7 @@ function ColSwapMenu({
 }
 
 export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
-  const { fileId, sessionId, filename, nodeColor, collapsed, splitMode, onCollapse, onHide, onDuplicate, onReadyForViewport } = data
+  const { fileId, sessionId, filename, aiSummary: dataAiSummary, nodeColor, collapsed, splitMode, onCollapse, onHide, onDuplicate, onReadyForViewport } = data
   const { width, height, setWidth, onResizeX, onResizeY } = useResizable(320, 360)
 
   const [rows, setRows] = useState<TableRow[]>([])
@@ -145,7 +146,9 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
   const rowRefs = useRef<(HTMLTableRowElement | null)[]>([])
   const [highlightRow, setHighlightRow] = useState<number | null>(null)
   const { state, dispatch: viewDispatch } = useViewer()
-  const hostname = state.sessions.find((session) => session.sessionId === sessionId)?.hostname?.trim() ?? ''
+  const sessionMeta = state.sessions.find((session) => session.sessionId === sessionId)
+  const hostname = sessionMeta?.hostname?.trim() ?? ''
+  const aiSummary = (dataAiSummary || sessionMeta?.aiSummary || sessionMeta?.ai_summary || '').trim()
   const getColumnWidth = (col: string) => Math.max(100, col.length * 9)
 
   useEffect(() => {
@@ -399,6 +402,11 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
             <span style={filenameStyle} title={filename}>
               {filename}
             </span>
+            {aiSummary && (
+              <span style={aiSummaryBadgeStyle} title={aiSummary} aria-label="AI health summary">
+                💡
+              </span>
+            )}
             {hostname && (
               <>
                 <span aria-hidden="true" style={headerDividerStyle} />
@@ -715,6 +723,9 @@ const headerTitleStyle: React.CSSProperties = {
 }
 const filenameStyle: React.CSSProperties = {
   minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#334155', flexShrink: 1, lineHeight: '16px',
+}
+const aiSummaryBadgeStyle: React.CSSProperties = {
+  flexShrink: 0, cursor: 'help', fontSize: 13, lineHeight: '16px',
 }
 const headerDividerStyle: React.CSSProperties = {
   width: 1, height: 12, background: '#e2e8f0', flexShrink: 0,
