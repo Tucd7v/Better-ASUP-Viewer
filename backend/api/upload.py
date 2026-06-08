@@ -50,7 +50,7 @@ async def _run_ai_analysis(session_id: str):
             "请分析此 ASUP 日志的健康状况",
             execute_tool,
             max_turns=15,
-            max_tool_calls=15,
+            max_tool_calls=20,
         )
     except BaseException:
         print(f"[AI-SUMMARY] failed session={session_id}: {traceback.format_exc()}", flush=True)

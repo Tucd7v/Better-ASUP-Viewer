@@ -204,7 +204,7 @@ function AISummaryPanel({
     <div className="ai-summary-panel" role="complementary" aria-labelledby="ai-summary-title">
       <div className="ai-summary-panel-header">
         <div>
-          <div id="ai-summary-title" className="ai-summary-panel-title">AI Summary</div>
+          <div id="ai-summary-title" className="ai-summary-panel-title">Insight</div>
           <div className="ai-summary-panel-subtitle">
             {sections.length} node{sections.length === 1 ? '' : 's'}
           </div>
@@ -1603,22 +1603,22 @@ function ViewerInner() {
               display: 'inline-flex',
               alignItems: 'center',
               gap: 4,
-              color: aiSummaryDisabled ? '#94a3b8' : isAISummaryOpen ? '#1d4ed8' : '#0f766e',
-              background: aiSummaryDisabled ? '#f1f5f9' : isAISummaryOpen ? '#eff6ff' : '#ccfbf1',
-              border: `1px solid ${aiSummaryDisabled ? '#e2e8f0' : isAISummaryOpen ? '#3b82f6' : '#99f6e4'}`,
+              background: aiSummaryDisabled ? '#fff' : isAISummaryOpen ? '#eff6ff' : '#fff',
+              border: `1px solid ${aiSummaryDisabled ? '#e2e8f0' : isAISummaryOpen ? '#3b82f6' : '#e2e8f0'}`,
               borderRadius: 4,
+              color: aiSummaryDisabled ? '#94a3b8' : isAISummaryOpen ? '#1d4ed8' : '#475569',
+              cursor: aiSummaryDisabled ? 'not-allowed' : 'pointer',
               padding: '3px 8px',
               fontSize: 11,
-              fontWeight: 600,
+              fontWeight: 500,
               fontFamily: 'system-ui, -apple-system, sans-serif',
-              cursor: aiSummaryDisabled ? 'not-allowed' : 'pointer',
               maxWidth: 220,
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
             }}
           >
-            💡 AI Summary {aiSummaries.length}
+            💡 Insight {aiSummaries.length}
           </button>
         </div>
 
