@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router-dom'
 import { getClusters } from '../../services/api'
 import type { Cluster } from '../../types'
 import ClusterCard from './ClusterCard'
+import UploadDialog from './UploadDialog'
 
 const MS_PER_DAY = 86400000
 
@@ -125,6 +126,7 @@ export default function ManagerPage() {
   const [toDate, setToDate] = useState('')
   const [onlyToday, setOnlyToday] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [showUpload, setShowUpload] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
 
   const refreshClusters = () => {
@@ -228,14 +230,17 @@ export default function ManagerPage() {
               </span>
             </div>
           </div>
-          <div
-            style={{
-              color: colors.textTertiary,
-              fontSize: 12,
-              lineHeight: '16px',
-            }}
-          >
-            DM ASUP Analysis Tool
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button onClick={() => setShowUpload(true)} style={{
+              background: colors.accent, color: '#fff', border: 'none',
+              borderRadius: 8, padding: '6px 14px', fontSize: 13,
+              fontWeight: 600, cursor: 'pointer', fontFamily: systemFont,
+            }}>
+              Upload
+            </button>
+            <div style={{ color: colors.textTertiary, fontSize: 12, lineHeight: '16px' }}>
+              DM ASUP Analysis Tool
+            </div>
           </div>
         </div>
       </header>
@@ -413,6 +418,7 @@ export default function ManagerPage() {
           )}
         </div>
       </main>
+      {showUpload && <UploadDialog onClose={() => setShowUpload(false)} onDone={refreshClusters} />}
     </div>
   )
 }
