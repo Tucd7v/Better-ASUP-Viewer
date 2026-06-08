@@ -32,6 +32,9 @@ export const getSessionStatus = (sessionId: string) =>
 export const getAiSummary = (sessionId: string) =>
   api.get(`/api/v1/sessions/${sessionId}/ai_summary`)
 
+export const getConfig = () =>
+  api.get('/api/v1/config')
+
 export const getFiles = (sessionId: string) =>
   api.get(`/api/v1/sessions/${sessionId}/files`)
 

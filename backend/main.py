@@ -14,6 +14,7 @@ from api.manager import router as manager_router
 from api.templates import router as templates_router
 from api.search import router as search_router
 from api.chat import router as chat_router
+from api.config import router as config_router
 
 logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
 
@@ -46,6 +47,7 @@ app.include_router(manager_router, prefix="/api/v1")
 app.include_router(templates_router, prefix="/api/v1")
 app.include_router(search_router, prefix="/api/v1")
 app.include_router(chat_router, prefix="/api/v1")
+app.include_router(config_router, prefix="/api/v1")
 
 _frontend_dist = Path(__file__).parent.parent / "frontend" / "dist"
 if _frontend_dist.exists():

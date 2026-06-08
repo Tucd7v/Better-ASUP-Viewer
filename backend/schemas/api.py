@@ -31,6 +31,14 @@ class SessionAISummaryResponse(BaseModel):
     ai_summary: str = ""
 
 
+class AIAutoAnalysisConfig(BaseModel):
+    enabled: bool = True
+
+
+class AppConfigResponse(BaseModel):
+    ai_auto_analysis: AIAutoAnalysisConfig
+
+
 class FileRecordOut(BaseModel):
     id: str
     filename: str

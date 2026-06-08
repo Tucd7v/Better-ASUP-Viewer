@@ -125,7 +125,6 @@ function renderNode(
 ) {
   const nodeName = session.hostname || fallbackNodeName(index)
   const modelName = session.modelName || session.model_name || ''
-  const aiSummary = (session.aiSummary || session.ai_summary || '').trim()
 
   return (
     <div className="hud-node" key={session.sessionId || `${nodeName}-${index}`}>
@@ -133,14 +132,7 @@ function renderNode(
         className="hud-node-dot"
         style={{ backgroundColor: session.nodeColor ?? fallbackNodeColor(index) }}
       />
-      <span className="hud-node-name">
-        {nodeName}
-        {aiSummary && (
-          <span className="hud-ai-summary" title={aiSummary} aria-label="AI health summary">
-            💡
-          </span>
-        )}
-      </span>
+      <span className="hud-node-name">{nodeName}</span>
       {modelName && <span className="hud-node-model">{modelName}</span>}
       <span className="hud-node-serial">{shortSerial(session.serialNum || session.sessionId)}</span>
     </div>

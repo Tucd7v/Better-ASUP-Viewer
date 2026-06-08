@@ -15,7 +15,7 @@ from fastapi.responses import StreamingResponse, JSONResponse
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.config import UPLOAD_DIR
+from core.config import UPLOAD_DIR, is_ai_auto_analysis_enabled
 from core.database import get_db
 from models.db import FileRecord, Session
 from schemas.api import SessionAISummaryResponse, SessionStatusResponse, UploadResponse
@@ -148,7 +148,10 @@ async def _process_session(session_id: str, archive_path: Path, files_dir: Path,
                 session_row.status = "done"
                 await db.commit()
                 await ClusteringService.try_group(session_row, db)
-                _start_ai_analysis(session_id)
+                if is_ai_auto_analysis_enabled():
+                    _start_ai_analysis(session_id)
+                else:
+                    print(f"[AI-SUMMARY] auto analysis disabled for session={session_id}", flush=True)
                 print(f"[PROCESS] DONE", flush=True)
 
             except BaseException as exc:

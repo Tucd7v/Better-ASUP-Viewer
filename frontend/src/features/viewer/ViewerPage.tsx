@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import {
   ReactFlow,
   MiniMap,
@@ -25,7 +27,7 @@ import XMLFileCard from './nodes/XMLFileCard'
 import EMSFileCard from './nodes/EMSFileCard'
 import AIChatPanel, { type Message } from './AIChatPanel'
 import TabBar from './TabBar'
-import { getAiSummary, getFiles, getSessionGroup, getSessionStatus } from '../../services/api'
+import { getAiSummary, getConfig, getFiles, getSessionGroup, getSessionStatus } from '../../services/api'
 import { getTemplates, getTemplate, createTemplate, deleteTemplate } from '../../services/api'
 import type { FileRecord, SessionMeta, TemplateListItem, TemplateCard, TemplateEdge } from '../../types'
 
@@ -34,6 +36,7 @@ type NodeViewportReadySize = { width?: number; height?: number }
 export type NodeViewportReadyHandler = (nodeId: string, size?: NodeViewportReadySize) => void
 
 type NodeDimensions = { width: number; height: number }
+type AISummarySectionData = { label: string; summaries: string[] }
 type SpawnCenterRequest = {
   tabId: string
   center: { x: number; y: number }
@@ -168,6 +171,80 @@ function SplitDivider({ direction, onMouseDown }: { direction: 'h' | 'v'; onMous
       onMouseLeave={(e) => (e.currentTarget.style.background = '#e2e8f0')}
       onMouseDown={onMouseDown}
     />
+  )
+}
+
+function AISummaryDialog({
+  sections,
+  onClose,
+}: {
+  sections: AISummarySectionData[]
+  onClose: () => void
+}) {
+  const [openSections, setOpenSections] = useState(() => new Set(sections.map((section) => section.label)))
+
+  const toggleSection = (label: string) => {
+    setOpenSections((prev) => {
+      const next = new Set(prev)
+      if (next.has(label)) next.delete(label)
+      else next.add(label)
+      return next
+    })
+  }
+
+  return (
+    <div className="ai-summary-backdrop" onClick={onClose} role="presentation">
+      <div
+        className="ai-summary-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="ai-summary-title"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="ai-summary-dialog-header">
+          <div>
+            <div id="ai-summary-title" className="ai-summary-dialog-title">AI Summary</div>
+            <div className="ai-summary-dialog-subtitle">
+              {sections.length} node{sections.length === 1 ? '' : 's'}
+            </div>
+          </div>
+          <button type="button" className="ai-summary-close" aria-label="Close AI summary" onClick={onClose}>
+            ×
+          </button>
+        </div>
+
+        <div className="ai-summary-dialog-body">
+          {sections.map((section) => {
+            const isOpen = openSections.has(section.label)
+            return (
+              <section className="ai-summary-section" key={section.label}>
+                <button
+                  type="button"
+                  className="ai-summary-section-header"
+                  aria-expanded={isOpen}
+                  onClick={() => toggleSection(section.label)}
+                >
+                  <span className="ai-summary-section-chevron">{isOpen ? '▾' : '▸'}</span>
+                  <span className="ai-summary-section-name">{section.label}</span>
+                  {section.summaries.length > 1 && (
+                    <span className="ai-summary-section-count">{section.summaries.length}</span>
+                  )}
+                </button>
+                {isOpen && (
+                  <div className="ai-summary-section-content">
+                    {section.summaries.map((summary, index) => (
+                      <div className="ai-summary-markdown markdown-body" key={`${section.label}-${index}`}>
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{summary}</ReactMarkdown>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            )
+          })}
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -723,9 +800,19 @@ function ViewerInner() {
   const [editingEdgeId, setEditingEdgeId] = useState<string | null>(null)
   const [editingLabel, setEditingLabel] = useState('')
   const [showAI, setShowAI] = useState(false)
+  const [showAISummary, setShowAISummary] = useState(false)
+  const [aiAutoAnalysisEnabled, setAiAutoAnalysisEnabled] = useState<boolean | null>(null)
   const [aiPanelWidth, setAiPanelWidth] = useState(450)
   const [splitMode, setSplitMode] = useState(false)
   const [memoryUsed, setMemoryUsed] = useState<number | null>(null)
+
+  useEffect(() => {
+    getConfig()
+      .then((res) => {
+        setAiAutoAnalysisEnabled(Boolean(res.data?.ai_auto_analysis?.enabled ?? true))
+      })
+      .catch(() => setAiAutoAnalysisEnabled(true))
+  }, [])
 
   useEffect(() => {
     const updateMemory = () => {
@@ -748,7 +835,20 @@ function ViewerInner() {
       summary: (s.aiSummary || s.ai_summary || '').trim(),
     }))
     .filter((s) => s.summary)
-  const aiSummaryTooltip = aiSummaries.map((s) => `${s.label}\n${s.summary}`).join('\n\n')
+  const aiSummarySections = Array.from(
+    aiSummaries.reduce((groups, item) => {
+      const summaries = groups.get(item.label) ?? []
+      summaries.push(item.summary)
+      groups.set(item.label, summaries)
+      return groups
+    }, new Map<string, string[]>())
+  ).map(([label, summaries]) => ({ label, summaries }))
+  const aiSummaryDisabled = aiAutoAnalysisEnabled === false || aiSummaries.length === 0
+  const aiSummaryButtonTitle = aiAutoAnalysisEnabled === false
+    ? 'AI analysis is disabled'
+    : aiSummaries.length === 0
+      ? 'AI summary is not ready'
+      : 'Open AI summaries'
 
   useEffect(() => {
     async function load() {
@@ -838,7 +938,7 @@ function ViewerInner() {
   }, [groupSessions, dispatch])
 
   useEffect(() => {
-    if (groupSessions.length === 0) return
+    if (groupSessions.length === 0 || aiAutoAnalysisEnabled !== true) return
 
     let stopped = false
     let timer: number | undefined
@@ -885,7 +985,7 @@ function ViewerInner() {
       stopped = true
       if (timer !== undefined) window.clearTimeout(timer)
     }
-  }, [groupSessions, dispatch])
+  }, [groupSessions, dispatch, aiAutoAnalysisEnabled])
 
   useEffect(() => {
     if (params.sessionId || params.groupId) {
@@ -1470,33 +1570,35 @@ function ViewerInner() {
             </>
           )}
           <div style={{ width: 1, height: 16, background: '#e2e8f0' }} />
-          {aiSummaries.length > 0 && (
-            <>
-              <span
-                title={aiSummaryTooltip}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 4,
-                  color: '#0f766e',
-                  background: '#ccfbf1',
-                  border: '1px solid #99f6e4',
-                  borderRadius: 4,
-                  padding: '3px 8px',
-                  fontSize: 11,
-                  fontWeight: 600,
-                  fontFamily: 'system-ui, -apple-system, sans-serif',
-                  maxWidth: 220,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                💡 AI Summary {aiSummaries.length}
-              </span>
-              <div style={{ width: 1, height: 16, background: '#e2e8f0' }} />
-            </>
-          )}
+          <button
+            type="button"
+            title={aiSummaryButtonTitle}
+            disabled={aiSummaryDisabled}
+            onClick={() => {
+              if (!aiSummaryDisabled) setShowAISummary(true)
+            }}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              color: aiSummaryDisabled ? '#94a3b8' : '#0f766e',
+              background: aiSummaryDisabled ? '#f1f5f9' : '#ccfbf1',
+              border: `1px solid ${aiSummaryDisabled ? '#e2e8f0' : '#99f6e4'}`,
+              borderRadius: 4,
+              padding: '3px 8px',
+              fontSize: 11,
+              fontWeight: 600,
+              fontFamily: 'system-ui, -apple-system, sans-serif',
+              cursor: aiSummaryDisabled ? 'not-allowed' : 'pointer',
+              maxWidth: 220,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            💡 AI Summary {aiSummaries.length}
+          </button>
+          <div style={{ width: 1, height: 16, background: '#e2e8f0' }} />
           <button
             onClick={() => setShowAI(!showAI)}
             style={{
@@ -1641,6 +1743,13 @@ function ViewerInner() {
               </div>
             </div>
           </div>
+        )}
+
+        {showAISummary && (
+          <AISummaryDialog
+            sections={aiSummarySections}
+            onClose={() => setShowAISummary(false)}
+          />
         )}
 
         <div
