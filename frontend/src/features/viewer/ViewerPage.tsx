@@ -122,6 +122,9 @@ function dimensionsMatchReadySize(dimensions: NodeDimensions, readyWidth?: numbe
 }
 
 const SPLIT_GRID_MAX_CARDS = 8
+function splitGridPositionForSlot(slotIdx: number) {
+  return { x: slotIdx, y: 0 }
+}
 let _spawnOffset = 0
 
 const TIPS = [
@@ -304,26 +307,37 @@ function SplitCard({ node, nodeTypes, idx, dragOverZone, setDragOverZone, handle
         }
         handleDrop(idx, e)
       }}>
-      <div style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+      <div style={{ position: 'absolute', inset: 0, marginLeft: 16, width: 'calc(100% - 16px)', height: '100%' }}>
         {CardComponent && <CardComponent data={{ ...node.data, splitMode: true }} />}
-        {/* Drag handle — only card header area is draggable */}
-        <div
-          draggable
-          onDragStart={(e) => {
-            e.stopPropagation()
-            e.dataTransfer.effectAllowed = 'move'
-            e.dataTransfer.setData('text/plain', node.id)
-            onSwapDragStart(idx)
-          }}
-          onDragEnd={(e) => { e.stopPropagation(); onSwapDragStart(-1) }}
-          style={{
-            position: 'absolute',
-            top: 0, left: 0, right: 0,
-            height: 28,
-            cursor: 'grab',
-            zIndex: 10,
-          }}
-        />
+      </div>
+      <div
+        draggable
+        onDragStart={(e) => {
+          e.stopPropagation()
+          e.dataTransfer.effectAllowed = 'move'
+          e.dataTransfer.setData('text/plain', node.id)
+          onSwapDragStart(idx)
+        }}
+        onDragEnd={(e) => { e.stopPropagation(); onSwapDragStart(-1) }}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: 16,
+          height: 28,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#94a3b8',
+          cursor: 'grab',
+          fontSize: 12,
+          lineHeight: 1,
+          userSelect: 'none',
+          zIndex: 10,
+        }}
+        title="Drag to reorder"
+      >
+        ⋮⋮
       </div>
     </div>
   )
@@ -333,9 +347,17 @@ function SplitGrid({ nodes, nodeTypes, onDropFile, onSwapCard }: {
   nodes: Node[]
   nodeTypes: NodeTypes
   onDropFile: (fileId: string, replaceIdx?: number) => void
-  onSwapCard: (sourceIdx: number, targetIdx: number) => void
+  onSwapCard: (sourceId: string, targetId: string) => void
 }) {
-  const gridNodes = nodes.slice(0, SPLIT_GRID_MAX_CARDS)
+  const gridNodes = nodes
+    .slice(0, SPLIT_GRID_MAX_CARDS)
+    .map((node, order) => ({ node, order }))
+    .sort((a, b) => (
+      a.node.position.y - b.node.position.y ||
+      a.node.position.x - b.node.position.x ||
+      a.order - b.order
+    ))
+    .map(({ node }) => node)
   const cardCount = gridNodes.length
   const allXML = gridNodes.every((node) => node.type === 'xmlFile')
   const [dragOverZone, setDragOverZone] = useState<number | null>(null)
@@ -472,7 +494,9 @@ function SplitGrid({ nodes, nodeTypes, onDropFile, onSwapCard }: {
     onSwapDrop: (targetIdx: number) => {
       const src = swapDragSource
       setSwapDragSource(null)
-      if (src !== null && src !== targetIdx) onSwapCard(src, targetIdx)
+      const sourceNode = src !== null ? gridNodes[src] : undefined
+      const targetNode = gridNodes[targetIdx]
+      if (sourceNode && targetNode && src !== targetIdx) onSwapCard(sourceNode.id, targetNode.id)
     },
   })
 
@@ -1100,7 +1124,13 @@ function ViewerInner() {
           }
           // Add new card (up to grid max)
           if (visibleNodesList.length < SPLIT_GRID_MAX_CARDS) {
-            const newNode = buildNode(meta.file, { x: 0, y: 0 }, meta.sessionId, meta.nodeColor, dispatch)
+            const newNode = buildNode(
+              meta.file,
+              splitGridPositionForSlot(visibleNodesList.length),
+              meta.sessionId,
+              meta.nodeColor,
+              dispatch
+            )
             return [...prev, newNode]
           }
           // Full: replace last
@@ -1201,12 +1231,15 @@ function ViewerInner() {
     }
   }, [addNodes, setNodesForTab, splitMode])
 
-  const handleSwapCard = useCallback((sourceIdx: number, targetIdx: number) => {
+  const handleSwapCard = useCallback((sourceId: string, targetId: string) => {
     setNodesForTab(activeTabIdRef.current, (prev) => {
-      const next = [...prev]
-      const tmp = next[sourceIdx]
-      next[sourceIdx] = next[targetIdx]
-      next[targetIdx] = tmp
+      const sourceIdx = prev.findIndex((node) => node.id === sourceId)
+      const targetIdx = prev.findIndex((node) => node.id === targetId)
+      if (sourceIdx < 0 || targetIdx < 0) return prev
+      const next = prev.map(n => ({ ...n }))
+      const tmp = next[sourceIdx].position
+      next[sourceIdx] = { ...next[sourceIdx], position: next[targetIdx].position }
+      next[targetIdx] = { ...next[targetIdx], position: tmp }
       return next
     })
   }, [setNodesForTab])
