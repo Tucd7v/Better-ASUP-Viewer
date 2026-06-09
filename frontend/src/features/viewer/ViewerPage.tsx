@@ -122,9 +122,6 @@ function dimensionsMatchReadySize(dimensions: NodeDimensions, readyWidth?: numbe
 }
 
 const SPLIT_GRID_MAX_CARDS = 8
-function splitGridPositionForSlot(slotIdx: number) {
-  return { x: slotIdx, y: 0 }
-}
 let _spawnOffset = 0
 
 const TIPS = [
@@ -321,15 +318,7 @@ function SplitGrid({ nodes, nodeTypes, onDropFile, onSwapCard }: {
   onDropFile: (fileId: string, replaceIdx?: number) => void
   onSwapCard: (sourceId: string, targetId: string) => void
 }) {
-  const gridNodes = nodes
-    .slice(0, SPLIT_GRID_MAX_CARDS)
-    .map((node, order) => ({ node, order }))
-    .sort((a, b) => (
-      a.node.position.y - b.node.position.y ||
-      a.node.position.x - b.node.position.x ||
-      a.order - b.order
-    ))
-    .map(({ node }) => node)
+  const gridNodes = nodes.slice(0, SPLIT_GRID_MAX_CARDS)
   const cardCount = gridNodes.length
   const allXML = gridNodes.every((node) => node.type === 'xmlFile')
   const [dragOverZone, setDragOverZone] = useState<number | null>(null)
@@ -360,7 +349,6 @@ function SplitGrid({ nodes, nodeTypes, onDropFile, onSwapCard }: {
   const handleDrop = (zoneIdx: number, e: React.DragEvent) => {
     e.preventDefault()
     setDragOverZone(null)
-    if (e.dataTransfer.getData('card-drag') === 'true') return
     const fileId = e.dataTransfer.getData('text/plain')
     if (fileId) onDropFile(fileId, zoneIdx < cardCount ? zoneIdx : undefined)
   }
@@ -1103,13 +1091,7 @@ function ViewerInner() {
           }
           // Add new card (up to grid max)
           if (visibleNodesList.length < SPLIT_GRID_MAX_CARDS) {
-            const newNode = buildNode(
-              meta.file,
-              splitGridPositionForSlot(visibleNodesList.length),
-              meta.sessionId,
-              meta.nodeColor,
-              dispatch
-            )
+            const newNode = buildNode(meta.file, { x: 0, y: 0 }, meta.sessionId, meta.nodeColor, dispatch)
             return [...prev, newNode]
           }
           // Full: replace last
@@ -1212,13 +1194,10 @@ function ViewerInner() {
 
   const handleSwapCard = useCallback((sourceId: string, targetId: string) => {
     setNodesForTab(activeTabIdRef.current, (prev) => {
-      const next = [...prev]
       const sourceIdx = prev.findIndex((node) => node.id === sourceId)
       const targetIdx = prev.findIndex((node) => node.id === targetId)
       if (sourceIdx < 0 || targetIdx < 0) return prev
-      const tmpPosition = next[sourceIdx].position
-      next[sourceIdx].position = next[targetIdx].position
-      next[targetIdx].position = tmpPosition
+      const next = [...prev]
       const tmp = next[sourceIdx]
       next[sourceIdx] = next[targetIdx]
       next[targetIdx] = tmp
