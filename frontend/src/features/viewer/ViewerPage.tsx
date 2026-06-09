@@ -265,27 +265,52 @@ function AISummaryPanel({
   )
 }
 
-function SplitCard({ node, nodeTypes, idx, dragOverZone, setDragOverZone, handleDrop, style }: {
+function SplitCard({ node, nodeTypes, idx, dragOverZone, setDragOverZone, handleDrop, swapDragSource, onSwapDragStart, onSwapDrop, style }: {
   node: Node
   nodeTypes: NodeTypes
   idx: number
   dragOverZone: number | null
   setDragOverZone: (z: number | null) => void
   handleDrop: (zoneIdx: number, e: React.DragEvent) => void
+  swapDragSource: number | null
+  onSwapDragStart: (idx: number) => void
+  onSwapDrop: (targetIdx: number) => void
   style?: React.CSSProperties
 }) {
   const CardComponent = (nodeTypes as Record<string, React.ComponentType<{ data: unknown }>>)[node.type!]
+  const isSwapTarget = swapDragSource !== null && swapDragSource !== idx
   return (
     <div style={{
       ...style,
-      border: dragOverZone === idx ? '2px solid #3b82f6' : '2px solid transparent',
-      borderRadius: 8, background: dragOverZone === idx ? '#eff6ff' : undefined,
+      border: swapDragSource === idx ? '2px dashed #3b82f6' : isSwapTarget ? '2px dashed #a855f7' : dragOverZone === idx ? '2px solid #3b82f6' : '2px solid transparent',
+      borderRadius: 8, background: dragOverZone === idx ? '#eff6ff' : isSwapTarget ? '#faf5ff' : undefined,
       overflow: 'hidden', position: 'relative',
       transition: 'border 0.15s, background 0.15s',
+      opacity: swapDragSource === idx ? 0.5 : 1,
     }}
-      onDragOver={(e) => { e.preventDefault(); setDragOverZone(idx) }}
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.effectAllowed = 'move'
+        e.dataTransfer.setData('text/plain', node.id)
+        onSwapDragStart(idx)
+      }}
+      onDragEnd={() => onSwapDragStart(-1)}
+      onDragOver={(e) => {
+        e.preventDefault()
+        if (swapDragSource !== null && swapDragSource !== idx) {
+          e.dataTransfer.dropEffect = 'move'
+        }
+        setDragOverZone(idx)
+      }}
       onDragLeave={() => setDragOverZone(null)}
-      onDrop={(e) => handleDrop(idx, e)}>
+      onDrop={(e) => {
+        if (swapDragSource !== null && swapDragSource !== idx) {
+          e.preventDefault()
+          onSwapDrop(idx)
+          return
+        }
+        handleDrop(idx, e)
+      }}>
       <div style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
         {CardComponent && <CardComponent data={{ ...node.data, splitMode: true }} />}
       </div>
@@ -293,15 +318,17 @@ function SplitCard({ node, nodeTypes, idx, dragOverZone, setDragOverZone, handle
   )
 }
 
-function SplitGrid({ nodes, nodeTypes, onDropFile }: {
+function SplitGrid({ nodes, nodeTypes, onDropFile, onSwapCard }: {
   nodes: Node[]
   nodeTypes: NodeTypes
   onDropFile: (fileId: string, replaceIdx?: number) => void
+  onSwapCard: (sourceIdx: number, targetIdx: number) => void
 }) {
   const gridNodes = nodes.slice(0, SPLIT_GRID_MAX_CARDS)
   const cardCount = gridNodes.length
   const allXML = gridNodes.every((node) => node.type === 'xmlFile')
   const [dragOverZone, setDragOverZone] = useState<number | null>(null)
+  const [swapDragSource, setSwapDragSource] = useState<number | null>(null)
   const [hRatio, setHRatio] = useState(50)
   const [vRatio, setVRatio] = useState(50)
   const [col3Ratios, setCol3Ratios] = useState([33.33, 33.34, 33.33])
@@ -429,6 +456,13 @@ function SplitGrid({ nodes, nodeTypes, onDropFile }: {
 
   const cardProps = (node: Node, idx: number) => ({
     node, nodeTypes, idx, dragOverZone, setDragOverZone, handleDrop,
+    swapDragSource,
+    onSwapDragStart: (i: number) => setSwapDragSource(i < 0 ? null : i),
+    onSwapDrop: (targetIdx: number) => {
+      const src = swapDragSource
+      setSwapDragSource(null)
+      if (src !== null && src !== targetIdx) onSwapCard(src, targetIdx)
+    },
   })
 
   if (cardCount === 1) {
@@ -1156,6 +1190,16 @@ function ViewerInner() {
     }
   }, [addNodes, setNodesForTab, splitMode])
 
+  const handleSwapCard = useCallback((sourceIdx: number, targetIdx: number) => {
+    setNodesForTab(activeTabIdRef.current, (prev) => {
+      const next = [...prev]
+      const tmp = next[sourceIdx]
+      next[sourceIdx] = next[targetIdx]
+      next[targetIdx] = tmp
+      return next
+    })
+  }, [setNodesForTab])
+
   const onEdgeDoubleClick = useCallback((event: React.MouseEvent, edge: Edge) => {
     event.stopPropagation()
     setEditingEdgeId(edge.id)
@@ -1701,7 +1745,7 @@ function ViewerInner() {
               />
             </ReactFlow>
             )}
-            {splitMode && <SplitGrid nodes={visibleNodes.filter(n => !n.hidden)} nodeTypes={nodeTypes} onDropFile={handleFocusFile} />}
+            {splitMode && <SplitGrid nodes={visibleNodes.filter(n => !n.hidden)} nodeTypes={nodeTypes} onDropFile={handleFocusFile} onSwapCard={handleSwapCard} />}
           </div>
 
           {/* AI Side Panel */}
