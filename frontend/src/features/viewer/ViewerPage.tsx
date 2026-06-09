@@ -134,10 +134,16 @@ function nodeIdsFromKey(key: string) {
 
 function syncCardOrder(prev: string[], currentIds: string[]) {
   const currentIdSet = new Set(currentIds)
-  const existing = new Set(prev)
   const retained = prev.filter((id) => currentIdSet.has(id))
-  const added = currentIds.filter((id) => !existing.has(id))
-  return [...retained, ...added]
+  const existing = new Set(retained)
+  // Insert new IDs at their position in currentIds, after retained entries
+  const next = [...retained]
+  currentIds.forEach((id, parentIdx) => {
+    if (existing.has(id)) return
+    next.splice(Math.min(parentIdx, next.length), 0, id)
+    existing.add(id)
+  })
+  return next
 }
 
 const TIPS = [
