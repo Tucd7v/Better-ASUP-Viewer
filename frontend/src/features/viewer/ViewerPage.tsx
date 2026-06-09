@@ -922,7 +922,7 @@ function ViewerInner() {
   const [activeSidePanel, setActiveSidePanel] = useState<'ai' | 'summary' | null>(null)
   const [aiAutoAnalysisEnabled, setAiAutoAnalysisEnabled] = useState<boolean | null>(null)
   const [aiPanelWidth, setAiPanelWidth] = useState(450)
-  const [splitMode, setSplitMode] = useState(false)
+  const [splitMode, setSplitMode] = useState(true)
   const [memoryUsed, setMemoryUsed] = useState<number | null>(null)
 
   useEffect(() => {
