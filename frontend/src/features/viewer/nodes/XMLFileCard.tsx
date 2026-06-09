@@ -32,12 +32,14 @@ function GridDragGrip({ onDragStart, onDragEnd }: {
       className="nodrag"
       onDragStart={(event) => {
         event.stopPropagation()
+        event.nativeEvent.stopImmediatePropagation()
         event.dataTransfer.effectAllowed = 'move'
         event.dataTransfer.setData('card-drag', 'true')
         onDragStart()
       }}
       onDragEnd={(event) => {
         event.stopPropagation()
+        event.nativeEvent.stopImmediatePropagation()
         onDragEnd?.()
       }}
       style={gridDragGripStyle}
@@ -751,7 +753,8 @@ const btnStyle: React.CSSProperties = {
 }
 const gridDragGripStyle: React.CSSProperties = {
   color: '#94a3b8', cursor: 'grab', fontSize: 12, lineHeight: 1, userSelect: 'none', flexShrink: 0,
-}
+  WebkitUserDrag: 'element',
+} as React.CSSProperties
 const headerTitleStyle: React.CSSProperties = {
   display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0,
 }
