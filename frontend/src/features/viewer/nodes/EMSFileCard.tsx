@@ -4,6 +4,7 @@ import { getFileContent } from '../../../services/api'
 import type { EMSEvent } from '../../../types'
 import { useResizable } from './useResizable'
 import { useViewer } from '../ViewerContext'
+import { setGridDragActive } from './gridDragState'
 
 export interface EMSFileCardData extends Record<string, unknown> {
   fileId: string
@@ -35,10 +36,12 @@ function GridDragGrip({ onDragStart, onDragEnd }: {
         event.stopPropagation()
         event.dataTransfer.effectAllowed = 'move'
         event.dataTransfer.setData('card-drag', 'true')
+        setGridDragActive(true)
         onDragStart()
       }}
       onDragEnd={(event) => {
         event.stopPropagation()
+        setGridDragActive(false)
         onDragEnd?.()
       }}
       style={gridDragGripStyle}

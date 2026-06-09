@@ -3,6 +3,7 @@ import type { NodeProps, Node } from '@xyflow/react'
 import { getFileContent } from '../../../services/api'
 import { useResizable } from './useResizable'
 import { useViewer } from '../ViewerContext'
+import { isGridDragActive, setGridDragActive } from './gridDragState'
 
 export interface XMLFileCardData extends Record<string, unknown> {
   fileId: string
@@ -34,10 +35,12 @@ function GridDragGrip({ onDragStart, onDragEnd }: {
         event.stopPropagation()
         event.dataTransfer.effectAllowed = 'move'
         event.dataTransfer.setData('card-drag', 'true')
+        setGridDragActive(true)
         onDragStart()
       }}
       onDragEnd={(event) => {
         event.stopPropagation()
+        setGridDragActive(false)
         onDragEnd?.()
       }}
       style={gridDragGripStyle}
@@ -309,9 +312,17 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
       })
     : rows
 
-  const onDragStart = (col: string) => { dragCol.current = col }
-  const onDragEnter = (col: string) => { dragOverCol.current = col; setDragTarget(col) }
+  const onDragStart = (col: string) => {
+    if (isGridDragActive()) return
+    dragCol.current = col
+  }
+  const onDragEnter = (col: string) => {
+    if (isGridDragActive()) return
+    dragOverCol.current = col
+    setDragTarget(col)
+  }
   const onDragEnd = () => {
+    if (isGridDragActive()) return
     const from = dragCol.current
     const to = dragOverCol.current
     if (from && to && from !== to) {
