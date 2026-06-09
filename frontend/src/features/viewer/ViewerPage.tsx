@@ -182,13 +182,21 @@ function AISummaryPanel({
   onClose: () => void
 }) {
   const [openSections, setOpenSections] = useState<Set<string>>(new Set())
+  const prevLabelsRef = useRef<Set<string>>(new Set())
 
   useEffect(() => {
+    const currentLabels = new Set(sections.map(s => s.label))
+    const prevLabels = prevLabelsRef.current
+
     setOpenSections((prev) => {
       const next = new Set(prev)
-      sections.forEach((section) => next.add(section.label))
+      currentLabels.forEach((label) => {
+        if (!prevLabels.has(label)) next.add(label)
+      })
       return next
     })
+
+    prevLabelsRef.current = currentLabels
   }, [sections])
 
   const toggleSection = (label: string) => {
