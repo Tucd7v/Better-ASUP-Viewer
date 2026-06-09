@@ -181,7 +181,7 @@ function AISummaryPanel({
   sections: AISummarySectionData[]
   onClose: () => void
 }) {
-  const [openSections, setOpenSections] = useState(() => new Set(sections.map((section) => section.label)))
+  const [openSections, setOpenSections] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     setOpenSections((prev) => {
@@ -235,7 +235,16 @@ function AISummaryPanel({
                 <div className="ai-summary-section-content">
                   {section.summaries.map((summary, index) => (
                     <div className="ai-summary-markdown markdown-body" key={`${section.label}-${index}`}>
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{summary}</ReactMarkdown>
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          a: ({ node: _node, ...props }) => (
+                            <a {...props} target="_blank" rel="noopener noreferrer" />
+                          ),
+                        }}
+                      >
+                        {summary}
+                      </ReactMarkdown>
                     </div>
                   ))}
                 </div>
