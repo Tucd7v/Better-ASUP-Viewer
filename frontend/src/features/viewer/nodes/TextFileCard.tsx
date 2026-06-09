@@ -5,6 +5,8 @@ import { useResizable } from './useResizable'
 import { useViewer } from '../ViewerContext'
 import { setGridDragActive } from './gridDragState'
 
+const searchCache = new Map<string, string>()
+
 export interface TextFileCardData extends Record<string, unknown> {
   fileId: string
   sessionId: string
@@ -72,7 +74,7 @@ export default function TextFileCard({ data }: NodeProps<TextFileNode>) {
 
   const [lines, setLines] = useState<string[]>([])
   const [page, setPage] = useState(0)
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useState(searchCache.get(fileId) || '')
   const [matchIndex, setMatchIndex] = useState(0)
   const [loading, setLoading] = useState(false)
   const [contentReady, setContentReady] = useState(false)
@@ -223,7 +225,7 @@ export default function TextFileCard({ data }: NodeProps<TextFileNode>) {
                 type="text"
                 placeholder="Search…"
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => { setSearch(e.target.value); searchCache.set(fileId, e.target.value) }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && matchIndices.length > 0) {
                     e.preventDefault()

@@ -6,6 +6,8 @@ import { useResizable } from './useResizable'
 import { useViewer } from '../ViewerContext'
 import { setGridDragActive } from './gridDragState'
 
+const searchCache = new Map<string, string>()
+
 export interface EMSFileCardData extends Record<string, unknown> {
   fileId: string
   sessionId: string
@@ -88,7 +90,7 @@ export default function EMSFileCard({ data }: NodeProps<EMSFileNode>) {
 
   const [events, setEvents] = useState<EMSEvent[]>([])
   const [levelFilter, setLevelFilter] = useState<string>('all')
-  const [search, setSearch] = useState<string>('')
+  const [search, setSearch] = useState<string>(searchCache.get(fileId) || '')
   const [loading, setLoading] = useState(false)
   const [contentReady, setContentReady] = useState(false)
   const [highlightLine, setHighlightLine] = useState<number | null>(null)
@@ -270,7 +272,7 @@ export default function EMSFileCard({ data }: NodeProps<EMSFileNode>) {
                 type="text"
                 placeholder="Search…"
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => { setSearch(e.target.value); searchCache.set(fileId, e.target.value) }}
                 className="nodrag"
                 style={searchStyle}
               />

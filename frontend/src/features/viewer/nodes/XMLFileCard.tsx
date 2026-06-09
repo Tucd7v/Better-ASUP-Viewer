@@ -5,6 +5,8 @@ import { useResizable } from './useResizable'
 import { useViewer } from '../ViewerContext'
 import { isGridDragActive, setGridDragActive } from './gridDragState'
 
+const searchCache = new Map<string, string>()
+
 export interface XMLFileCardData extends Record<string, unknown> {
   fileId: string
   sessionId: string
@@ -155,7 +157,7 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
   const [columns, setColumns] = useState<string[]>([])
   const [sortCol, setSortCol] = useState<string | null>(null)
   const [sortDir, setSortDir] = useState<SortDir>(null)
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useState(searchCache.get(fileId) || '')
   const [loading, setLoading] = useState(false)
   const [contentReady, setContentReady] = useState(false)
   const [pinnedCols, setPinnedCols] = useState<Set<string>>(new Set())
@@ -490,7 +492,7 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
                 type="text"
                 placeholder="Search…"
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => { setSearch(e.target.value); searchCache.set(fileId, e.target.value) }}
                 style={{
                   width: '100%', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 4,
                   color: '#1e293b', padding: '3px 6px', fontSize: 11,
