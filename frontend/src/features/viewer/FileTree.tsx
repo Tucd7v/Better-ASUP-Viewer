@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { FileRecord, SessionMeta } from '../../types'
 import { useViewer } from './ViewerContext'
+import { setGridDragActive } from './nodes/gridDragState'
 
 interface FileTreeProps {
   sessions: SessionMeta[]
@@ -341,8 +342,12 @@ export default function FileTree({ sessions, clusterName, onFocusFile }: FileTre
                                       isDragging.current = true
                                       e.dataTransfer.setData('text/plain', file.id)
                                       e.dataTransfer.effectAllowed = 'copy'
+                                      setGridDragActive(true)
                                     }}
-                                    onDragEnd={() => { isDragging.current = false }}
+                                    onDragEnd={() => {
+                                      isDragging.current = false
+                                      setGridDragActive(false)
+                                    }}
                                     onClick={() => {
                                       if (isDragging.current) return
                                       handleClick(file)
