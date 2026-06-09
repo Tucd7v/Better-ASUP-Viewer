@@ -334,10 +334,10 @@ function SplitCard({ node, nodeTypes, idx, dragOverZone, setDragOverZone, handle
   )
 }
 
-function SplitGrid({ nodes, nodeTypes, onDropFile }: {
+function SplitGrid({ nodes, nodeTypes, onSpawnCard }: {
   nodes: Node[]
   nodeTypes: NodeTypes
-  onDropFile: (fileId: string, replaceIdx?: number) => void
+  onSpawnCard: (fileId: string, replaceNodeId?: string) => string | null
 }) {
   const gridNodes = nodes.slice(0, SPLIT_GRID_MAX_CARDS)
   const nodeIdKey = nodeIdKeyFor(gridNodes.map((node) => node.id))
@@ -387,8 +387,17 @@ function SplitGrid({ nodes, nodeTypes, onDropFile }: {
     const fileId = e.dataTransfer.getData('text/plain')
     if (fileId) {
       const targetNode = orderedNodes[zoneIdx]
-      const replaceIdx = targetNode ? gridNodes.findIndex((node) => node.id === targetNode.id) : -1
-      onDropFile(fileId, replaceIdx >= 0 ? replaceIdx : undefined)
+      const newNodeId = onSpawnCard(fileId, targetNode?.id)
+      if (!newNodeId) return
+      setCardOrder((prev) => {
+        const next = syncCardOrder(prev, currentGridNodeIds).filter((id) => id !== newNodeId)
+        if (zoneIdx < next.length) {
+          next[zoneIdx] = newNodeId
+        } else {
+          next.push(newNodeId)
+        }
+        return next
+      })
     }
   }
 
@@ -1124,7 +1133,7 @@ function ViewerInner() {
   }, [fitView])
 
   const handleFocusFile = useCallback(
-    (fileId: string, replaceIdx?: number) => {
+    (fileId: string) => {
       const targetTabId = activeTabIdRef.current
       dispatch({ type: 'SHOW_FILE', fileId })
       setNodesForTab(targetTabId, (prev) => {
@@ -1141,12 +1150,6 @@ function ViewerInner() {
 
         if (splitMode) {
           const visibleNodesList = prev.filter((n) => !state.hiddenFileIds.has((n.data as { fileId: string }).fileId))
-          // Replace specific zone
-          if (replaceIdx !== undefined && replaceIdx < visibleNodesList.length) {
-            const target = visibleNodesList[replaceIdx]
-            const newNode = buildNode(meta.file, target.position, meta.sessionId, meta.nodeColor, dispatch)
-            return prev.map((n) => (n.id === target.id ? newNode : n))
-          }
           // Add new card (up to grid max)
           if (visibleNodesList.length < SPLIT_GRID_MAX_CARDS) {
             const newNode = buildNode(meta.file, { x: 0, y: 0 }, meta.sessionId, meta.nodeColor, dispatch)
@@ -1191,6 +1194,52 @@ function ViewerInner() {
       requestViewportFocus,
     ]
   )
+
+  const handleSpawnCard = useCallback((fileId: string, replaceNodeId?: string) => {
+    const targetTabId = activeTabIdRef.current
+    dispatch({ type: 'SHOW_FILE', fileId })
+
+    const meta = fileMetaRef.current.get(fileId)
+    if (!meta) return null
+
+    const existing = nodes.find((node) => node.id === fileId)
+    const target = replaceNodeId ? nodes.find((node) => node.id === replaceNodeId) : undefined
+
+    if (existing) {
+      setNodesForTab(targetTabId, (prev) => {
+        if (!replaceNodeId || replaceNodeId === existing.id) return prev
+        return prev.filter((node) => node.id !== replaceNodeId)
+      })
+      return existing.id
+    }
+
+    const visibleNodesList = nodes.filter((node) => !state.hiddenFileIds.has((node.data as { fileId: string }).fileId))
+    const fallbackTarget = visibleNodesList.length >= SPLIT_GRID_MAX_CARDS
+      ? visibleNodesList[visibleNodesList.length - 1]
+      : undefined
+    const targetNode = target ?? fallbackTarget
+    const newNode = buildNode(
+      meta.file,
+      targetNode?.position ?? { x: 0, y: 0 },
+      meta.sessionId,
+      meta.nodeColor,
+      dispatch
+    )
+
+    addNodes(newNode)
+
+    setNodesForTab(targetTabId, (prev) => {
+      if (prev.some((node) => node.id === newNode.id)) return prev
+
+      if (targetNode && prev.some((node) => node.id === targetNode.id)) {
+        return prev.map((node) => (node.id === targetNode.id ? newNode : node))
+      }
+
+      return [...prev, newNode]
+    })
+
+    return newNode.id
+  }, [addNodes, dispatch, nodes, setNodesForTab, state.hiddenFileIds])
 
   const handleDuplicateCard = useCallback((node: Node) => {
     const nodeId = typeof crypto !== 'undefined' && crypto.randomUUID
@@ -1795,7 +1844,7 @@ function ViewerInner() {
               />
             </ReactFlow>
             )}
-            {splitMode && <SplitGrid nodes={visibleNodes.filter(n => !n.hidden)} nodeTypes={nodeTypes} onDropFile={handleFocusFile} />}
+            {splitMode && <SplitGrid nodes={visibleNodes.filter(n => !n.hidden)} nodeTypes={nodeTypes} onSpawnCard={handleSpawnCard} />}
           </div>
 
           {/* AI Side Panel */}
