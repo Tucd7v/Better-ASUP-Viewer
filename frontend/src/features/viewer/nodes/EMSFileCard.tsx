@@ -13,6 +13,8 @@ export interface EMSFileCardData extends Record<string, unknown> {
   nodeColor: string
   collapsed: boolean
   splitMode?: boolean
+  onGridDragStart?: () => void
+  onGridDragEnd?: () => void
   onCollapse: () => void
   onHide: () => void
   onDuplicate: () => void
@@ -20,6 +22,32 @@ export interface EMSFileCardData extends Record<string, unknown> {
 }
 
 export type EMSFileNode = Node<EMSFileCardData, 'emsFile'>
+
+function GridDragGrip({ onDragStart, onDragEnd }: {
+  onDragStart: () => void
+  onDragEnd?: () => void
+}) {
+  return (
+    <span
+      draggable
+      className="nodrag"
+      onDragStart={(event) => {
+        event.stopPropagation()
+        event.dataTransfer.effectAllowed = 'move'
+        event.dataTransfer.setData('card-drag', 'true')
+        onDragStart()
+      }}
+      onDragEnd={(event) => {
+        event.stopPropagation()
+        onDragEnd?.()
+      }}
+      style={gridDragGripStyle}
+      title="Drag to reorder"
+    >
+      ⋮⋮
+    </span>
+  )
+}
 
 const ALL_LEVELS = ['emergency', 'alert', 'error', 'warning', 'notice', 'info', 'debug'] as const
 
@@ -52,7 +80,7 @@ function highlight(text: string, query: string): React.ReactNode {
 }
 
 export default function EMSFileCard({ data }: NodeProps<EMSFileNode>) {
-  const { fileId, sessionId, filename, aiSummary: dataAiSummary, nodeColor, collapsed, splitMode, onCollapse, onHide, onDuplicate, onReadyForViewport } = data
+  const { fileId, sessionId, filename, aiSummary: dataAiSummary, nodeColor, collapsed, splitMode, onGridDragStart, onGridDragEnd, onCollapse, onHide, onDuplicate, onReadyForViewport } = data
   const { width, height, onResizeX, onResizeY } = useResizable(800, 400)
 
   const [events, setEvents] = useState<EMSEvent[]>([])
@@ -170,6 +198,7 @@ export default function EMSFileCard({ data }: NodeProps<EMSFileNode>) {
             borderBottom: collapsed ? 'none' : '1px solid #e2e8f0',
           }}
         >
+          {splitMode && onGridDragStart && <GridDragGrip onDragStart={onGridDragStart} onDragEnd={onGridDragEnd} />}
           <span>🚨</span>
           <div style={headerTitleStyle}>
             <span style={filenameStyle} title={filename}>
@@ -345,6 +374,15 @@ const btnStyle: React.CSSProperties = {
   padding: '0 2px',
   fontSize: 11,
   fontFamily: 'ui-monospace, Consolas, monospace',
+}
+
+const gridDragGripStyle: React.CSSProperties = {
+  color: '#94a3b8',
+  cursor: 'grab',
+  fontSize: 12,
+  lineHeight: 1,
+  userSelect: 'none',
+  flexShrink: 0,
 }
 
 const headerTitleStyle: React.CSSProperties = {

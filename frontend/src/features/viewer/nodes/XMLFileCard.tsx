@@ -12,6 +12,8 @@ export interface XMLFileCardData extends Record<string, unknown> {
   nodeColor: string
   collapsed: boolean
   splitMode?: boolean
+  onGridDragStart?: () => void
+  onGridDragEnd?: () => void
   onCollapse: () => void
   onHide: () => void
   onDuplicate: () => void
@@ -19,6 +21,32 @@ export interface XMLFileCardData extends Record<string, unknown> {
 }
 
 export type XMLFileNode = Node<XMLFileCardData, 'xmlFile'>
+
+function GridDragGrip({ onDragStart, onDragEnd }: {
+  onDragStart: () => void
+  onDragEnd?: () => void
+}) {
+  return (
+    <span
+      draggable
+      className="nodrag"
+      onDragStart={(event) => {
+        event.stopPropagation()
+        event.dataTransfer.effectAllowed = 'move'
+        event.dataTransfer.setData('card-drag', 'true')
+        onDragStart()
+      }}
+      onDragEnd={(event) => {
+        event.stopPropagation()
+        onDragEnd?.()
+      }}
+      style={gridDragGripStyle}
+      title="Drag to reorder"
+    >
+      ⋮⋮
+    </span>
+  )
+}
 
 interface TableRow { [key: string]: string }
 type SortDir = 'asc' | 'desc' | null
@@ -116,7 +144,7 @@ function ColSwapMenu({
 }
 
 export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
-  const { fileId, sessionId, filename, aiSummary: dataAiSummary, nodeColor, collapsed, splitMode, onCollapse, onHide, onDuplicate, onReadyForViewport } = data
+  const { fileId, sessionId, filename, aiSummary: dataAiSummary, nodeColor, collapsed, splitMode, onGridDragStart, onGridDragEnd, onCollapse, onHide, onDuplicate, onReadyForViewport } = data
   const { width, height, setWidth, onResizeX, onResizeY } = useResizable(320, 360)
 
   const [rows, setRows] = useState<TableRow[]>([])
@@ -398,6 +426,7 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', background: '#f8fafc', borderBottom: collapsed ? 'none' : '1px solid #e2e8f0', borderRadius: collapsed ? 8 : '8px 8px 0 0' }}>
+          {splitMode && onGridDragStart && <GridDragGrip onDragStart={onGridDragStart} onDragEnd={onGridDragEnd} />}
           <span>📊</span>
           <div style={headerTitleStyle}>
             <span style={filenameStyle} title={filename}>
@@ -719,6 +748,9 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
 
 const btnStyle: React.CSSProperties = {
   background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '0 2px', fontSize: 11, fontFamily: 'ui-monospace, Consolas, monospace',
+}
+const gridDragGripStyle: React.CSSProperties = {
+  color: '#94a3b8', cursor: 'grab', fontSize: 12, lineHeight: 1, userSelect: 'none', flexShrink: 0,
 }
 const headerTitleStyle: React.CSSProperties = {
   display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0,

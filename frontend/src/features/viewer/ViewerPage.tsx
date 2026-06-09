@@ -268,7 +268,7 @@ function AISummaryPanel({
   )
 }
 
-function SplitCard({ node, nodeTypes, idx, dragOverZone, setDragOverZone, handleDrop, swapDragSource, onSwapDragStart, onSwapDrop, style }: {
+function SplitCard({ node, nodeTypes, idx, dragOverZone, setDragOverZone, handleDrop, swapDragSource, onGridDragStart, onGridDragEnd, onSwapDrop, style }: {
   node: Node
   nodeTypes: NodeTypes
   idx: number
@@ -276,7 +276,8 @@ function SplitCard({ node, nodeTypes, idx, dragOverZone, setDragOverZone, handle
   setDragOverZone: (z: number | null) => void
   handleDrop: (zoneIdx: number, e: React.DragEvent) => void
   swapDragSource: number | null
-  onSwapDragStart: (idx: number) => void
+  onGridDragStart: () => void
+  onGridDragEnd: () => void
   onSwapDrop: (targetIdx: number) => void
   style?: React.CSSProperties
 }) {
@@ -300,44 +301,15 @@ function SplitCard({ node, nodeTypes, idx, dragOverZone, setDragOverZone, handle
       }}
       onDragLeave={() => setDragOverZone(null)}
       onDrop={(e) => {
-        if (swapDragSource !== null && swapDragSource !== idx) {
+        if (swapDragSource !== null) {
           e.preventDefault()
           onSwapDrop(idx)
           return
         }
         handleDrop(idx, e)
       }}>
-      <div style={{ position: 'absolute', inset: 0, marginLeft: 16, width: 'calc(100% - 16px)', height: '100%' }}>
-        {CardComponent && <CardComponent data={{ ...node.data, splitMode: true }} />}
-      </div>
-      <div
-        draggable
-        onDragStart={(e) => {
-          e.stopPropagation()
-          e.dataTransfer.effectAllowed = 'move'
-          e.dataTransfer.setData('text/plain', node.id)
-          onSwapDragStart(idx)
-        }}
-        onDragEnd={(e) => { e.stopPropagation(); onSwapDragStart(-1) }}
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: 16,
-          height: 28,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: '#94a3b8',
-          cursor: 'grab',
-          fontSize: 12,
-          lineHeight: 1,
-          userSelect: 'none',
-          zIndex: 10,
-        }}
-        title="Drag to reorder"
-      >
-        ⋮⋮
+      <div style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+        {CardComponent && <CardComponent data={{ ...node.data, splitMode: true, onGridDragStart, onGridDragEnd }} />}
       </div>
     </div>
   )
@@ -388,6 +360,7 @@ function SplitGrid({ nodes, nodeTypes, onDropFile, onSwapCard }: {
   const handleDrop = (zoneIdx: number, e: React.DragEvent) => {
     e.preventDefault()
     setDragOverZone(null)
+    if (e.dataTransfer.getData('card-drag') === 'true') return
     const fileId = e.dataTransfer.getData('text/plain')
     if (fileId) onDropFile(fileId, zoneIdx < cardCount ? zoneIdx : undefined)
   }
@@ -490,7 +463,13 @@ function SplitGrid({ nodes, nodeTypes, onDropFile, onSwapCard }: {
   const cardProps = (node: Node, idx: number) => ({
     node, nodeTypes, idx, dragOverZone, setDragOverZone, handleDrop,
     swapDragSource,
-    onSwapDragStart: (i: number) => setSwapDragSource(i < 0 ? null : i),
+    onGridDragStart: () => {
+      setSwapDragSource(idx)
+    },
+    onGridDragEnd: () => {
+      setDragOverZone(null)
+      setSwapDragSource(null)
+    },
     onSwapDrop: (targetIdx: number) => {
       const src = swapDragSource
       setSwapDragSource(null)
@@ -1233,13 +1212,16 @@ function ViewerInner() {
 
   const handleSwapCard = useCallback((sourceId: string, targetId: string) => {
     setNodesForTab(activeTabIdRef.current, (prev) => {
+      const next = [...prev]
       const sourceIdx = prev.findIndex((node) => node.id === sourceId)
       const targetIdx = prev.findIndex((node) => node.id === targetId)
       if (sourceIdx < 0 || targetIdx < 0) return prev
-      const next = prev.map(n => ({ ...n }))
-      const tmp = next[sourceIdx].position
-      next[sourceIdx] = { ...next[sourceIdx], position: next[targetIdx].position }
-      next[targetIdx] = { ...next[targetIdx], position: tmp }
+      const tmpPosition = next[sourceIdx].position
+      next[sourceIdx].position = next[targetIdx].position
+      next[targetIdx].position = tmpPosition
+      const tmp = next[sourceIdx]
+      next[sourceIdx] = next[targetIdx]
+      next[targetIdx] = tmp
       return next
     })
   }, [setNodesForTab])
