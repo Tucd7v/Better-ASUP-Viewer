@@ -288,13 +288,6 @@ function SplitCard({ node, nodeTypes, idx, dragOverZone, setDragOverZone, handle
       transition: 'border 0.15s, background 0.15s',
       opacity: swapDragSource === idx ? 0.5 : 1,
     }}
-      draggable
-      onDragStart={(e) => {
-        e.dataTransfer.effectAllowed = 'move'
-        e.dataTransfer.setData('text/plain', node.id)
-        onSwapDragStart(idx)
-      }}
-      onDragEnd={() => onSwapDragStart(-1)}
       onDragOver={(e) => {
         e.preventDefault()
         if (swapDragSource !== null && swapDragSource !== idx) {
@@ -313,6 +306,24 @@ function SplitCard({ node, nodeTypes, idx, dragOverZone, setDragOverZone, handle
       }}>
       <div style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
         {CardComponent && <CardComponent data={{ ...node.data, splitMode: true }} />}
+        {/* Drag handle — only card header area is draggable */}
+        <div
+          draggable
+          onDragStart={(e) => {
+            e.stopPropagation()
+            e.dataTransfer.effectAllowed = 'move'
+            e.dataTransfer.setData('text/plain', node.id)
+            onSwapDragStart(idx)
+          }}
+          onDragEnd={(e) => { e.stopPropagation(); onSwapDragStart(-1) }}
+          style={{
+            position: 'absolute',
+            top: 0, left: 0, right: 0,
+            height: 28,
+            cursor: 'grab',
+            zIndex: 10,
+          }}
+        />
       </div>
     </div>
   )
