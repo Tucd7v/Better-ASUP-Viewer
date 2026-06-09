@@ -124,6 +124,22 @@ function dimensionsMatchReadySize(dimensions: NodeDimensions, readyWidth?: numbe
 const SPLIT_GRID_MAX_CARDS = 8
 let _spawnOffset = 0
 
+function nodeIdKeyFor(ids: string[]) {
+  return JSON.stringify(ids)
+}
+
+function nodeIdsFromKey(key: string) {
+  return JSON.parse(key) as string[]
+}
+
+function syncCardOrder(prev: string[], currentIds: string[]) {
+  const currentIdSet = new Set(currentIds)
+  const existing = new Set(prev)
+  const retained = prev.filter((id) => currentIdSet.has(id))
+  const added = currentIds.filter((id) => !existing.has(id))
+  return [...retained, ...added]
+}
+
 const TIPS = [
   '📌 点击卡片标题中的主机名，左侧文件树会自动定位到对应节点',
   '🔍 搜索栏支持按集群 ID、主机名和序列号进行查找',
@@ -312,21 +328,34 @@ function SplitCard({ node, nodeTypes, idx, dragOverZone, setDragOverZone, handle
   )
 }
 
-function SplitGrid({ nodes, nodeTypes, onDropFile, onSwapCard }: {
+function SplitGrid({ nodes, nodeTypes, onDropFile }: {
   nodes: Node[]
   nodeTypes: NodeTypes
   onDropFile: (fileId: string, replaceIdx?: number) => void
-  onSwapCard: (sourceId: string, targetId: string) => void
 }) {
   const gridNodes = nodes.slice(0, SPLIT_GRID_MAX_CARDS)
-  const cardCount = gridNodes.length
-  const allXML = gridNodes.every((node) => node.type === 'xmlFile')
+  const nodeIdKey = nodeIdKeyFor(gridNodes.map((node) => node.id))
+  const currentGridNodeIds = useMemo(() => nodeIdsFromKey(nodeIdKey), [nodeIdKey])
+  const [cardOrder, setCardOrder] = useState<string[]>(() => currentGridNodeIds)
   const [dragOverZone, setDragOverZone] = useState<number | null>(null)
   const [swapDragSource, setSwapDragSource] = useState<number | null>(null)
   const [hRatio, setHRatio] = useState(50)
   const [vRatio, setVRatio] = useState(50)
   const [col3Ratios, setCol3Ratios] = useState([33.33, 33.34, 33.33])
   const containerRef = useRef<HTMLDivElement>(null)
+
+  const orderedCardIds = useMemo(
+    () => syncCardOrder(cardOrder, currentGridNodeIds),
+    [cardOrder, currentGridNodeIds]
+  )
+
+  const orderedNodes = useMemo(() => {
+    const nodeMap = new Map(gridNodes.map((node) => [node.id, node]))
+    return orderedCardIds.map((id) => nodeMap.get(id)).filter(Boolean) as Node[]
+  }, [orderedCardIds, gridNodes])
+
+  const cardCount = orderedNodes.length
+  const allXML = orderedNodes.every((node) => node.type === 'xmlFile')
   const gridRowRatioKey = allXML ? `xml:${cardCount}` : `grid:${Math.ceil(cardCount / 2)}`
   const [gridRowRatioState, setGridRowRatioState] = useState<{ key: string; ratios: number[] }>({
     key: gridRowRatioKey,
@@ -350,7 +379,11 @@ function SplitGrid({ nodes, nodeTypes, onDropFile, onSwapCard }: {
     e.preventDefault()
     setDragOverZone(null)
     const fileId = e.dataTransfer.getData('text/plain')
-    if (fileId) onDropFile(fileId, zoneIdx < cardCount ? zoneIdx : undefined)
+    if (fileId) {
+      const targetNode = orderedNodes[zoneIdx]
+      const replaceIdx = targetNode ? gridNodes.findIndex((node) => node.id === targetNode.id) : -1
+      onDropFile(fileId, replaceIdx >= 0 ? replaceIdx : undefined)
+    }
   }
 
   const clamp = (val: number, min: number, max: number) => Math.max(min, Math.min(max, val))
@@ -448,6 +481,26 @@ function SplitGrid({ nodes, nodeTypes, onDropFile, onSwapCard }: {
     window.addEventListener('mouseup', onUp)
   }
 
+  const handleSwap = (sourceIdx: number, targetIdx: number) => {
+    setCardOrder((prev) => {
+      const syncedOrder = syncCardOrder(prev, currentGridNodeIds)
+      if (
+        sourceIdx === targetIdx ||
+        sourceIdx < 0 ||
+        targetIdx < 0 ||
+        sourceIdx >= syncedOrder.length ||
+        targetIdx >= syncedOrder.length
+      ) {
+        return prev
+      }
+      const next = [...syncedOrder]
+      const tmp = next[sourceIdx]
+      next[sourceIdx] = next[targetIdx]
+      next[targetIdx] = tmp
+      return next
+    })
+  }
+
   const cardProps = (node: Node, idx: number) => ({
     node, nodeTypes, idx, dragOverZone, setDragOverZone, handleDrop,
     swapDragSource,
@@ -460,17 +513,16 @@ function SplitGrid({ nodes, nodeTypes, onDropFile, onSwapCard }: {
     },
     onSwapDrop: (targetIdx: number) => {
       const src = swapDragSource
+      setDragOverZone(null)
       setSwapDragSource(null)
-      const sourceNode = src !== null ? gridNodes[src] : undefined
-      const targetNode = gridNodes[targetIdx]
-      if (sourceNode && targetNode && src !== targetIdx) onSwapCard(sourceNode.id, targetNode.id)
+      if (src !== null) handleSwap(src, targetIdx)
     },
   })
 
   if (cardCount === 1) {
     return (
       <div ref={containerRef} style={{ width: '100%', height: '100%', padding: 8, background: '#f7f9fc' }}>
-        <SplitCard {...cardProps(gridNodes[0], 0)} style={{ width: '100%', height: '100%' }} />
+        <SplitCard key={orderedNodes[0].id} {...cardProps(orderedNodes[0], 0)} style={{ width: '100%', height: '100%' }} />
       </div>
     )
   }
@@ -478,9 +530,9 @@ function SplitGrid({ nodes, nodeTypes, onDropFile, onSwapCard }: {
   if (cardCount === 2 && !allXML) {
     return (
       <div ref={containerRef} style={{ display: 'flex', width: '100%', height: '100%', padding: 8, gap: 0, background: '#f7f9fc' }}>
-        <SplitCard {...cardProps(gridNodes[0], 0)} style={{ width: `calc(${hRatio}% - 2px)`, height: '100%' }} />
+        <SplitCard key={orderedNodes[0].id} {...cardProps(orderedNodes[0], 0)} style={{ width: `calc(${hRatio}% - 2px)`, height: '100%' }} />
         <SplitDivider direction="v" onMouseDown={startHDrag} />
-        <SplitCard {...cardProps(gridNodes[1], 1)} style={{ width: `calc(${100 - hRatio}% - 2px)`, height: '100%' }} />
+        <SplitCard key={orderedNodes[1].id} {...cardProps(orderedNodes[1], 1)} style={{ width: `calc(${100 - hRatio}% - 2px)`, height: '100%' }} />
       </div>
     )
   }
@@ -488,11 +540,11 @@ function SplitGrid({ nodes, nodeTypes, onDropFile, onSwapCard }: {
   if (cardCount === 3 && !allXML) {
     return (
       <div ref={containerRef} style={{ display: 'flex', width: '100%', height: '100%', padding: 8, gap: 0, background: '#f7f9fc' }}>
-        <SplitCard {...cardProps(gridNodes[0], 0)} style={{ width: `calc(${col3Ratios[0]}% - 3px)`, height: '100%' }} />
+        <SplitCard key={orderedNodes[0].id} {...cardProps(orderedNodes[0], 0)} style={{ width: `calc(${col3Ratios[0]}% - 3px)`, height: '100%' }} />
         <SplitDivider direction="v" onMouseDown={(e) => startCol3Drag(0, e)} />
-        <SplitCard {...cardProps(gridNodes[1], 1)} style={{ width: `calc(${col3Ratios[1]}% - 3px)`, height: '100%' }} />
+        <SplitCard key={orderedNodes[1].id} {...cardProps(orderedNodes[1], 1)} style={{ width: `calc(${col3Ratios[1]}% - 3px)`, height: '100%' }} />
         <SplitDivider direction="v" onMouseDown={(e) => startCol3Drag(1, e)} />
-        <SplitCard {...cardProps(gridNodes[2], 2)} style={{ width: `calc(${col3Ratios[2]}% - 2px)`, height: '100%' }} />
+        <SplitCard key={orderedNodes[2].id} {...cardProps(orderedNodes[2], 2)} style={{ width: `calc(${col3Ratios[2]}% - 2px)`, height: '100%' }} />
       </div>
     )
   }
@@ -529,7 +581,7 @@ function SplitGrid({ nodes, nodeTypes, onDropFile, onSwapCard }: {
         background: '#f7f9fc',
       }}
     >
-      {gridNodes.map((node, idx) => (
+      {orderedNodes.map((node, idx) => (
         <SplitCard
           key={node.id}
           {...cardProps(node, idx)}
@@ -1192,19 +1244,6 @@ function ViewerInner() {
     }
   }, [addNodes, setNodesForTab, splitMode])
 
-  const handleSwapCard = useCallback((sourceId: string, targetId: string) => {
-    setNodesForTab(activeTabIdRef.current, (prev) => {
-      const sourceIdx = prev.findIndex((node) => node.id === sourceId)
-      const targetIdx = prev.findIndex((node) => node.id === targetId)
-      if (sourceIdx < 0 || targetIdx < 0) return prev
-      const next = [...prev]
-      const tmp = next[sourceIdx]
-      next[sourceIdx] = next[targetIdx]
-      next[targetIdx] = tmp
-      return next
-    })
-  }, [setNodesForTab])
-
   const onEdgeDoubleClick = useCallback((event: React.MouseEvent, edge: Edge) => {
     event.stopPropagation()
     setEditingEdgeId(edge.id)
@@ -1750,7 +1789,7 @@ function ViewerInner() {
               />
             </ReactFlow>
             )}
-            {splitMode && <SplitGrid nodes={visibleNodes.filter(n => !n.hidden)} nodeTypes={nodeTypes} onDropFile={handleFocusFile} onSwapCard={handleSwapCard} />}
+            {splitMode && <SplitGrid nodes={visibleNodes.filter(n => !n.hidden)} nodeTypes={nodeTypes} onDropFile={handleFocusFile} />}
           </div>
 
           {/* AI Side Panel */}
