@@ -99,7 +99,6 @@ export default function EMSFileCard({ data }: NodeProps<EMSFileNode>) {
   const { state, dispatch: viewDispatch } = useViewer()
   const sessionMeta = state.sessions.find((session) => session.sessionId === sessionId)
   const hostname = sessionMeta?.hostname?.trim() ?? ''
-  const aiSummary = (dataAiSummary || sessionMeta?.aiSummary || sessionMeta?.ai_summary || '').trim()
   const fontSize = state.fontSize || 13
 
   useEffect(() => {
@@ -401,13 +400,6 @@ const filenameStyle: React.CSSProperties = {
   color: '#334155',
   flexShrink: 1,
 };
-
-const aiSummaryBadgeStyle: React.CSSProperties = {
-  flexShrink: 0,
-  cursor: 'help',
-  fontSize: 13,
-  lineHeight: '16px',
-}
 
 const headerDividerStyle: React.CSSProperties = {
   width: 1,

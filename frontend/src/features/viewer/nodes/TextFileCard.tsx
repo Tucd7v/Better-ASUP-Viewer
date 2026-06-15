@@ -69,10 +69,17 @@ function highlight(line: string, term: string): React.ReactNode {
 }
 
 const KEYWORD_RULES: { pattern: RegExp; style: React.CSSProperties }[] = [
-  { pattern: /\b(error|fail|critical|fault|emergency|panic|corrupt|offline|down|unreachable|timeout|crashed|abort)\b/gi, style: { color: '#dc2626', fontWeight: 700 } },
-  { pattern: /\b(warning|warn|degraded|unstable)\b/gi, style: { color: '#d97706', fontWeight: 600 } },
-  { pattern: /\b(notice|info|normal|healthy|ok|ready|online|up|success|passed)\b/gi, style: { color: '#2563eb' } },
+  // Red — errors, failures, negative states
+  { pattern: /\b(error|fail|critical|fault|emergency|panic|corrupt|offline|down|unreachable|timeout|crashed|abort|false|no|disabled|inactive|invalid|missing|broken|fatal|unconfigured)\b/gi, style: { color: '#dc2626', fontWeight: 700 } },
+  // Orange — warnings, degraded
+  { pattern: /\b(warning|warn|degraded|unstable|throttled|unknown|maintenance)\b/gi, style: { color: '#d97706', fontWeight: 600 } },
+  // Green — healthy, positive states
+  { pattern: /\b(true|yes|enabled|active|healthy|normal|ok|ready|online|up|success|passed|available|connected|reachable|configured|present|compatible)\b/gi, style: { color: '#16a34a', fontWeight: 600 } },
+  // Blue — info, neutral
+  { pattern: /\b(notice|info|normal|running|started|completed)\b/gi, style: { color: '#2563eb' } },
+  // Cyan — IP addresses
   { pattern: /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g, style: { color: '#0891b2' } },
+  // Purple — MAC addresses
   { pattern: /\b([0-9a-f]{2}[:-]){5}[0-9a-f]{2}\b/gi, style: { color: '#7c3aed' } },
 ]
 
@@ -134,7 +141,6 @@ export default function TextFileCard({ data }: NodeProps<TextFileNode>) {
   const { state, dispatch: viewDispatch } = useViewer()
   const sessionMeta = state.sessions.find((session) => session.sessionId === sessionId)
   const hostname = sessionMeta?.hostname?.trim() ?? ''
-  const aiSummary = (dataAiSummary || sessionMeta?.aiSummary || sessionMeta?.ai_summary || '').trim()
   const fontSize = state.fontSize || 13
 
   useEffect(() => {
@@ -363,9 +369,6 @@ const headerTitleStyle: React.CSSProperties = {
 }
 const filenameStyle: React.CSSProperties = {
   minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#334155', flexShrink: 1,
-}
-const aiSummaryBadgeStyle: React.CSSProperties = {
-  flexShrink: 0, cursor: 'help', fontSize: 13, lineHeight: '16px',
 }
 const headerDividerStyle: React.CSSProperties = {
   width: 1, height: 12, background: '#e2e8f0', flexShrink: 0,
