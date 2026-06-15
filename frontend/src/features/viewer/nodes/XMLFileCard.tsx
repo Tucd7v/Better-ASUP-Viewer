@@ -149,7 +149,7 @@ function ColSwapMenu({
 }
 
 export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
-  const { fileId, sessionId, filename, aiSummary: dataAiSummary, nodeColor, collapsed, splitMode, onGridDragStart, onGridDragEnd, onCollapse, onHide, onDuplicate, onReadyForViewport } = data
+  const { fileId, sessionId, filename, nodeColor, collapsed, splitMode, onGridDragStart, onGridDragEnd, onCollapse, onHide, onDuplicate, onReadyForViewport } = data
   const { width, height, setWidth, onResizeX, onResizeY } = useResizable(320, 360)
 
   const [rows, setRows] = useState<TableRow[]>([])

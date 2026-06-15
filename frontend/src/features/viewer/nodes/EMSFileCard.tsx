@@ -85,7 +85,7 @@ function highlight(text: string, query: string): React.ReactNode {
 }
 
 export default function EMSFileCard({ data }: NodeProps<EMSFileNode>) {
-  const { fileId, sessionId, filename, aiSummary: dataAiSummary, nodeColor, collapsed, splitMode, onGridDragStart, onGridDragEnd, onCollapse, onHide, onDuplicate, onReadyForViewport } = data
+  const { fileId, sessionId, filename, nodeColor, collapsed, splitMode, onGridDragStart, onGridDragEnd, onCollapse, onHide, onDuplicate, onReadyForViewport } = data
   const { width, height, onResizeX, onResizeY } = useResizable(800, 400)
 
   const [events, setEvents] = useState<EMSEvent[]>([])

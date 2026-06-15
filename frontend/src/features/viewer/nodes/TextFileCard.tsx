@@ -125,7 +125,7 @@ function colorizedLine(line: string, search: string): React.ReactNode {
 }
 
 export default function TextFileCard({ data }: NodeProps<TextFileNode>) {
-  const { fileId, sessionId, filename, aiSummary: dataAiSummary, nodeColor, collapsed, splitMode, onGridDragStart, onGridDragEnd, onCollapse, onHide, onDuplicate, onReadyForViewport } = data
+  const { fileId, sessionId, filename, nodeColor, collapsed, splitMode, onGridDragStart, onGridDragEnd, onCollapse, onHide, onDuplicate, onReadyForViewport } = data
   const { width, height, onResizeX, onResizeY } = useResizable(900, 340)
 
   const [lines, setLines] = useState<string[]>([])
