@@ -68,6 +68,55 @@ function highlight(line: string, term: string): React.ReactNode {
   )
 }
 
+const KEYWORD_RULES: { pattern: RegExp; style: React.CSSProperties }[] = [
+  { pattern: /\b(error|fail|critical|fault|emergency|panic|corrupt|offline|down|unreachable|timeout|crashed|abort)\b/gi, style: { color: '#dc2626', fontWeight: 700 } },
+  { pattern: /\b(warning|warn|degraded|unstable)\b/gi, style: { color: '#d97706', fontWeight: 600 } },
+  { pattern: /\b(notice|info|normal|healthy|ok|ready|online|up|success|passed)\b/gi, style: { color: '#2563eb' } },
+  { pattern: /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g, style: { color: '#0891b2' } },
+  { pattern: /\b([0-9a-f]{2}[:-]){5}[0-9a-f]{2}\b/gi, style: { color: '#7c3aed' } },
+]
+
+function colorizedLine(line: string, search: string): React.ReactNode {
+  // Apply keyword colors, then search highlight on top
+  const segments: { start: number; end: number; style?: React.CSSProperties }[] = []
+  
+  for (const rule of KEYWORD_RULES) {
+    const re = new RegExp(rule.pattern.source, rule.pattern.flags)
+    let m: RegExpExecArray | null
+    while ((m = re.exec(line)) !== null) {
+      segments.push({ start: m.index, end: m.index + m[0].length, style: rule.style })
+    }
+  }
+  
+  if (segments.length === 0 && !search) return line
+  if (segments.length === 0) return highlight(line, search)
+  
+  // Sort and merge non-overlapping segments
+  segments.sort((a, b) => a.start - b.start)
+  
+  // Build colored output
+  const parts: React.ReactNode[] = []
+  let lastEnd = 0
+  for (const seg of segments) {
+    if (seg.start < lastEnd) continue
+    if (seg.start > lastEnd) {
+      const text = line.slice(lastEnd, seg.start)
+      parts.push(search ? highlight(text, search) : text)
+    }
+    const text = line.slice(seg.start, seg.end)
+    parts.push(search
+      ? <span key={`kw-${seg.start}`} style={seg.style}>{highlight(text, search)}</span>
+      : <span key={`kw-${seg.start}`} style={seg.style}>{text}</span>
+    )
+    lastEnd = seg.end
+  }
+  if (lastEnd < line.length) {
+    const text = line.slice(lastEnd)
+    parts.push(search ? highlight(text, search) : text)
+  }
+  return <>{parts}</>
+}
+
 export default function TextFileCard({ data }: NodeProps<TextFileNode>) {
   const { fileId, sessionId, filename, aiSummary: dataAiSummary, nodeColor, collapsed, splitMode, onGridDragStart, onGridDragEnd, onCollapse, onHide, onDuplicate, onReadyForViewport } = data
   const { width, height, onResizeX, onResizeY } = useResizable(900, 340)
@@ -280,7 +329,7 @@ export default function TextFileCard({ data }: NodeProps<TextFileNode>) {
                         {page * LIMIT + i + 1}
                       </span>
                       <span style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
-                        {highlight(line, search)}
+                        {colorizedLine(line, search)}
                       </span>
                     </div>
                   )
