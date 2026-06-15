@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentPropsWithoutRef, type ReactNode } from 'react'
 import { useParams } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -231,6 +231,26 @@ function AISummaryPanel({
     })
   }
 
+  const markdownPlugins = useMemo(() => [remarkGfm], [])
+  const markdownComponents = useMemo(() => ({
+    a: ({ node, ...props }: ComponentPropsWithoutRef<'a'> & { node?: unknown }) => {
+      void node
+      return <a {...props} target="_blank" rel="noopener noreferrer" />
+    },
+    code: ({ className, children, node, ...props }: ComponentPropsWithoutRef<'code'> & {
+      className?: string
+      children?: ReactNode
+      node?: unknown
+    }) => {
+      void node
+      const code = String(children).replace(/\n$/, '')
+      if (className === 'language-mermaid') {
+        return <MermaidDiagram chart={code} />
+      }
+      return <code className={className} {...props}>{children}</code>
+    },
+  }), [])
+
   return (
     <div className="ai-summary-panel" role="complementary" aria-labelledby="ai-summary-title">
       <div className="ai-summary-panel-header">
@@ -267,19 +287,8 @@ function AISummaryPanel({
                   {section.summaries.map((summary, index) => (
                     <div className="ai-summary-markdown markdown-body" key={`${section.label}-${index}`}>
                       <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
-                        components={{
-                          a: ({ node: _node, ...props }) => (
-                            <a {...props} target="_blank" rel="noopener noreferrer" />
-                          ),
-                          code: ({ className, children, ...props }) => {
-                            const code = String(children).replace(/\n$/, '')
-                            if (className === 'language-mermaid') {
-                              return <MermaidDiagram chart={code} />
-                            }
-                            return <code className={className} {...props}>{children}</code>
-                          },
-                        }}
+                        remarkPlugins={markdownPlugins}
+                        components={markdownComponents}
                       >
                         {summary}
                       </ReactMarkdown>

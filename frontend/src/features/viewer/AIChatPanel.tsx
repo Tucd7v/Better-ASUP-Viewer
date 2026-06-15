@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, type Dispatch, type SetStateAction } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo, type ComponentPropsWithoutRef, type Dispatch, type ReactNode, type SetStateAction } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { useViewer } from './ViewerContext'
@@ -169,6 +169,28 @@ export default function AIChatPanel({
     }
   }
 
+  const markdownPlugins = useMemo(() => [remarkGfm], [])
+  const markdownComponents = useMemo(() => ({
+    a: ({ href, children }: ComponentPropsWithoutRef<'a'>) => (
+      <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>
+    ),
+    pre: ({ children }: ComponentPropsWithoutRef<'pre'>) => (
+      <pre style={{ whiteSpace: 'pre', overflowX: 'auto' }}>{children}</pre>
+    ),
+    code: ({ className, children, node, ...props }: ComponentPropsWithoutRef<'code'> & {
+      className?: string
+      children?: ReactNode
+      node?: unknown
+    }) => {
+      void node
+      const code = String(children).replace(/\n$/, '')
+      if (className === 'language-mermaid') {
+        return <MermaidDiagram chart={code} />
+      }
+      return <code className={className} {...props}>{children}</code>
+    },
+  }), [])
+
   const quickButtons = mode === 'analysis'
     ? ['当前画布上的日志有什么异常？', '帮我总结这些日志的关键信息']
     : ['集群健康状态如何？', '有没有错误或告警？', '网络端口状态怎么样？']
@@ -273,22 +295,8 @@ export default function AIChatPanel({
             {msg.role === 'assistant' ? (
               <div className="markdown-body" style={{ fontSize: 14, lineHeight: 1.7 }}>
                 <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  components={{
-                    a: ({ href, children }) => (
-                      <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>
-                    ),
-                    pre: ({ children }) => (
-                      <pre style={{ whiteSpace: 'pre', overflowX: 'auto' }}>{children}</pre>
-                    ),
-                    code: ({ className, children, ...props }) => {
-                      const code = String(children).replace(/\n$/, '')
-                      if (className === 'language-mermaid') {
-                        return <MermaidDiagram chart={code} />
-                      }
-                      return <code className={className} {...props}>{children}</code>
-                    },
-                  }}
+                  remarkPlugins={markdownPlugins}
+                  components={markdownComponents}
                 >{msg.content}</ReactMarkdown>
               </div>
             ) : (
