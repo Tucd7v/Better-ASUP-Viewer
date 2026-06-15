@@ -3,6 +3,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { useViewer } from './ViewerContext'
 import type { ChatMode } from './ViewerPage'
+import MermaidDiagram from './nodes/MermaidDiagram'
 
 export interface Message {
   role: 'user' | 'assistant' | 'system'
@@ -279,7 +280,14 @@ export default function AIChatPanel({
                     ),
                     pre: ({ children }) => (
                       <pre style={{ whiteSpace: 'pre', overflowX: 'auto' }}>{children}</pre>
-                    )
+                    ),
+                    code: ({ className, children, ...props }) => {
+                      const code = String(children).replace(/\n$/, '')
+                      if (className === 'language-mermaid') {
+                        return <MermaidDiagram chart={code} />
+                      }
+                      return <code className={className} {...props}>{children}</code>
+                    },
                   }}
                 >{msg.content}</ReactMarkdown>
               </div>

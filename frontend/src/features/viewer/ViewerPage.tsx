@@ -25,6 +25,7 @@ import NodeHUD from './NodeHUD'
 import TextFileCard from './nodes/TextFileCard'
 import XMLFileCard from './nodes/XMLFileCard'
 import EMSFileCard from './nodes/EMSFileCard'
+import MermaidDiagram from './nodes/MermaidDiagram'
 import AIChatPanel, { type Message } from './AIChatPanel'
 import TabBar from './TabBar'
 import { getAiSummary, getConfig, getFiles, getSessionGroup, getSessionStatus } from '../../services/api'
@@ -271,6 +272,13 @@ function AISummaryPanel({
                           a: ({ node: _node, ...props }) => (
                             <a {...props} target="_blank" rel="noopener noreferrer" />
                           ),
+                          code: ({ className, children, ...props }) => {
+                            const code = String(children).replace(/\n$/, '')
+                            if (className === 'language-mermaid') {
+                              return <MermaidDiagram chart={code} />
+                            }
+                            return <code className={className} {...props}>{children}</code>
+                          },
                         }}
                       >
                         {summary}
