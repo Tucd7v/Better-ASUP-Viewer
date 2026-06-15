@@ -431,7 +431,7 @@ async def _build_context(session_ids: list[str], context_file_ids: list[str] | N
                 return {"matched_files": []}
             if name == "list_catalog":
                 return {"catalog": "用户已选择特定文件进行分析，无需查看文件目录"}
-            if name == "read_file":
+            if name in ("read_file", "scan_file"):
                 fid = args.get("file_id", "")
                 if fid not in context_file_ids:
                     return {"error": "只能读取用户已打开的卡片文件"}
@@ -488,6 +488,98 @@ async def _build_context(session_ids: list[str], context_file_ids: list[str] | N
         elif name == "list_catalog":
             catalog_text = _format_catalog(session_ids, session_info, catalog_by_session)
             return {"catalog": catalog_text}
+
+        elif name == "scan_file":
+            file_id = args["file_id"]
+            raw_keywords = args.get("keywords", "")
+            keywords = [kw.strip() for kw in raw_keywords.split("|") if kw.strip()]
+            keyword_lowers = [kw.lower() for kw in keywords]
+
+            async with SessionLocal() as db2:
+                rec = await db2.get(FileRecord, file_id)
+                if rec is None:
+                    return {"error": "File not found"}
+                if rec.session_id not in session_ids:
+                    return {"error": "File not in active sessions"}
+
+            from pathlib import Path
+            svc = FileContentService()
+            fp = Path(rec.file_path)
+
+            if rec.file_type == "ems":
+                data = await svc.read_ems(fp, rec.filename, offset=0, limit=1_000_000)
+                lines = []
+                for event in data.get("events", []):
+                    parts = [
+                        event.get("date", ""),
+                        event.get("hostname", ""),
+                        event.get("level", ""),
+                        event.get("operation", ""),
+                        event.get("summary", ""),
+                        event.get("content", ""),
+                    ]
+                    lines.append(" ".join(str(part) for part in parts if part))
+                total_lines = data.get("total_events", len(lines))
+            elif rec.file_type == "xml":
+                data = await svc.read_xml(fp, rec.filename)
+                if "rows" in data:
+                    rows = data.get("rows", [])
+                    lines = [
+                        " | ".join(f"{key}: {value}" for key, value in row.items())
+                        for row in rows
+                    ]
+                    total_lines = len(rows)
+                else:
+                    lines = data.get("lines", [])
+                    total_lines = data.get("total_lines", len(lines))
+            else:
+                data = await svc.read_text(fp, rec.filename, offset=0, limit=1_000_000)
+                lines = data.get("lines", [])
+                total_lines = data.get("total_lines", len(lines))
+
+            results = []
+            if keyword_lowers:
+                for idx, line in enumerate(lines):
+                    line_lower = str(line).lower()
+                    matched_keywords = [
+                        keywords[i]
+                        for i, keyword in enumerate(keyword_lowers)
+                        if keyword in line_lower
+                    ]
+                    if not matched_keywords:
+                        continue
+
+                    start = max(0, idx - 2)
+                    end = min(len(lines), idx + 3)
+                    context = [
+                        {
+                            "line": ctx_idx,
+                            "display_line": ctx_idx + 1,
+                            "text": lines[ctx_idx],
+                        }
+                        for ctx_idx in range(start, end)
+                    ]
+                    results.append({
+                        "line": idx,
+                        "display_line": idx + 1,
+                        "matched_keywords": matched_keywords,
+                        "context": context,
+                    })
+                    if len(results) >= 30:
+                        break
+
+            hostname, serial = session_info.get(rec.session_id, ("", ""))
+            return {
+                "file_id": file_id,
+                "session_id": rec.session_id,
+                "filename": rec.filename,
+                "hostname": hostname,
+                "serial_num": serial,
+                "keywords": keywords,
+                "matches": len(results),
+                "total_lines": total_lines,
+                "results": results,
+            }
 
         elif name == "read_file":
             file_id = args["file_id"]
