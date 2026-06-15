@@ -1,4 +1,4 @@
-import { memo, useEffect, useId, useRef, useState } from 'react'
+import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import mermaid from 'mermaid'
 
 mermaid.initialize({
@@ -21,19 +21,22 @@ interface MermaidDiagramProps {
 function MermaidDiagramComponent({ chart }: MermaidDiagramProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [error, setError] = useState<string | null>(null)
-  const uid = useId()
+  const renderedRef = useRef<string>('')
+  const uid = useMemo(() => `mermaid-${Math.random().toString(36).slice(2, 8)}`, [])
 
   useEffect(() => {
-    if (!containerRef.current) return
-    const id = `mermaid-${uid.replace(/:/g, '')}`
-    containerRef.current.innerHTML = ''
+    if (!containerRef.current || chart === renderedRef.current) return
+    renderedRef.current = chart
+    setError(null)
 
-    mermaid.render(id, chart)
+    mermaid.render(uid, chart)
       .then(({ svg }) => {
-        if (containerRef.current) containerRef.current.innerHTML = svg
+        if (containerRef.current && chart === renderedRef.current) {
+          containerRef.current.innerHTML = svg
+        }
       })
       .catch((err: Error) => {
-        setError(err.message)
+        if (chart === renderedRef.current) setError(err.message)
       })
   }, [chart, uid])
 
