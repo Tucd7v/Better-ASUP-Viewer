@@ -445,11 +445,6 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
             <span style={filenameStyle} title={filename}>
               {filename}
             </span>
-            {aiSummary && (
-              <span style={aiSummaryBadgeStyle} title={aiSummary} aria-label="AI health summary">
-                💡
-              </span>
-            )}
             {hostname && (
               <>
                 <span aria-hidden="true" style={headerDividerStyle} />
