@@ -276,7 +276,21 @@ export default function AIChatPanel({
                   components={{
                     a: ({ href, children }) => (
                       <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>
-                    )
+                    ),
+                    pre: ({ children }) => (
+                      <pre style={{
+                        background: '#1e293b', color: '#e2e8f0', padding: 12, borderRadius: 6,
+                        overflowX: 'auto', fontSize: 11, fontFamily: 'ui-monospace, Consolas, monospace',
+                        lineHeight: 1.3, whiteSpace: 'pre',
+                      }}>{children}</pre>
+                    ),
+                    code: ({ className, children, ...props }) => {
+                      const match = /language-(\w+)/.exec(className || '')
+                      if (match) {
+                        return <code className={className} {...props}>{children}</code>
+                      }
+                      return <code style={{ background: '#f1f5f9', padding: '2px 5px', borderRadius: 3, fontSize: 12, fontFamily: 'monospace' }} {...props}>{children}</code>
+                    },
                   }}
                 >{msg.content}</ReactMarkdown>
               </div>
