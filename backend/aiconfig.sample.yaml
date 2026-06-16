@@ -1,0 +1,23 @@
+# AI 模型配置 — 复制此文件为 aiconfig.yaml 并修改后启动后端
+# 支持任何兼容 OpenAI API 的模型（DeepSeek、OpenAI、OpenRouter、本地 vLLM 等）
+
+ai_auto_analysis:
+  enabled: true  # set to false to disable AI analysis after upload
+
+api:
+  # API 地址 (OpenAI 兼容格式)
+  # DeepSeek:   https://api.deepseek.com/v1
+  # OpenAI:     https://api.openai.com/v1
+  # OpenRouter: https://openrouter.ai/api/v1
+  # 本地 vLLM:  http://localhost:8000/v1
+  base_url: "https://api.deepseek.com/v1"
+
+  # 模型名称
+  # DeepSeek:   deepseek-chat
+  # OpenAI:     gpt-4o, gpt-4o-mini
+  # OpenRouter: anthropic/claude-sonnet-4, openai/gpt-4o
+  model: "deepseek-v4-flash"
+
+  # API Key — 在此填写你的 token
+  # 也可以通过环境变量 DEEPSEEK_API_KEY 设置（优先级更高）
+  api_key: "YOUR_API_KEY_HERE"

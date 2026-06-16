@@ -8,3 +8,4 @@ backend/.env
 backend/**/__pycache__
 __pycache__/
 *.pyc
+backend/aiconfig.yaml
