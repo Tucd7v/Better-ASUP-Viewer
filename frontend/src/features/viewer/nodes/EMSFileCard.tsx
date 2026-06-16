@@ -99,7 +99,9 @@ export default function EMSFileCard({ data }: NodeProps<EMSFileNode>) {
   const { state, dispatch: viewDispatch } = useViewer()
   const sessionMeta = state.sessions.find((session) => session.sessionId === sessionId)
   const hostname = sessionMeta?.hostname?.trim() ?? ''
-  const fontSize = state.fontSize || 13
+  const fontSize = Math.max(10, Math.min(18, state.fontSize || 13))
+  const contentFontSize = Math.max(10, fontSize)
+  const metadataFontSize = Math.max(9, contentFontSize - 2)
 
   useEffect(() => {
     if (collapsed) {
@@ -279,7 +281,7 @@ export default function EMSFileCard({ data }: NodeProps<EMSFileNode>) {
 
             {/* match count */}
             {!loading && (search || levelFilter !== 'all') && (
-              <div style={{ padding: '3px 10px', fontSize: 10, color: '#94a3b8', borderBottom: '1px solid #f1f5f9' }}>
+              <div style={{ padding: '3px 10px', fontSize: metadataFontSize, color: '#94a3b8', borderBottom: '1px solid #f1f5f9' }}>
                 {filtered.length} / {events.length} events
               </div>
             )}
@@ -290,9 +292,9 @@ export default function EMSFileCard({ data }: NodeProps<EMSFileNode>) {
               className="nodrag nowheel"
             >
               {loading ? (
-                <div style={{ padding: '8px 10px', color: '#94a3b8' }}>Loading…</div>
+                <div style={{ padding: '8px 10px', color: '#94a3b8', fontSize: contentFontSize }}>Loading…</div>
               ) : filtered.length === 0 ? (
-                <div style={{ padding: '8px 10px', color: '#94a3b8' }}>No events</div>
+                <div style={{ padding: '8px 10px', color: '#94a3b8', fontSize: contentFontSize }}>No events</div>
               ) : (
                 filtered.map((ev, i) => {
                   const origIdx = events.indexOf(ev)
@@ -305,12 +307,12 @@ export default function EMSFileCard({ data }: NodeProps<EMSFileNode>) {
                       padding: '6px 10px',
                       borderBottom: '1px solid #f1f5f9',
                       background: isHighlight ? 'rgba(251,191,36,0.2)' : 'transparent',
-                      fontSize,
+                      fontSize: contentFontSize,
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
                       {ev.date && (
-                        <span style={{ color: '#94a3b8', fontSize: 10 }}>
+                        <span style={{ color: '#94a3b8', fontSize: metadataFontSize }}>
                           {highlight(ev.date, search)}
                         </span>
                       )}
@@ -321,7 +323,7 @@ export default function EMSFileCard({ data }: NodeProps<EMSFileNode>) {
                           border: `1px solid ${levelColor(ev.level)}44`,
                           borderRadius: 3,
                           padding: '0 4px',
-                          fontSize: 10,
+                          fontSize: metadataFontSize,
                           textTransform: 'uppercase',
                           letterSpacing: 0.5,
                         }}
@@ -329,13 +331,13 @@ export default function EMSFileCard({ data }: NodeProps<EMSFileNode>) {
                         {ev.level}
                       </span>
                       {ev.hostname && (
-                        <span style={{ color: '#94a3b8', fontSize: 10 }}>
+                        <span style={{ color: '#94a3b8', fontSize: metadataFontSize }}>
                           {highlight(ev.hostname, search)}
                         </span>
                       )}
                     </div>
                     {ev.content && (
-                      <div style={{ color: '#64748b', fontSize: 11, wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>
+                      <div style={{ color: '#64748b', fontSize: contentFontSize, wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>
                         {highlight(ev.content, search)}
                       </div>
                     )}
