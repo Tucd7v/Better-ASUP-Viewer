@@ -1,5 +1,7 @@
 # Better ASUP Viewer
 
+![screenshot](img.png)
+
 NetApp AutoSupport 日志解析、管理和分析工具。上传 `.7z` / `.tgz` 格式的 ASUP 包，自动解压、归类、分组，提供多维度查看和 AI 辅助分析。
 
 ## 功能概览
