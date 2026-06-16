@@ -11,3 +11,5 @@ __pycache__/
 backend/aiconfig.yaml
 .hermes_task.md
 ASUP.7z
+Dockerfile
+docker-compose.yml

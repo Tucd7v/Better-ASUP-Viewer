@@ -22,6 +22,8 @@ NetApp AutoSupport 日志解析、管理和分析工具。上传 `.7z` / `.tgz` 
 
 ## 快速启动
 
+要求 Python 3.10+，Node.js 18+。
+
 ### 1. 后端
 
 ```bash
