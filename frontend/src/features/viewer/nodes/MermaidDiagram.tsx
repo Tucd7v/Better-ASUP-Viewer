@@ -1,18 +1,32 @@
 import { memo, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
-import mermaid from 'mermaid'
 
-mermaid.initialize({
-  startOnLoad: false,
-  theme: 'base',
-  themeVariables: {
-    primaryColor: '#eff6ff',
-    primaryBorderColor: '#3b82f6',
-    primaryTextColor: '#1e293b',
-    lineColor: '#94a3b8',
-    fontSize: '13px',
-    fontFamily: 'system-ui, -apple-system, sans-serif',
-  },
-})
+let mermaidModule: typeof import('mermaid').default | null = null
+let mermaidReady = false
+
+async function initMermaid() {
+  if (mermaidReady) return
+  const mod = await import('mermaid')
+  mermaidModule = mod.default
+  mermaidModule.initialize({
+    startOnLoad: false,
+    theme: 'base',
+    themeVariables: {
+      primaryColor: '#eff6ff',
+      primaryBorderColor: '#3b82f6',
+      primaryTextColor: '#1e293b',
+      lineColor: '#94a3b8',
+      fontSize: '13px',
+      fontFamily: 'system-ui, -apple-system, sans-serif',
+    },
+  })
+  mermaidReady = true
+}
+
+async function renderMermaid(id: string, chart: string): Promise<string> {
+  await initMermaid()
+  const { svg } = await mermaidModule!.render(id, chart)
+  return svg
+}
 
 interface MermaidDiagramProps {
   chart: string
@@ -85,7 +99,7 @@ function MermaidDiagramComponent({ chart }: MermaidDiagramProps) {
     setError(null)
     const hiddenDiv = document.createElement('div')
 
-    mermaid.render(renderId, chart)
+    renderMermaid(renderId, chart)
       .then(({ svg }) => {
         hiddenDiv.innerHTML = svg
         if (containerRef.current && renderKey === renderedRef.current) {
@@ -140,7 +154,7 @@ function MermaidDiagramComponent({ chart }: MermaidDiagramProps) {
     setExpandedError(null)
     const hiddenDiv = document.createElement('div')
 
-    mermaid.render(expandedRenderId, chart)
+    renderMermaid(expandedRenderId, chart)
       .then(({ svg }) => {
         hiddenDiv.innerHTML = svg
         if (expandedContainerRef.current && expandedRenderKey === expandedRenderedRef.current) {
