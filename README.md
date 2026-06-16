@@ -52,8 +52,11 @@ npm run dev           # 开发模式 VITE:5173
 ```bash
 cd frontend
 NODE_ENV=production node node_modules/vite/bin/vite.js build
-# dist/ 目录为静态文件，由后端直接 serve (FastAPI mounts frontend/dist)
 ```
+
+构建后 `dist/` 由后端直接 serve。启动后端后访问 `http://localhost:8001/` 即可，无需额外运行前端 dev server。
+
+`main.py` 会自动检测 `frontend/dist` 目录，挂载静态资源和 SPA 路由。
 
 ## 配置
 
