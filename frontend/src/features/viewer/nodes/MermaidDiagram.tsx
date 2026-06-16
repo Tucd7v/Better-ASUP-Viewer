@@ -100,7 +100,7 @@ function MermaidDiagramComponent({ chart }: MermaidDiagramProps) {
     const hiddenDiv = document.createElement('div')
 
     renderMermaid(renderId, chart)
-      .then(({ svg }) => {
+      .then((svg) => {
         hiddenDiv.innerHTML = svg
         if (containerRef.current && renderKey === renderedRef.current) {
           containerRef.current.innerHTML = hiddenDiv.innerHTML
@@ -155,7 +155,7 @@ function MermaidDiagramComponent({ chart }: MermaidDiagramProps) {
     const hiddenDiv = document.createElement('div')
 
     renderMermaid(expandedRenderId, chart)
-      .then(({ svg }) => {
+      .then((svg) => {
         hiddenDiv.innerHTML = svg
         if (expandedContainerRef.current && expandedRenderKey === expandedRenderedRef.current) {
           expandedContainerRef.current.innerHTML = hiddenDiv.innerHTML

@@ -37,5 +37,5 @@ export function useResizable(defaultWidth = 320, defaultHeight = 380) {
     window.addEventListener('mouseup', onUp)
   }, [])
 
-  return { width, height, setWidth, onResizeX, onResizeY }
+  return { width, height, setWidth, setHeight, onResizeX, onResizeY }
 }

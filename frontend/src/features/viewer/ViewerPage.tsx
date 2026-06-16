@@ -23,7 +23,7 @@ import FileTree from './FileTree'
 import SearchPanel from './SearchPanel'
 import NodeHUD from './NodeHUD'
 import TextFileCard from './nodes/TextFileCard'
-import XMLFileCard from './nodes/XMLFileCard'
+import XMLFileCard, { type XMLTableState } from './nodes/XMLFileCard'
 import EMSFileCard from './nodes/EMSFileCard'
 import MermaidDiagram from './nodes/MermaidDiagram'
 import AIChatPanel, { type Message } from './AIChatPanel'
@@ -317,7 +317,7 @@ function SplitCard({ node, nodeTypes, idx, dragOverZone, setDragOverZone, handle
   onSwapDrop: (targetIdx: number) => void
   style?: React.CSSProperties
 }) {
-  const CardComponent = (nodeTypes as Record<string, React.ComponentType<{ data: unknown }>>)[node.type!]
+  const CardComponent = (nodeTypes as Record<string, React.ComponentType<{ id?: string; data: unknown }>>)[node.type!]
   const isSwapTarget = swapDragSource !== null && swapDragSource !== idx
   return (
     <div style={{
@@ -345,7 +345,7 @@ function SplitCard({ node, nodeTypes, idx, dragOverZone, setDragOverZone, handle
         handleDrop(idx, e)
       }}>
       <div style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
-        {CardComponent && <CardComponent data={{ ...node.data, splitMode: true, onGridDragStart, onGridDragEnd }} />}
+        {CardComponent && <CardComponent id={node.id} data={{ ...node.data, splitMode: true, onGridDragStart, onGridDragEnd }} />}
       </div>
     </div>
   )
@@ -1316,6 +1316,22 @@ function ViewerInner() {
     }
   }, [addNodes, setNodesForTab, splitMode])
 
+  const handleXMLTableStateChange = useCallback((targetTabId: string, nodeId: string, xmlTableState: XMLTableState) => {
+    setNodesForTab(targetTabId, (prev) =>
+      prev.map((node) =>
+        node.id === nodeId
+          ? {
+              ...node,
+              data: {
+                ...node.data,
+                xmlTableState,
+              },
+            }
+          : node
+      )
+    )
+  }, [setNodesForTab])
+
   const onEdgeDoubleClick = useCallback((event: React.MouseEvent, edge: Edge) => {
     event.stopPropagation()
     setEditingEdgeId(edge.id)
@@ -1557,10 +1573,12 @@ function ViewerInner() {
                 }
               : data.onHide,
             onDuplicate: () => handleDuplicateCard(nodeWithState),
+            viewTabId: activeTabId,
+            onXMLTableStateChange: handleXMLTableStateChange,
           },
         }
       }),
-    [nodes, state.hiddenFileIds, state.collapsedFileIds, state.sessions, handleDuplicateCard, setNodesForTab]
+    [nodes, activeTabId, state.hiddenFileIds, state.collapsedFileIds, state.sessions, handleDuplicateCard, handleXMLTableStateChange, setNodesForTab]
   )
 
   const tabFileIds = useMemo(

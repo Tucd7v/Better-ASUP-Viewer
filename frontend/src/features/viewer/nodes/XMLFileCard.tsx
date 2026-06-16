@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { NodeProps, Node } from '@xyflow/react'
 import { getFileContent } from '../../../services/api'
 import { useResizable } from './useResizable'
@@ -6,6 +6,18 @@ import { useViewer } from '../ViewerContext'
 import { isGridDragActive, setGridDragActive } from './gridDragState'
 
 const searchCache = new Map<string, string>()
+
+type SortDir = 'asc' | 'desc' | null
+
+export interface XMLTableState {
+  columns?: string[]
+  sortCol?: string | null
+  sortDir?: SortDir
+  pinnedCols?: string[]
+  columnWidths?: Record<string, number>
+  width?: number
+  height?: number
+}
 
 export interface XMLFileCardData extends Record<string, unknown> {
   fileId: string
@@ -15,12 +27,15 @@ export interface XMLFileCardData extends Record<string, unknown> {
   nodeColor: string
   collapsed: boolean
   splitMode?: boolean
+  viewTabId?: string
   onGridDragStart?: () => void
   onGridDragEnd?: () => void
   onCollapse: () => void
   onHide: () => void
   onDuplicate: () => void
   onReadyForViewport?: (nodeId: string, size?: { width?: number; height?: number }) => void
+  xmlTableState?: XMLTableState
+  onXMLTableStateChange?: (tabId: string, nodeId: string, state: XMLTableState) => void
 }
 
 export type XMLFileNode = Node<XMLFileCardData, 'xmlFile'>
@@ -54,9 +69,29 @@ function GridDragGrip({ onDragStart, onDragEnd }: {
 }
 
 interface TableRow { [key: string]: string }
-type SortDir = 'asc' | 'desc' | null
 
 const MENU_WIDTH = 180
+
+function mergeStoredColumns(storedColumns: string[] | undefined, allColumns: string[]) {
+  if (!storedColumns || storedColumns.length === 0) return allColumns
+
+  const allColumnSet = new Set(allColumns)
+  const retained = storedColumns.filter((col) => allColumnSet.has(col))
+  const retainedSet = new Set(retained)
+  return [...retained, ...allColumns.filter((col) => !retainedSet.has(col))]
+}
+
+function filterColumnWidths(widths: Record<string, number> | undefined, allColumns: string[]) {
+  if (!widths) return {}
+
+  const allColumnSet = new Set(allColumns)
+  return Object.fromEntries(
+    Object.entries(widths).filter((entry): entry is [string, number] => {
+      const [col, width] = entry
+      return allColumnSet.has(col) && Number.isFinite(width) && width > 0
+    })
+  )
+}
 
 function ColSwapMenu({
   allCols,
@@ -148,20 +183,40 @@ function ColSwapMenu({
   )
 }
 
-export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
-  const { fileId, sessionId, filename, nodeColor, collapsed, splitMode, onGridDragStart, onGridDragEnd, onCollapse, onHide, onDuplicate, onReadyForViewport } = data
-  const { width, height, setWidth, onResizeX, onResizeY } = useResizable(320, 360)
+export default function XMLFileCard({ id, data }: NodeProps<XMLFileNode>) {
+  const {
+    fileId,
+    sessionId,
+    filename,
+    nodeColor,
+    collapsed,
+    splitMode,
+    viewTabId,
+    onGridDragStart,
+    onGridDragEnd,
+    onCollapse,
+    onHide,
+    onDuplicate,
+    onReadyForViewport,
+    xmlTableState,
+    onXMLTableStateChange,
+  } = data
+  const initialTableStateRef = useRef<XMLTableState | undefined>(xmlTableState)
+  const { width, height, setWidth, setHeight, onResizeX, onResizeY } = useResizable(
+    xmlTableState?.width ?? 320,
+    xmlTableState?.height ?? 360
+  )
 
   const [rows, setRows] = useState<TableRow[]>([])
   const [allColumns, setAllColumns] = useState<string[]>([])
-  const [columns, setColumns] = useState<string[]>([])
-  const [sortCol, setSortCol] = useState<string | null>(null)
-  const [sortDir, setSortDir] = useState<SortDir>(null)
+  const [columns, setColumns] = useState<string[]>(() => xmlTableState?.columns ?? [])
+  const [sortCol, setSortCol] = useState<string | null>(() => xmlTableState?.sortCol ?? null)
+  const [sortDir, setSortDir] = useState<SortDir>(() => xmlTableState?.sortDir ?? null)
   const [search, setSearch] = useState(searchCache.get(fileId) || '')
   const [loading, setLoading] = useState(false)
   const [contentReady, setContentReady] = useState(false)
-  const [pinnedCols, setPinnedCols] = useState<Set<string>>(new Set())
-  const [columnWidths, setColumnWidths] = useState<Record<string, number>>({})
+  const [pinnedCols, setPinnedCols] = useState<Set<string>>(() => new Set(xmlTableState?.pinnedCols ?? []))
+  const [columnWidths, setColumnWidths] = useState<Record<string, number>>(() => xmlTableState?.columnWidths ?? {})
 
   const dragCol = useRef<string | null>(null)
   const dragOverCol = useRef<string | null>(null)
@@ -183,6 +238,22 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
   const hostname = sessionMeta?.hostname?.trim() ?? ''
   const fontSize = state.fontSize || 13
   const getColumnWidth = (col: string) => Math.max(100, col.length * 9)
+  const applyLoadedColumns = useCallback((cols: string[]) => {
+    const savedState = initialTableStateRef.current
+
+    setAllColumns(cols)
+    setColumns(mergeStoredColumns(savedState?.columns, cols))
+    setPinnedCols(new Set((savedState?.pinnedCols ?? []).filter((col) => cols.includes(col))))
+    setColumnWidths(filterColumnWidths(savedState?.columnWidths, cols))
+
+    if (savedState?.sortCol && cols.includes(savedState.sortCol) && savedState.sortDir) {
+      setSortCol(savedState.sortCol)
+      setSortDir(savedState.sortDir)
+    } else {
+      setSortCol(null)
+      setSortDir(null)
+    }
+  }, [])
 
   useEffect(() => {
     const onMouseMove = (e: MouseEvent) => {
@@ -223,24 +294,32 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
         const d = res.data
         if (Array.isArray(d.rows) && d.rows.length > 0) {
           const cols = Object.keys(d.rows[0])
-          setAllColumns(cols)
-          setColumns(cols)
+          applyLoadedColumns(cols)
           setRows(d.rows)
           const colW = cols.reduce((sum, c) => sum + Math.max(100, c.length * 9), 0)
-          setWidth(Math.max(320, Math.min(1000, colW + 20)))
+          if (initialTableStateRef.current?.width == null) {
+            setWidth(Math.max(320, Math.min(1000, colW + 20)))
+          }
+          if (initialTableStateRef.current?.height != null) {
+            setHeight(initialTableStateRef.current.height)
+          }
         } else if (Array.isArray(d.lines)) {
           const ls: string[] = d.lines
           if (ls.length > 0) {
             const cols = ls[0].split('\t')
-            setAllColumns(cols)
-            setColumns(cols)
+            applyLoadedColumns(cols)
             const rowData = ls.slice(1).map((l) => {
               const vals = l.split('\t')
               return Object.fromEntries(cols.map((c, i) => [c, vals[i] ?? '']))
             })
             setRows(rowData)
             const colW = cols.reduce((sum, c) => sum + Math.max(100, c.length * 9), 0)
-            setWidth(Math.max(320, Math.min(1000, colW + 20)))
+            if (initialTableStateRef.current?.width == null) {
+              setWidth(Math.max(320, Math.min(1000, colW + 20)))
+            }
+            if (initialTableStateRef.current?.height != null) {
+              setHeight(initialTableStateRef.current.height)
+            }
           }
         }
       })
@@ -249,7 +328,34 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
         setLoading(false)
         setContentReady(true)
       })
-  }, [fileId, sessionId, collapsed])
+  }, [fileId, sessionId, collapsed, applyLoadedColumns, setHeight, setWidth])
+
+  useEffect(() => {
+    if (!contentReady || allColumns.length === 0 || !viewTabId) return
+
+    onXMLTableStateChange?.(viewTabId, id, {
+      columns,
+      sortCol,
+      sortDir,
+      pinnedCols: Array.from(pinnedCols),
+      columnWidths,
+      width,
+      height,
+    })
+  }, [
+    id,
+    allColumns.length,
+    columnWidths,
+    columns,
+    contentReady,
+    height,
+    onXMLTableStateChange,
+    pinnedCols,
+    sortCol,
+    sortDir,
+    viewTabId,
+    width,
+  ])
 
   useEffect(() => {
     viewportReadyReported.current = false
@@ -462,7 +568,7 @@ export default function XMLFileCard({ data }: NodeProps<XMLFileNode>) {
               </>
             )}
           </div>
-          {(data as any).__duplicate ? null : (
+          {data.__duplicate === true ? null : (
           <button
             type="button"
             className="nodrag"
