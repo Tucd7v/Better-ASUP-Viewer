@@ -13,3 +13,5 @@ backend/aiconfig.yaml
 ASUP.7z
 Dockerfile
 docker-compose.yml
+.claude
+docs/
